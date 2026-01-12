@@ -241,6 +241,37 @@ export const useAdminBusinesses = () => {
 
 // Menu items for a business
 export const useBusinessMenuItems = (businessId: string | null) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for menu items
+  useEffect(() => {
+    if (!businessId) return;
+    
+    console.log('[useBusinessMenuItems] Setting up realtime subscription for business:', businessId);
+    
+    const channel = supabase
+      .channel(`menu-items-realtime-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'menu_items',
+          filter: `business_id=eq.${businessId}`,
+        },
+        (payload) => {
+          console.log('[useBusinessMenuItems] Menu item changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['business-menu-items', businessId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useBusinessMenuItems] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, businessId]);
+
   return useQuery({
     queryKey: ["business-menu-items", businessId],
     queryFn: async () => {
