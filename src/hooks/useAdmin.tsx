@@ -90,6 +90,49 @@ export const useUserRole = () => {
 
 // Admin stats
 export const useAdminStats = () => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscriptions for all stat-related tables
+  useEffect(() => {
+    console.log('[useAdminStats] Setting up realtime subscriptions');
+    
+    const ordersChannel = supabase
+      .channel('admin-stats-orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
+    const ridersChannel = supabase
+      .channel('admin-stats-riders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'riders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
+    const businessesChannel = supabase
+      .channel('admin-stats-businesses')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'businesses' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
+    const requestsChannel = supabase
+      .channel('admin-stats-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rider_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
+    return () => {
+      console.log('[useAdminStats] Cleaning up realtime subscriptions');
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(ridersChannel);
+      supabase.removeChannel(businessesChannel);
+      supabase.removeChannel(requestsChannel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
