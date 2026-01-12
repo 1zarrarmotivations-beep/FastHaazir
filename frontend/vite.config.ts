@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [
+      '.emergentagent.com',
+      '.preview.emergentagent.com',
+      'realtime-delivery.preview.emergentagent.com',
+      'localhost',
+    ],
   },
   build: {
     sourcemap: true,
