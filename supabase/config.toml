@@ -1,0 +1,13 @@
+project_id = "pmqkclhqvjfmcxzuoypa"
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.notify-rider]
+verify_jwt = false
+
+[functions.create-order-api]
+verify_jwt = false
+
+[functions.assign-rider-api]
+verify_jwt = false

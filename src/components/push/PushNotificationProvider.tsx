@@ -1,0 +1,198 @@
+import { useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+
+declare global {
+  interface Window {
+    OneSignalDeferred?: Array<(OneSignal: OneSignalInstance) => void>;
+    OneSignal?: OneSignalInstance;
+  }
+}
+
+interface OneSignalInstance {
+  init: (config: Record<string, unknown>) => Promise<void>;
+  User: {
+    PushSubscription: {
+      id: string | null;
+      optedIn: boolean;
+      addEventListener: (event: string, callback: () => void) => void;
+    };
+  };
+  login: (externalId: string) => Promise<void>;
+  logout: () => Promise<void>;
+  Notifications: {
+    requestPermission: () => Promise<void>;
+    addEventListener: (event: string, callback: (data: NotificationEvent) => void) => void;
+  };
+}
+
+interface NotificationEvent {
+  notification: {
+    additionalData?: {
+      route?: string;
+    };
+  };
+}
+
+interface PushContextType {
+  requestPermission: () => Promise<void>;
+}
+
+const PushContext = createContext<PushContextType>({
+  requestPermission: async () => {},
+});
+
+export const usePush = () => useContext(PushContext);
+
+const ONESIGNAL_APP_ID = '2a4abb59-f4b5-444b-8576-29ca47f9c7a2';
+
+interface Props {
+  children: ReactNode;
+}
+
+export default function PushNotificationProvider({ children }: Props) {
+  const { user } = useAuth();
+
+  const saveDeviceToken = useCallback(async (playerId: string | null) => {
+    if (!user || !playerId) {
+      console.log('[Push] Cannot save token - missing user or playerId:', { userId: user?.id, playerId });
+      return;
+    }
+
+    console.log('[Push] Saving device token for user:', user.id, 'token:', playerId);
+
+    try {
+      // First, check if token already exists
+      const { data: existing } = await supabase
+        .from('push_device_tokens')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('device_token', playerId)
+        .single();
+
+      if (existing) {
+        // Update existing token
+        const { error } = await supabase
+          .from('push_device_tokens')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+        console.log('[Push] Device token updated:', playerId);
+      } else {
+        // Insert new token
+        const { error } = await supabase
+          .from('push_device_tokens')
+          .insert({
+            user_id: user.id,
+            device_token: playerId,
+            platform: 'web',
+            updated_at: new Date().toISOString(),
+          });
+        
+        if (error) throw error;
+        console.log('[Push] Device token saved:', playerId);
+      }
+    } catch (err) {
+      console.error('[Push] Error saving device token:', err);
+    }
+  }, [user]);
+
+  const initOneSignal = useCallback(async () => {
+    if (!ONESIGNAL_APP_ID || typeof window === 'undefined') {
+      console.log('[Push] OneSignal not initialized - missing app ID or not in browser');
+      return;
+    }
+
+    console.log('[Push] Initializing OneSignal for user:', user?.id);
+
+    // Load SDK
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    
+    if (!document.getElementById('onesignal-sdk')) {
+      const script = document.createElement('script');
+      script.id = 'onesignal-sdk';
+      script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+      script.defer = true;
+      document.head.appendChild(script);
+      console.log('[Push] OneSignal SDK script loaded');
+    }
+
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        await OneSignal.init({
+          appId: ONESIGNAL_APP_ID,
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: { enable: false },
+        });
+        console.log('[Push] OneSignal initialized successfully');
+
+        // Login with external user ID first
+        if (user?.id) {
+          await OneSignal.login(user.id);
+          console.log('[Push] Logged in to OneSignal with user:', user.id);
+        }
+
+        // Save subscription ID
+        const playerId = OneSignal.User.PushSubscription.id;
+        const optedIn = OneSignal.User.PushSubscription.optedIn;
+        console.log('[Push] Current subscription state:', { playerId, optedIn });
+
+        if (playerId && user) {
+          await saveDeviceToken(playerId);
+        } else if (!optedIn) {
+          console.log('[Push] User not opted in, requesting permission...');
+          // Auto-request permission for better UX
+          try {
+            await OneSignal.Notifications.requestPermission();
+            const newPlayerId = OneSignal.User.PushSubscription.id;
+            if (newPlayerId && user) {
+              await saveDeviceToken(newPlayerId);
+            }
+          } catch (permErr) {
+            console.log('[Push] Permission request failed or denied:', permErr);
+          }
+        }
+
+        // Listen for subscription changes
+        OneSignal.User.PushSubscription.addEventListener('change', async () => {
+          const newId = OneSignal.User.PushSubscription.id;
+          console.log('[Push] Subscription changed, new ID:', newId);
+          if (newId && user) {
+            await saveDeviceToken(newId);
+          }
+        });
+
+        // Handle notification clicks for deep linking
+        OneSignal.Notifications.addEventListener('click', (event) => {
+          const route = event.notification?.additionalData?.route;
+          console.log('[Push] Notification clicked, route:', route);
+          if (route && typeof window !== 'undefined') {
+            window.location.href = route;
+          }
+        });
+      } catch (err) {
+        console.error('[Push] OneSignal initialization error:', err);
+      }
+    });
+  }, [user, saveDeviceToken]);
+
+  const requestPermission = useCallback(async () => {
+    if (window.OneSignal) {
+      await window.OneSignal.Notifications.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      initOneSignal();
+    }
+  }, [user, initOneSignal]);
+
+  return (
+    <PushContext.Provider value={{ requestPermission }}>
+      {children}
+    </PushContext.Provider>
+  );
+}
