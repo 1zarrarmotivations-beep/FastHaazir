@@ -127,6 +127,54 @@ export const useOrders = () => {
 
 export const useActiveOrders = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscriptions for active orders and rider requests
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    console.log('[useActiveOrders] Setting up realtime subscriptions for user:', user.id);
+    
+    const ordersChannel = supabase
+      .channel(`active-orders-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `customer_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[useActiveOrders] Order changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['active-orders', user.id] });
+        }
+      )
+      .subscribe();
+
+    const requestsChannel = supabase
+      .channel(`active-rider-requests-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rider_requests',
+          filter: `customer_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[useActiveOrders] Rider request changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['active-orders', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useActiveOrders] Cleaning up realtime subscriptions');
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(requestsChannel);
+    };
+  }, [queryClient, user?.id]);
 
   return useQuery({
     queryKey: ['active-orders', user?.id],
