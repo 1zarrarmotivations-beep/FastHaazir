@@ -84,6 +84,37 @@ export const useBusinesses = (type?: BusinessType) => {
 };
 
 export const useBusiness = (id: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for single business
+  useEffect(() => {
+    if (!id) return;
+    
+    console.log('[useBusiness] Setting up realtime subscription for business:', id);
+    
+    const channel = supabase
+      .channel(`business-realtime-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'businesses',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log('[useBusiness] Business changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['business', id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useBusiness] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, id]);
+
   return useQuery({
     queryKey: ['business', id],
     queryFn: async () => {
@@ -104,7 +135,7 @@ export const useBusiness = (id: string) => {
       return data as Business | null;
     },
     enabled: !!id,
-    staleTime: 10000,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 };
