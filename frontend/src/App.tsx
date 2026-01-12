@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import ChatNotificationProvider from "@/components/chat/ChatNotificationProvider
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RealtimeProvider from "@/components/RealtimeProvider";
 import PushNotificationProvider from "@/components/push/PushNotificationProvider";
+import { initializeMobileApp } from "@/lib/mobile";
 import Index from "./pages/Index";
 
 // Lazy load non-critical pages
