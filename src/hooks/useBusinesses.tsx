@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 export type BusinessType = 'restaurant' | 'bakery' | 'grocery' | 'shop';
 
@@ -18,6 +19,36 @@ export interface Business {
 }
 
 export const useBusinesses = (type?: BusinessType) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for businesses
+  useEffect(() => {
+    console.log('[useBusinesses] Setting up realtime subscription for businesses, type:', type);
+    
+    const channel = supabase
+      .channel(`businesses-realtime-${type || 'all'}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'businesses',
+        },
+        (payload) => {
+          console.log('[useBusinesses] Business changed:', payload);
+          // Invalidate query to refresh businesses list
+          queryClient.invalidateQueries({ queryKey: ['businesses', type] });
+          queryClient.invalidateQueries({ queryKey: ['businesses'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useBusinesses] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, type]);
+
   return useQuery({
     queryKey: ['businesses', type],
     queryFn: async () => {
@@ -46,10 +77,9 @@ export const useBusinesses = (type?: BusinessType) => {
       console.log('[Query] Fetched businesses count:', data?.length);
       return data as Business[];
     },
-    // Keep data fresh - refetch on window focus and every 30 seconds
-    staleTime: 10000, // 10 seconds
+    // Data stays fresh with realtime, no need for aggressive polling
+    staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Fallback refetch every 30 seconds
   });
 };
 
