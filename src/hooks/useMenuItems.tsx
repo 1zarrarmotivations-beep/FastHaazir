@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 export interface MenuItem {
   id: string;
@@ -19,6 +20,37 @@ export interface MenuCategory {
 }
 
 export const useMenuItems = (businessId: string) => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for menu items
+  useEffect(() => {
+    if (!businessId) return;
+    
+    console.log('[useMenuItems] Setting up realtime subscription for business:', businessId);
+    
+    const channel = supabase
+      .channel(`menu-items-realtime-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'menu_items',
+          filter: `business_id=eq.${businessId}`,
+        },
+        (payload) => {
+          console.log('[useMenuItems] Menu item changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['menu-items', businessId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useMenuItems] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, businessId]);
+
   return useQuery({
     queryKey: ['menu-items', businessId],
     queryFn: async () => {
@@ -67,9 +99,8 @@ export const useMenuItems = (businessId: string) => {
       return categories as MenuCategory[];
     },
     enabled: !!businessId,
-    // Keep menu data fresh
-    staleTime: 10000, // 10 seconds
+    // Data stays fresh with realtime
+    staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
-    refetchInterval: 30000, // Fallback refetch every 30 seconds
   });
 };
