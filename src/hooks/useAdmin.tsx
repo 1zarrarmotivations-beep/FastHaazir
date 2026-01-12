@@ -291,6 +291,35 @@ export const useBusinessMenuItems = (businessId: string | null) => {
 
 // All orders for admin
 export const useAdminOrders = () => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for orders
+  useEffect(() => {
+    console.log('[useAdminOrders] Setting up realtime subscription');
+    
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          console.log('[useAdminOrders] Order changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useAdminOrders] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
