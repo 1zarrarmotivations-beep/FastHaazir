@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { normalizePhoneDigits } from "@/lib/phoneUtils";
+import { useEffect } from "react";
 
 // Check if user is admin
 export const useIsAdmin = () => {
