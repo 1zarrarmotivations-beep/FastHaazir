@@ -1,0 +1,268 @@
+/* Font loaded via index.html for non-blocking performance */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Fast Haazir Brand Colors */
+    --background: 210 20% 98%;
+    --foreground: 192 10% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 192 10% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 192 10% 18%;
+
+    /* Primary: Deep Orange (WCAG AA compliant) */
+    --primary: 24 100% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Dark Navy */
+    --secondary: 210 21% 15%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 210 20% 96%;
+    --muted-foreground: 195 8% 41%;
+
+    /* Accent: Fresh Green */
+    --accent: 168 100% 36%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive: Danger Red */
+    --destructive: 7 80% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 24 100% 40%;
+
+    --radius: 1rem;
+
+    /* Custom Fast Haazir Variables */
+    --gradient-primary: linear-gradient(135deg, #ff6a00 0%, #ff3d00 100%);
+    --gradient-hero: linear-gradient(180deg, #ff6a00 0%, #ff3d00 50%, #e84118 100%);
+    --gradient-card: linear-gradient(145deg, rgba(255, 106, 0, 0.1) 0%, rgba(255, 61, 0, 0.05) 100%);
+    --gradient-success: linear-gradient(135deg, #00b894 0%, #00a884 100%);
+    
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.12);
+    --shadow-elevated: 0 12px 40px rgba(255, 106, 0, 0.2);
+    --shadow-glow: 0 0 30px rgba(255, 106, 0, 0.3);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 24 100% 50%;
+  }
+
+  .dark {
+    --background: 210 21% 11%;
+    --foreground: 210 20% 98%;
+
+    --card: 210 21% 15%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 210 21% 15%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 24 100% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 20%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 210 20% 20%;
+    --muted-foreground: 210 15% 60%;
+
+    --accent: 168 100% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 7 80% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 20% 25%;
+    --input: 210 20% 25%;
+    --ring: 24 100% 55%;
+
+    --sidebar-background: 210 21% 11%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 24 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 20%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 210 20% 25%;
+    --sidebar-ring: 24 100% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Mobile App Container */
+  .mobile-container {
+    max-width: 414px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Custom Scrollbar */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Touch-friendly buttons */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Glass effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* Pulse animation for live indicators */
+  @keyframes pulse-live {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.1);
+    }
+  }
+
+  .animate-pulse-live {
+    animation: pulse-live 2s infinite;
+  }
+
+  /* Slide up animation */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+
+  /* Bounce in animation */
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.5s ease-out;
+  }
+}
+
+/* Leaflet Map Customization */
+.leaflet-container {
+  font-family: 'Poppins', sans-serif !important;
+  border-radius: 1rem;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.leaflet-control-zoom a {
+  border-radius: 0.5rem !important;
+  background: white !important;
+  color: hsl(var(--foreground)) !important;
+}
