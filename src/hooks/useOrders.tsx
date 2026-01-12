@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { Json } from "@/integrations/supabase/types";
 import { createNotification } from "./useNotifications";
 import { notifyAllOnlineRiders } from "./useRiderNotifications";
+import { useEffect } from "react";
 export type OrderStatus = 'placed' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
 
 export interface OrderItem {
