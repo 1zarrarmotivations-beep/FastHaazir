@@ -9,7 +9,18 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:init": "cap init",
+    "cap:sync": "cap sync",
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "cap:run:android": "cap run android",
+    "cap:run:ios": "cap run ios",
+    "mobile:build": "vite build && cap sync",
+    "mobile:android": "vite build && cap sync android && cap open android",
+    "mobile:ios": "vite build && cap sync ios && cap open ios"
   },
   "dependencies": {
     "@capacitor/android": "6",
