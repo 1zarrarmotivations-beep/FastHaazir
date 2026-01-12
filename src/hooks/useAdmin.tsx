@@ -149,6 +149,36 @@ export const useAdminStats = () => {
 
 // All riders for admin
 export const useAdminRiders = () => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for riders
+  useEffect(() => {
+    console.log('[useAdminRiders] Setting up realtime subscription');
+    
+    const channel = supabase
+      .channel('admin-riders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'riders',
+        },
+        (payload) => {
+          console.log('[useAdminRiders] Rider changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['admin-riders'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['online-riders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useAdminRiders] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["admin-riders"],
     queryFn: async () => {
