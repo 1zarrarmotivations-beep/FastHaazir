@@ -195,6 +195,36 @@ export const useAdminRiders = () => {
 
 // All businesses for admin
 export const useAdminBusinesses = () => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for businesses
+  useEffect(() => {
+    console.log('[useAdminBusinesses] Setting up realtime subscription');
+    
+    const channel = supabase
+      .channel('admin-businesses-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'businesses',
+        },
+        (payload) => {
+          console.log('[useAdminBusinesses] Business changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+          queryClient.invalidateQueries({ queryKey: ['businesses'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useAdminBusinesses] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["admin-businesses"],
     queryFn: async () => {
