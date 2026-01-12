@@ -63,6 +63,37 @@ const parseOrderItems = (items: Json): OrderItem[] => {
 
 export const useOrders = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for user's orders
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    console.log('[useOrders] Setting up realtime subscription for user:', user.id);
+    
+    const channel = supabase
+      .channel(`orders-realtime-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `customer_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[useOrders] Order changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['orders', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['active-orders', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useOrders] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
 
   return useQuery({
     queryKey: ['orders', user?.id],
