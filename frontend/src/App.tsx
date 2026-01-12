@@ -37,7 +37,13 @@ const PageLoader = () => (
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const App = () => {
+  // Initialize mobile app features on mount
+  useEffect(() => {
+    initializeMobileApp();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <CartProvider>
       <TooltipProvider>
