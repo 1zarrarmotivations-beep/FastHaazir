@@ -336,6 +336,35 @@ export const useAdminOrders = () => {
 
 // All rider requests for admin
 export const useAdminRiderRequests = () => {
+  const queryClient = useQueryClient();
+
+  // Set up realtime subscription for rider requests
+  useEffect(() => {
+    console.log('[useAdminRiderRequests] Setting up realtime subscription');
+    
+    const channel = supabase
+      .channel('admin-rider-requests-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rider_requests',
+        },
+        (payload) => {
+          console.log('[useAdminRiderRequests] Rider request changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['admin-rider-requests'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useAdminRiderRequests] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["admin-rider-requests"],
     queryFn: async () => {
