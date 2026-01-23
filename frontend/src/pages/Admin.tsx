@@ -67,7 +67,7 @@ export default function Admin() {
               <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
               <p className="text-muted-foreground">Overview of Fast Haazir operations</p>
             </div>
-            <StatsCards stats={stats} isLoading={statsLoading} />
+            <EnhancedStatsCards stats={stats} isLoading={statsLoading} />
           </div>
         );
       case "users":
