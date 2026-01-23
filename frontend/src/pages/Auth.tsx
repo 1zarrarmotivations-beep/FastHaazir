@@ -25,10 +25,10 @@ const clearRoleCache = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.removeQueries({ queryKey: ["user-role"] });
   queryClient.removeQueries({ queryKey: ["is-admin"] });
   queryClient.removeQueries({ queryKey: ["customer-profile"] });
-  queryClient.removeQueries({ queryKey: ["my-business"] });
   queryClient.removeQueries({ queryKey: ["rider-profile"] });
   queryClient.removeQueries({ queryKey: ["orders"] });
   queryClient.removeQueries({ queryKey: ["customer-addresses"] });
+  // Removed: my-business query (business role removed)
 };
 
 /**
