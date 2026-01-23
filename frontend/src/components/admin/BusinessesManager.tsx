@@ -11,7 +11,6 @@ import {
   ShoppingCart,
   Cake,
   Package,
-  Phone,
   Trash2,
   Percent,
   Menu,
