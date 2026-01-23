@@ -590,16 +590,6 @@ export function BusinessesManager() {
               </div>
 
               <div>
-                <Label htmlFor="edit-owner-phone">Owner Phone</Label>
-                <Input
-                  id="edit-owner-phone"
-                  value={editingBusiness.owner_phone || ''}
-                  onChange={(e) => setEditingBusiness({ ...editingBusiness, owner_phone: e.target.value })}
-                  placeholder="+92 XXX XXXXXXX"
-                />
-              </div>
-
-              <div>
                 <Label htmlFor="edit-commission">Commission Rate (%)</Label>
                 <Input
                   id="edit-commission"
