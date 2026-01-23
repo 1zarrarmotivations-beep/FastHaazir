@@ -549,6 +549,128 @@ export function BusinessesManager() {
           <p className="text-muted-foreground">Add your first business to get started</p>
         </div>
       )}
+
+      {/* Edit Business Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Business</DialogTitle>
+          </DialogHeader>
+          {editingBusiness && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Business Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editingBusiness.name}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, name: e.target.value })}
+                  placeholder="Business name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-type">Business Type</Label>
+                <Select
+                  value={editingBusiness.type}
+                  onValueChange={(value) => setEditingBusiness({ ...editingBusiness, type: value })}
+                >
+                  <SelectTrigger id="edit-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="restaurant">Restaurant</SelectItem>
+                    <SelectItem value="grocery">Grocery</SelectItem>
+                    <SelectItem value="bakery">Bakery</SelectItem>
+                    <SelectItem value="shop">Shop</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingBusiness.description || ''}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, description: e.target.value })}
+                  placeholder="Brief description"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  value={editingBusiness.category || ''}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, category: e.target.value })}
+                  placeholder="e.g., Fast Food, Italian, Organic"
+                />
+              </div>
+
+              <div>
+                <Label>Business Image</Label>
+                <ImageUpload
+                  value={editingBusiness.image}
+                  onChange={(url) => setEditingBusiness({ ...editingBusiness, image: url })}
+                  bucket="business-images"
+                  folder="logos"
+                  label="Upload Business Logo"
+                  maxSizeMB={5}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-owner-phone">Owner Phone</Label>
+                <Input
+                  id="edit-owner-phone"
+                  value={editingBusiness.owner_phone || ''}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, owner_phone: e.target.value })}
+                  placeholder="+92 XXX XXXXXXX"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-commission">Commission Rate (%)</Label>
+                <Input
+                  id="edit-commission"
+                  type="number"
+                  value={editingBusiness.commission_rate}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, commission_rate: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  max="100"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    updateBusiness.mutate({
+                      businessId: editingBusiness.id,
+                      updates: {
+                        name: editingBusiness.name,
+                        type: editingBusiness.type,
+                        description: editingBusiness.description,
+                        category: editingBusiness.category,
+                        image: editingBusiness.image,
+                        owner_phone: editingBusiness.owner_phone,
+                        commission_rate: editingBusiness.commission_rate,
+                      },
+                    });
+                    setEditDialogOpen(false);
+                    setEditingBusiness(null);
+                  }}
+                  disabled={!editingBusiness.name || updateBusiness.isPending}
+                >
+                  {updateBusiness.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
