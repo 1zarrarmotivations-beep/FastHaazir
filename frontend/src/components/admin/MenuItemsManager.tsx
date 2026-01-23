@@ -248,6 +248,17 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="text-primary"
+                          onClick={() => {
+                            setEditingItem(item);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           className="text-destructive"
                           onClick={() => deleteItem.mutate({ itemId: item.id, businessId })}
                         >
