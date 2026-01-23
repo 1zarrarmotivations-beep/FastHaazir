@@ -184,6 +184,32 @@ export function OrdersManager() {
 
                     {/* Actions */}
                     <div className="flex flex-col sm:flex-row gap-2 lg:flex-col lg:w-48">
+                      {/* Accept/Reject for Placed Orders */}
+                      {order.status === 'placed' && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1 bg-accent hover:bg-accent/90"
+                            onClick={() => acceptOrder.mutate(order.id)}
+                            disabled={acceptOrder.isPending}
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Accept
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => rejectOrder.mutate({ orderId: order.id, reason: "Order rejected by admin" })}
+                            disabled={rejectOrder.isPending}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+
                       {/* Status Change */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
