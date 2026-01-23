@@ -124,12 +124,6 @@ export function BusinessesManager() {
     });
   };
 
-  const formatPhone = (phone: string) => {
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length <= 4) return digits;
-    return `${digits.slice(0, 4)}-${digits.slice(4, 11)}`;
-  };
-
   // Stats
   const totalBusinesses = businesses?.length || 0;
   const restaurantCount = businesses?.filter(b => b.type === 'restaurant').length || 0;
