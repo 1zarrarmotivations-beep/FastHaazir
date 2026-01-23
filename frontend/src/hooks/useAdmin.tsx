@@ -1003,3 +1003,259 @@ export const useSendSystemNotification = () => {
     },
   });
 };
+
+
+// ==========================================
+// MENU ITEM MANAGEMENT
+// ==========================================
+
+// Update menu item
+export const useUpdateMenuItem = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      itemId, 
+      updates 
+    }: { 
+      itemId: string; 
+      updates: {
+        name?: string;
+        description?: string;
+        price?: number;
+        category?: string;
+        image?: string;
+        is_available?: boolean;
+        is_popular?: boolean;
+      }
+    }) => {
+      const { error } = await supabase
+        .from("menu_items")
+        .update(updates)
+        .eq("id", itemId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["business-menu-items"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+      toast.success("Menu item updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update menu item: " + error.message);
+    },
+  });
+};
+
+// ==========================================
+// ORDER MANAGEMENT (ADMIN CONTROLS)
+// ==========================================
+
+// Accept order (admin manually accepts)
+export const useAcceptOrder = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ 
+          status: 'preparing',
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", orderId);
+      
+      if (error) throw error;
+      
+      // Create notification for customer
+      const { data: order } = await supabase
+        .from("orders")
+        .select("customer_id")
+        .eq("id", orderId)
+        .single();
+      
+      if (order?.customer_id) {
+        await supabase.rpc("send_system_notification", {
+          _title: "Order Accepted",
+          _message: "Your order has been accepted and is being prepared",
+          _user_ids: [order.customer_id],
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["active-orders"] });
+      toast.success("Order accepted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to accept order: " + error.message);
+    },
+  });
+};
+
+// Reject order (admin manually rejects)
+export const useRejectOrder = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      orderId, 
+      reason 
+    }: { 
+      orderId: string; 
+      reason?: string 
+    }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ 
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", orderId);
+      
+      if (error) throw error;
+      
+      // Create notification for customer
+      const { data: order } = await supabase
+        .from("orders")
+        .select("customer_id")
+        .eq("id", orderId)
+        .single();
+      
+      if (order?.customer_id) {
+        await supabase.rpc("send_system_notification", {
+          _title: "Order Cancelled",
+          _message: reason || "Your order has been cancelled by the restaurant",
+          _user_ids: [order.customer_id],
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["active-orders"] });
+      toast.success("Order rejected successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to reject order: " + error.message);
+    },
+  });
+};
+
+// Assign rider to order (admin manually assigns)
+export const useAssignRiderToOrder = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      orderId, 
+      riderId 
+    }: { 
+      orderId: string; 
+      riderId: string 
+    }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ 
+          rider_id: riderId,
+          status: 'preparing', // Ensure status is at least preparing
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", orderId);
+      
+      if (error) throw error;
+      
+      // Get rider and customer info
+      const { data: order } = await supabase
+        .from("orders")
+        .select("customer_id, businesses(name)")
+        .eq("id", orderId)
+        .single();
+      
+      // Notify rider
+      await supabase.rpc("send_system_notification", {
+        _title: "New Order Assigned",
+        _message: `You have been assigned to deliver order from ${order?.businesses?.name || 'a restaurant'}`,
+        _user_ids: [riderId],
+      });
+      
+      // Notify customer
+      if (order?.customer_id) {
+        await supabase.rpc("send_system_notification", {
+          _title: "Rider Assigned",
+          _message: "A rider has been assigned to your order",
+          _user_ids: [order.customer_id],
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["active-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["rider-orders"] });
+      toast.success("Rider assigned successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to assign rider: " + error.message);
+    },
+  });
+};
+
+// Update order status (admin can manually update any status)
+export const useUpdateOrderStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      orderId, 
+      status 
+    }: { 
+      orderId: string; 
+      status: 'placed' | 'preparing' | 'on_way' | 'delivered' | 'cancelled'
+    }) => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", orderId);
+      
+      if (error) throw error;
+      
+      // Notify customer of status change
+      const { data: order } = await supabase
+        .from("orders")
+        .select("customer_id")
+        .eq("id", orderId)
+        .single();
+      
+      const statusMessages = {
+        placed: "Your order has been placed",
+        preparing: "Your order is being prepared",
+        on_way: "Your order is on the way",
+        delivered: "Your order has been delivered",
+        cancelled: "Your order has been cancelled"
+      };
+      
+      if (order?.customer_id) {
+        await supabase.rpc("send_system_notification", {
+          _title: "Order Status Updated",
+          _message: statusMessages[status],
+          _user_ids: [order.customer_id],
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["active-orders"] });
+      toast.success("Order status updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update order status: " + error.message);
+    },
+  });
+};
+
