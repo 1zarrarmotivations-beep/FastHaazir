@@ -615,7 +615,6 @@ export function BusinessesManager() {
                         description: editingBusiness.description,
                         category: editingBusiness.category,
                         image: editingBusiness.image,
-                        owner_phone: editingBusiness.owner_phone,
                         commission_rate: editingBusiness.commission_rate,
                       },
                     });
