@@ -100,22 +100,8 @@ const App = () => {
                       }
                     />
 
-                    <Route
-                      path="/business"
-                      element={
-                        <ProtectedRoute allowedRoles={["business"]}>
-                          <BusinessDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/business-dashboard"
-                      element={
-                        <ProtectedRoute allowedRoles={["business"]}>
-                          <BusinessDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
+                    {/* Removed: Business routes (business role removed)
+                        Admin now controls all businesses from /admin panel */}
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>
