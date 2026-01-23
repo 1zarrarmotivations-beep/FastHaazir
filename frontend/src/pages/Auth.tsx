@@ -265,7 +265,7 @@ const checkRoleByEmail = async (
 };
 
 /**
- * Redirect based on role
+ * Redirect based on role (admin | rider | customer only)
  */
 const redirectByRole = (
   role: string,
@@ -279,8 +279,8 @@ const redirectByRole = (
     switch (role) {
       case "admin": return "/admin";
       case "rider": return "/rider";
-      case "business": return "/business";
-      default: return "/";
+      // Removed: business role (now admin-controlled)
+      default: return "/"; // customer
     }
   })();
   
@@ -288,7 +288,7 @@ const redirectByRole = (
     switch (role) {
       case "admin": return "Welcome Admin!";
       case "rider": return "Welcome Rider!";
-      case "business": return "Welcome Business Owner!";
+      // Removed: business welcome message
       default: return "Welcome to Fast Haazir!";
     }
   })();
