@@ -24,7 +24,7 @@ const History = lazy(() => import("./pages/History"));
 const Profile = lazy(() => import("./pages/Profile"));
 const RiderDashboard = lazy(() => import("./pages/RiderDashboard"));
 const Admin = lazy(() => import("./pages/Admin"));
-const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+// Removed: BusinessDashboard (business role removed - admin controls all)
 const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
