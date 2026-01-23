@@ -77,8 +77,10 @@ const businessTypeColors = {
 export function BusinessesManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
+  const [editingBusiness, setEditingBusiness] = useState<any | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop">("all");
   const [newBusiness, setNewBusiness] = useState({
     name: "",
@@ -93,6 +95,7 @@ export function BusinessesManager() {
 
   const { data: businesses, isLoading } = useAdminBusinesses();
   const createBusiness = useCreateBusiness();
+  const updateBusiness = useUpdateBusiness();
   const toggleStatus = useToggleBusinessStatus();
   const deleteBusiness = useDeleteBusiness();
   const toggleFeatured = useToggleBusinessFeatured();
