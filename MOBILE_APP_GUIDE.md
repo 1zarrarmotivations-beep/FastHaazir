@@ -335,7 +335,7 @@ await hapticNotification('success');
 
 The mobile app connects to the same backend as the web app:
 
-**API Base URL:** `https://realtime-delivery.preview.emergentagent.com`
+**API Base URL:** `https://haazir-refactor.preview.emergentagent.com`
 
 All APIs work identically on mobile and web. No changes needed.
 
