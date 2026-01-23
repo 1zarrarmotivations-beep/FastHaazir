@@ -274,28 +274,7 @@ export function BusinessesManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner-phone">Owner Phone (Login via OTP)</Label>
-                <Input
-                  id="owner-phone"
-                  placeholder="03XX-XXXXXXX"
-                  value={formatPhone(newBusiness.owner_phone)}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, owner_phone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner-email">Owner Email (Login via Email/Google)</Label>
-                <Input
-                  id="owner-email"
-                  type="email"
-                  placeholder="owner@business.com"
-                  value={newBusiness.owner_email}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, owner_email: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Owner can login with Phone OTP or Email/Google
-                </p>
-              </div>
+              {/* Admin-controlled system - no business owner login */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Input
