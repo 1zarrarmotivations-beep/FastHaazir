@@ -282,6 +282,109 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
           <p className="text-muted-foreground">Add your first menu item to get started</p>
         </div>
       )}
+
+      {/* Edit Menu Item Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Menu Item</DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-item-name">Item Name</Label>
+                <Input
+                  id="edit-item-name"
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                  placeholder="Item name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingItem.description || ''}
+                  onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                  placeholder="Item description"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-price">Price (Rs.)</Label>
+                <Input
+                  id="edit-price"
+                  type="number"
+                  value={editingItem.price}
+                  onChange={(e) => setEditingItem({ ...editingItem, price: parseInt(e.target.value) || 0 })}
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  value={editingItem.category || ''}
+                  onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                  placeholder="e.g., Appetizers, Main Course"
+                />
+              </div>
+
+              <div>
+                <Label>Item Image</Label>
+                <ImageUpload
+                  value={editingItem.image}
+                  onChange={(url) => setEditingItem({ ...editingItem, image: url })}
+                  bucket="business-images"
+                  folder="menu-items"
+                  label="Upload Menu Item Image"
+                  maxSizeMB={3}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-is-popular"
+                  checked={editingItem.is_popular}
+                  onCheckedChange={(checked) => setEditingItem({ ...editingItem, is_popular: checked === true })}
+                />
+                <Label htmlFor="edit-is-popular" className="cursor-pointer">
+                  Mark as Popular
+                </Label>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    updateItem.mutate({
+                      itemId: editingItem.id,
+                      updates: {
+                        name: editingItem.name,
+                        description: editingItem.description,
+                        price: editingItem.price,
+                        category: editingItem.category,
+                        image: editingItem.image,
+                        is_popular: editingItem.is_popular,
+                      },
+                    });
+                    setEditDialogOpen(false);
+                    setEditingItem(null);
+                  }}
+                  disabled={!editingItem.name || editingItem.price <= 0 || updateItem.isPending}
+                >
+                  {updateItem.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
