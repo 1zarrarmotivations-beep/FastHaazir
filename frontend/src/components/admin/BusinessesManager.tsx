@@ -88,8 +88,6 @@ export function BusinessesManager() {
     description: "",
     category: "",
     image: "",
-    owner_phone: "",
-    owner_email: "",
     commission_rate: 15,
   });
 
@@ -121,8 +119,6 @@ export function BusinessesManager() {
           description: "", 
           category: "", 
           image: "", 
-          owner_phone: "",
-          owner_email: "",
           commission_rate: 15 
         });
       },
