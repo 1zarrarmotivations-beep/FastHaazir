@@ -6,7 +6,8 @@ import {
   ToggleLeft, 
   ToggleRight,
   Star,
-  Package
+  Package,
+  Edit
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
   useBusinessMenuItems, 
-  useCreateMenuItem, 
+  useCreateMenuItem,
+  useUpdateMenuItem,
   useDeleteMenuItem,
   useToggleMenuItemAvailability 
 } from "@/hooks/useAdmin";
+import { ImageUpload } from "./ImageUpload";
 
 interface MenuItemsManagerProps {
   businessId: string;
