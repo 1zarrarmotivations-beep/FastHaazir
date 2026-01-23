@@ -494,6 +494,20 @@ export function BusinessesManager() {
                             <ToggleLeft className="w-4 h-4" />
                           )}
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingBusiness({
+                              ...business,
+                              commission_rate: business.commission_rate || 15
+                            });
+                            setEditDialogOpen(true);
+                          }}
+                          className="text-primary"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="ghost" className="text-destructive">
