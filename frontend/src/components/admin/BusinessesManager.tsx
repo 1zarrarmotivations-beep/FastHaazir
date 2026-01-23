@@ -15,7 +15,8 @@ import {
   Trash2,
   Percent,
   Menu,
-  Award
+  Award,
+  Edit
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,12 +51,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { 
   useAdminBusinesses, 
-  useCreateBusiness, 
+  useCreateBusiness,
+  useUpdateBusiness,
   useToggleBusinessStatus, 
   useDeleteBusiness,
   useToggleBusinessFeatured 
 } from "@/hooks/useAdmin";
 import { MenuItemsManager } from "./MenuItemsManager";
+import { ImageUpload } from "./ImageUpload";
 
 const businessTypeIcons = {
   restaurant: UtensilsCrossed,
