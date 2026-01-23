@@ -411,13 +411,6 @@ export function BusinessesManager() {
                       </Badge>
                     </div>
 
-                    {(business as any).owner_phone && (
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <Phone className="w-3 h-3" />
-                        <span>{(business as any).owner_phone}</span>
-                      </div>
-                    )}
-
                     <div className="flex items-center gap-4 mt-3">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-amber-500" />
