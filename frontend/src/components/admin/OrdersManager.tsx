@@ -7,7 +7,10 @@ import {
   MapPin,
   Phone,
   User,
-  ChevronDown
+  ChevronDown,
+  Check,
+  X,
+  UserPlus
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,7 +29,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAdminOrders, useUpdateOrderStatus, useAdminRiders, useAssignRiderToOrder } from "@/hooks/useAdmin";
+import { 
+  useAdminOrders, 
+  useAdminRiders, 
+  useAcceptOrder,
+  useRejectOrder,
+  useAssignRiderToOrder,
+  useUpdateOrderStatus 
+} from "@/hooks/useAdmin";
 import { format } from "date-fns";
 
 const statusColors = {
