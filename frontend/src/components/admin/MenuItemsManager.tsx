@@ -37,6 +37,8 @@ interface MenuItemsManagerProps {
 
 export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
   const [showForm, setShowForm] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
   const [newItem, setNewItem] = useState({
     name: "",
     description: "",
@@ -48,6 +50,7 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
 
   const { data: menuItems, isLoading } = useBusinessMenuItems(businessId);
   const createItem = useCreateMenuItem();
+  const updateItem = useUpdateMenuItem();
   const deleteItem = useDeleteMenuItem();
   const toggleAvailability = useToggleMenuItemAvailability();
 
