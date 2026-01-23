@@ -61,6 +61,8 @@ export function OrdersManager() {
 
   const { data: orders, isLoading } = useAdminOrders();
   const { data: riders } = useAdminRiders();
+  const acceptOrder = useAcceptOrder();
+  const rejectOrder = useRejectOrder();
   const updateStatus = useUpdateOrderStatus();
   const assignRider = useAssignRiderToOrder();
 
