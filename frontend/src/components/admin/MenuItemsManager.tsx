@@ -132,12 +132,14 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="item-image">Image URL</Label>
-              <Input
-                id="item-image"
-                placeholder="https://..."
+              <Label>Item Image</Label>
+              <ImageUpload
                 value={newItem.image}
-                onChange={(e) => setNewItem({ ...newItem, image: e.target.value })}
+                onChange={(url) => setNewItem({ ...newItem, image: url })}
+                bucket="business-images"
+                folder="menu-items"
+                label="Upload Menu Item Image"
+                maxSizeMB={3}
               />
             </div>
             <div className="flex items-center gap-2">
