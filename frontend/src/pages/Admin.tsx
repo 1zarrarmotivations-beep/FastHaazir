@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin, useAdminStats } from "@/hooks/useAdmin";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { StatsCards } from "@/components/admin/StatsCards";
+import { EnhancedStatsCards } from "@/components/admin/EnhancedStatsCards";
 import { RidersManager } from "@/components/admin/RidersManager";
 import { BusinessesManager } from "@/components/admin/BusinessesManager";
 import { OrdersManager } from "@/components/admin/OrdersManager";
