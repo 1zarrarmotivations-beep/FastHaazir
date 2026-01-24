@@ -50,6 +50,16 @@ Rider → Picks up → Delivers to customer
 - [x] Order acceptance
 - [x] Delivery completion
 
+### Language System (i18n)
+- [x] English ⇄ Urdu toggle
+- [x] RTL support for Urdu
+- [x] Language persists in localStorage
+- [x] Instant language switch (no reload)
+- [x] Toggle in customer header (compact switch)
+- [x] Toggle in admin panel top bar
+- [x] Toggle in rider dashboard
+- [x] Comprehensive translations for all UI text
+
 ### Admin Chat Monitoring (Silent Mode)
 - [x] View all order chats (customer ↔ rider)
 - [x] Silent mode - admin doesn't appear as participant
