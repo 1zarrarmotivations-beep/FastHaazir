@@ -41,7 +41,48 @@ export const useChatMessages = (orderId?: string, riderRequestId?: string) => {
 
       const { data, error } = await queryBuilder;
       if (error) throw error;
-      return data as ChatMessage[];
+
+      const messages = (data || []) as ChatMessage[];
+
+      // If bucket is private, voice_url is stored as a storage path (e.g. "{orderId}/{file}.webm").
+      // Convert paths to short-lived signed URLs for playback.
+      const voicePaths = Array.from(
+        new Set(
+          messages
+            .filter(
+              (m) =>
+                m.message_type === 'voice' &&
+                !!m.voice_url &&
+                !m.voice_url.startsWith('http')
+            )
+            .map((m) => m.voice_url as string)
+        )
+      );
+
+      if (voicePaths.length === 0) return messages;
+
+      const signedEntries = await Promise.all(
+        voicePaths.map(async (path) => {
+          const { data: signed, error: signedError } = await supabase.storage
+            .from('chat-voice-notes')
+            .createSignedUrl(path, 60 * 60);
+
+          if (signedError || !signed?.signedUrl) return [path, null] as const;
+          return [path, signed.signedUrl] as const;
+        })
+      );
+
+      const signedMap = new Map<string, string>();
+      for (const [path, signedUrl] of signedEntries) {
+        if (signedUrl) signedMap.set(path, signedUrl);
+      }
+
+      return messages.map((m) => {
+        if (m.message_type !== 'voice' || !m.voice_url) return m;
+        if (m.voice_url.startsWith('http')) return m;
+        const signedUrl = signedMap.get(m.voice_url);
+        return signedUrl ? { ...m, voice_url: signedUrl } : m;
+      });
     },
     enabled: !!(orderId || riderRequestId),
     refetchInterval: 3000, // Faster polling for better responsiveness
@@ -130,6 +171,7 @@ export const useSendMessage = () => {
       voiceDuration?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
+      if (senderType === 'admin') throw new Error('Admins cannot send chat messages');
       if (messageType === 'text' && !message.trim()) throw new Error('Message cannot be empty');
       if (messageType === 'voice' && !voiceUrl) throw new Error('Voice URL is required');
 
@@ -248,15 +290,10 @@ export const useUploadVoiceNote = () => {
         throw uploadError;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('chat-voice-notes')
-        .getPublicUrl(filePath);
-
-      console.log('[useUploadVoiceNote] Voice note uploaded:', urlData.publicUrl);
-
+      // Bucket is private: store the storage path in DB.
+      // A signed URL is generated when fetching messages for playback.
       return {
-        url: urlData.publicUrl,
+        path: filePath,
         duration,
       };
     },

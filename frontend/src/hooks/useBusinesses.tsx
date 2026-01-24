@@ -40,13 +40,13 @@ export const useBusinesses = (type?: BusinessType) => {
     console.log('[useBusinesses] Setting up realtime subscription for businesses, type:', type);
     
     const channel = supabase
-      .channel(`businesses-realtime-${type || 'all'}`)
+      .channel(`public-businesses-realtime-${type || 'all'}`)
       .on(
         'postgres_changes',
         {
           event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
           schema: 'public',
-          table: 'businesses',
+          table: 'public_businesses',
         },
         (payload) => {
           console.log('[useBusinesses] Business changed:', payload);
@@ -69,13 +69,14 @@ export const useBusinesses = (type?: BusinessType) => {
     queryFn: async () => {
       console.log('[useBusinesses] Fetching businesses, requested type:', type);
       
-      // FIXED: Query directly from 'businesses' table instead of 'public_business_info' view
-      // The view may have RLS policies or data issues preventing customer access
-      // We only select non-sensitive fields (excluding owner_phone, owner_email, owner_user_id)
+      // Customer reads MUST come from the safe public table (no PII) + realtime-friendly.
+      // This avoids direct access to `businesses` (which contains owner_phone/owner_email).
       let query = supabase
-        .from('businesses')
+        .from('public_businesses')
         .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
-        .eq('is_active', true) // Only show active businesses
+        .eq('is_active', true)
+        .eq('is_approved', true)
+        .is('deleted_at', null)
         .order('featured', { ascending: false })
         .order('rating', { ascending: false, nullsFirst: false });
 
@@ -90,28 +91,7 @@ export const useBusinesses = (type?: BusinessType) => {
 
       if (error) {
         console.error('[useBusinesses] Error fetching businesses:', error);
-        
-        // Fallback: Try the view if direct table access fails (RLS might block)
-        console.log('[useBusinesses] Trying fallback to public_business_info view...');
-        let fallbackQuery = supabase
-          .from('public_business_info')
-          .select('*')
-          .eq('is_active', true)
-          .order('featured', { ascending: false })
-          .order('rating', { ascending: false });
-        
-        if (type) {
-          fallbackQuery = fallbackQuery.eq('type', type.toLowerCase());
-        }
-        
-        const fallbackResult = await fallbackQuery;
-        if (fallbackResult.error) {
-          console.error('[useBusinesses] Fallback also failed:', fallbackResult.error);
-          throw error; // Throw original error
-        }
-        
-        console.log('[useBusinesses] Fallback succeeded, count:', fallbackResult.data?.length);
-        return (fallbackResult.data || []) as Business[];
+        throw error;
       }
 
       console.log('[useBusinesses] Fetched businesses:', {

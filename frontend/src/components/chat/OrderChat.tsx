@@ -412,7 +412,7 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
         message: '🎤 Voice message',
         senderType: userType,
         messageType: 'voice',
-        voiceUrl: result.url,
+        voiceUrl: result.path,
         voiceDuration: result.duration,
       });
 
