@@ -1,12 +1,106 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Search, Filter, Star, Clock, MapPin, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Star, Clock, MapPin, Loader2, RefreshCw, Bug, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useBusinesses } from '@/hooks/useBusinesses';
+import { useBusinesses, useBusinessesDebug } from '@/hooks/useBusinesses';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useIsAdmin } from '@/hooks/useAdmin';
+
+// Debug Overlay Component - Only visible to admins
+const DebugOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { data: debugInfo, isLoading } = useBusinessesDebug('restaurant');
+  const [expanded, setExpanded] = useState(true);
+
+  if (isLoading) {
+    return (
+      <div className="fixed bottom-4 right-4 z-[100] bg-black/90 text-white p-4 rounded-xl shadow-2xl max-w-sm">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Loading debug info...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed bottom-4 right-4 z-[100] bg-black/95 text-white rounded-xl shadow-2xl max-w-md border border-yellow-500/50"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <Bug className="w-4 h-4 text-yellow-400" />
+          <span className="font-bold text-sm">DEBUG: Restaurants Query</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/70 hover:text-white" onClick={() => setExpanded(!expanded)}>
+            {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-white/70 hover:text-white" onClick={onClose}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {expanded && debugInfo && (
+        <div className="p-3 space-y-3 text-xs max-h-80 overflow-y-auto">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-blue-500/20 rounded-lg p-2 text-center">
+              <p className="text-blue-400 font-bold text-lg">{debugInfo.totalInDb}</p>
+              <p className="text-white/60">Total in DB</p>
+            </div>
+            <div className="bg-green-500/20 rounded-lg p-2 text-center">
+              <p className="text-green-400 font-bold text-lg">{debugInfo.activeCount}</p>
+              <p className="text-white/60">Active</p>
+            </div>
+            <div className="bg-purple-500/20 rounded-lg p-2 text-center">
+              <p className="text-purple-400 font-bold text-lg">{debugInfo.filteredByType}</p>
+              <p className="text-white/60">Restaurants</p>
+            </div>
+          </div>
+
+          {/* Filtered Out Businesses */}
+          {debugInfo.filteredOut.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-yellow-400 font-semibold flex items-center gap-1">
+                <span>⚠️ Filtered Out ({debugInfo.filteredOut.length})</span>
+              </p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {debugInfo.filteredOut.map((b) => (
+                  <div key={b.id} className="bg-red-500/10 border border-red-500/30 rounded p-2">
+                    <p className="font-medium text-white">{b.name}</p>
+                    <p className="text-red-400 text-[10px]">{b.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Success State */}
+          {debugInfo.filteredByType > 0 && debugInfo.filteredOut.length === 0 && (
+            <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 text-center">
+              <p className="text-green-400 font-semibold">✓ All businesses showing correctly</p>
+            </div>
+          )}
+
+          {/* No Data Warning */}
+          {debugInfo.totalInDb === 0 && (
+            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">
+              <p className="text-yellow-400 font-semibold">⚠️ No businesses in database</p>
+              <p className="text-white/60 mt-1">Admin needs to add businesses first.</p>
+            </div>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+};
 
 const Restaurants: React.FC = () => {
   const navigate = useNavigate();
