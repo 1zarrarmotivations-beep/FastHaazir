@@ -498,6 +498,24 @@ export function OrdersManager() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
+
+                          {/* Silent Chat Monitor Button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2 bg-slate-100 hover:bg-slate-200 border-slate-300"
+                            onClick={() => {
+                              setViewingChatOrderId(order.id);
+                              setChatOrderInfo({
+                                customerPhone: order.customer_phone,
+                                riderName: assignedRider?.name,
+                                businessName: (order as any).business?.name,
+                              });
+                            }}
+                          >
+                            <EyeOff className="w-4 h-4 mr-2 text-slate-600" />
+                            <span className="text-slate-700">Monitor Chat</span>
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -508,6 +526,17 @@ export function OrdersManager() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Admin Chat Viewer (Silent Mode) */}
+      <AdminChatViewer
+        orderId={viewingChatOrderId || undefined}
+        isOpen={!!viewingChatOrderId}
+        onClose={() => {
+          setViewingChatOrderId(null);
+          setChatOrderInfo(null);
+        }}
+        orderInfo={chatOrderInfo || undefined}
+      />
 
       {filteredOrders?.length === 0 && !isLoading && (
         <motion.div 
