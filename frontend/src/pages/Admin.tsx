@@ -67,8 +67,8 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-              <p className="text-muted-foreground">Overview of Fast Haazir operations</p>
+              <h2 className="text-2xl font-bold text-foreground">{t('admin.dashboard')}</h2>
+              <p className="text-muted-foreground">{t('admin.overview')}</p>
             </div>
             <EnhancedStatsCards stats={stats} isLoading={statsLoading} />
           </div>
@@ -77,8 +77,8 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Users & Roles</h2>
-              <p className="text-muted-foreground">Manage phone numbers and role-based access</p>
+              <h2 className="text-2xl font-bold text-foreground">{t('admin.users')}</h2>
+              <p className="text-muted-foreground">{t('admin.users')}</p>
             </div>
             <UsersManager />
           </div>
@@ -87,7 +87,7 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Riders Management</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t('adminRiders.riderManagement')}</h2>
               <p className="text-muted-foreground">Create and manage delivery riders</p>
             </div>
             <RidersManager />
