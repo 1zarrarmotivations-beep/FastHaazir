@@ -185,6 +185,9 @@ const Restaurants: React.FC = () => {
 
   return (
     <div className="mobile-container bg-background min-h-screen pb-8">
+      {/* Debug Overlay - Admin Only */}
+      {isAdmin && showDebug && <DebugOverlay onClose={() => setShowDebug(false)} />}
+      
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -195,6 +198,17 @@ const Restaurants: React.FC = () => {
             <h1 className="font-bold text-foreground">Restaurants</h1>
             <p className="text-xs text-muted-foreground">{restaurantList.length} places near you</p>
           </div>
+          {/* Debug Button - Admin Only */}
+          {isAdmin && (
+            <Button 
+              variant="ghost" 
+              size="icon-sm" 
+              onClick={() => setShowDebug(!showDebug)}
+              className={showDebug ? 'text-yellow-500' : 'text-muted-foreground'}
+            >
+              <Bug className="w-5 h-5" />
+            </Button>
+          )}
         </div>
 
         {/* Search & Filter */}
@@ -217,6 +231,11 @@ const Restaurants: React.FC = () => {
       {restaurantList.length === 0 && (
         <div className="p-4 flex flex-col items-center justify-center gap-4 min-h-[50vh]">
           <p className="text-muted-foreground text-center">No restaurants available right now</p>
+          {isAdmin && (
+            <p className="text-xs text-muted-foreground text-center">
+              Admin: Click the bug icon to see debug info
+            </p>
+          )}
           <Button onClick={() => refetch()} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
