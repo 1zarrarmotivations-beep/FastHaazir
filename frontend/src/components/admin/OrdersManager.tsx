@@ -17,7 +17,9 @@ import {
   Truck,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  MessageCircle,
+  EyeOff
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ import {
   useUpdateOrderStatus 
 } from "@/hooks/useAdmin";
 import { format } from "date-fns";
+import AdminChatViewer from "./AdminChatViewer";
 
 const statusConfig = {
   placed: { 
