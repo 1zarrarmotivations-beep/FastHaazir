@@ -101,3 +101,72 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: "Fix broken chat (text + voice) with correct Supabase RLS + Storage policies, and ensure admin-added businesses appear immediately on customer dashboard (realtime/refetch + correct RLS). Ensure no phone numbers are exposed; admin can read chats silently only; no duplicate RLS policies."
+## backend:
+##   - task: "Supabase SQL patch: chat_messages schema + clean RLS + storage policies + public_businesses realtime"
+##     implemented: true
+##     working: "NA"  # requires Supabase environment verification
+##     file: "/app/supabase/migrations/20260124_fix_chat_and_public_businesses.sql"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Created SQL migration to align chat_messages columns (message_type/voice_url/voice_duration + sender_type admin), drop/recreate chat policies to ensure exactly one participant INSERT policy, admin SELECT-only monitoring, and storage bucket/policies for chat voice notes (private bucket, signed URLs). Also ensured public_businesses is in realtime publication. Needs to be applied and verified in Supabase."
+##
+## frontend:
+##   - task: "Chat send (text + voice): private bucket path storage + signed URL playback + admin cannot send"
+##     implemented: true
+##     working: "NA"  # needs live Supabase test with real order/request
+##     file: "/app/frontend/src/hooks/useChat.tsx, /app/frontend/src/components/chat/OrderChat.tsx"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Updated voice note flow to upload to private bucket and store path; fetch hook now converts paths to signed URLs for playback. Blocked admin sending."
+##
+##   - task: "Businesses live update for customers: use public_businesses + realtime subscription"
+##     implemented: true
+##     working: "NA"  # needs live Supabase test with admin creating a business
+##     file: "/app/frontend/src/hooks/useBusinesses.tsx"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##       - working: "NA"
+##         agent: "main"
+##         comment: "Customer business list now queries public_businesses (is_active + is_approved + not deleted) and subscribes to realtime changes on public_businesses for instant updates."
+##
+##   - task: "Privacy: remove customer phone from admin order/request views and chat monitor label"
+##     implemented: true
+##     working: true
+##     file: "/app/frontend/src/components/admin/OrdersManager.tsx, /app/frontend/src/components/admin/RiderRequestsManager.tsx, /app/frontend/src/components/admin/AdminChatViewer.tsx"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##       - working: true
+##         agent: "main"
+##         comment: "Admin UI no longer renders customer_phone; displays Customer #xxxxxx labels."
+##
+## metadata:
+##   created_by: "main_agent"
+##   version: "1.0"
+##   test_sequence: 1
+##   run_ui: true
+##
+## test_plan:
+##   current_focus:
+##     - "Chat send (text + voice)"
+##     - "Customer business list updates immediately after admin creates business"
+##   stuck_tasks: []
+##   test_all: false
+##   test_priority: "high_first"
+##
+## agent_communication:
+##   - agent: "main"
+##     message: "Implemented frontend changes for chat (private storage path + signed URL playback) and customer businesses query/subscription to public_businesses. Added Supabase SQL migration to clean chat RLS + storage policies + publication. Please run frontend e2e tests; Supabase verification may require seed data."
