@@ -36,11 +36,9 @@ export interface Order {
   businesses?: {
     name: string;
     image: string | null;
-    owner_phone: string | null;
   } | null;
   riders?: {
     name: string;
-    phone: string;
     image?: string | null;
     rating?: number | null;
     vehicle_type?: string | null;
