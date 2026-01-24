@@ -8,7 +8,8 @@ import {
   Phone,
   User,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  EyeOff
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAdminRiderRequests, useUpdateRiderRequestStatus, useAdminRiders, useAssignRiderToRequest } from "@/hooks/useAdmin";
 import { format } from "date-fns";
+import AdminChatViewer from "./AdminChatViewer";
 
 const statusColors = {
   placed: "bg-blue-500/10 text-blue-600",
