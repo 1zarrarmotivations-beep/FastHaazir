@@ -1,6 +1,22 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, X, Phone, User, Store, Bike, Map, ChevronUp, ChevronDown } from 'lucide-react';
+import { 
+  MessageCircle, 
+  Send, 
+  X, 
+  User, 
+  Store, 
+  Bike, 
+  Map, 
+  ChevronUp, 
+  ChevronDown,
+  Mic,
+  Square,
+  Play,
+  Pause,
+  Loader2,
+  Shield
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,14 +25,17 @@ import {
   useChatMessages, 
   useSendMessage, 
   useOrderParticipants,
-  useRiderRequestParticipants 
+  useRiderRequestParticipants,
+  useUploadVoiceNote,
+  ChatMessage
 } from '@/hooks/useChat';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface OrderChatProps {
   orderId?: string;
   riderRequestId?: string;
-  userType: 'customer' | 'business' | 'rider';
+  userType: 'customer' | 'business' | 'rider' | 'admin';
   isOpen: boolean;
   onClose: () => void;
 }
@@ -53,6 +72,113 @@ const MiniMapPreview = memo(({
 
 MiniMapPreview.displayName = 'MiniMapPreview';
 
+// Voice Note Player Component
+const VoiceNotePlayer = memo(({ 
+  voiceUrl, 
+  duration,
+  isOwnMessage 
+}: { 
+  voiceUrl: string;
+  duration: number | null;
+  isOwnMessage: boolean;
+}) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(duration || 0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const audio = new Audio(voiceUrl);
+    audioRef.current = audio;
+
+    audio.addEventListener('loadedmetadata', () => {
+      setAudioDuration(audio.duration);
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      setCurrentTime(audio.currentTime);
+    });
+
+    audio.addEventListener('ended', () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    });
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+    };
+  }, [voiceUrl]);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
+
+  return (
+    <div className={`flex items-center gap-3 min-w-[180px] ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`h-10 w-10 rounded-full shrink-0 ${
+          isOwnMessage 
+            ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' 
+            : 'bg-primary/10 hover:bg-primary/20 text-primary'
+        }`}
+        onClick={togglePlay}
+      >
+        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+      </Button>
+      
+      <div className="flex-1 space-y-1">
+        {/* Waveform / Progress Bar */}
+        <div className="h-8 flex items-center gap-0.5">
+          {Array.from({ length: 25 }).map((_, i) => {
+            const barProgress = (i / 25) * 100;
+            const isActive = barProgress <= progress;
+            const height = Math.random() * 100;
+            return (
+              <div
+                key={i}
+                className={`w-1 rounded-full transition-all ${
+                  isOwnMessage
+                    ? isActive ? 'bg-primary-foreground' : 'bg-primary-foreground/30'
+                    : isActive ? 'bg-primary' : 'bg-primary/30'
+                }`}
+                style={{ height: `${20 + height * 0.6}%` }}
+              />
+            );
+          })}
+        </div>
+        
+        {/* Duration */}
+        <div className={`flex justify-between text-xs ${
+          isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
+        }`}>
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(audioDuration)}</span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+VoiceNotePlayer.displayName = 'VoiceNotePlayer';
+
 // Message Bubble Component
 const MessageBubble = memo(({ 
   msg, 
@@ -60,12 +186,13 @@ const MessageBubble = memo(({
   getSenderName,
   getSenderIcon 
 }: { 
-  msg: any;
+  msg: ChatMessage;
   isOwnMessage: boolean;
   getSenderName: (senderType: string, senderId: string) => string;
   getSenderIcon: (senderType: string) => React.ReactNode;
 }) => {
   const isCustomerMessage = msg.sender_type === 'customer';
+  const isVoiceMessage = msg.message_type === 'voice' && msg.voice_url;
   
   return (
     <motion.div
@@ -73,7 +200,7 @@ const MessageBubble = memo(({
       animate={{ opacity: 1, y: 0 }}
       className={`flex ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}
     >
-      <div className={`max-w-[80%] ${isCustomerMessage ? 'order-2' : 'order-1'}`}>
+      <div className={`max-w-[85%] ${isCustomerMessage ? 'order-2' : 'order-1'}`}>
         {/* Sender Label */}
         <div className={`flex items-center gap-1 mb-1 ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}>
           <span className={`text-xs font-medium ${isCustomerMessage ? 'text-primary' : 'text-blue-500'}`}>
@@ -95,7 +222,15 @@ const MessageBubble = memo(({
               : '18px 18px 18px 4px'
           }}
         >
-          <p className="text-sm leading-relaxed">{msg.message}</p>
+          {isVoiceMessage ? (
+            <VoiceNotePlayer 
+              voiceUrl={msg.voice_url!} 
+              duration={msg.voice_duration}
+              isOwnMessage={isCustomerMessage}
+            />
+          ) : (
+            <p className="text-sm leading-relaxed">{msg.message}</p>
+          )}
           <p className={`text-xs mt-2 ${
             isCustomerMessage 
               ? 'text-primary-foreground/70 text-right' 
@@ -111,16 +246,129 @@ const MessageBubble = memo(({
 
 MessageBubble.displayName = 'MessageBubble';
 
+// Voice Recorder Component
+const VoiceRecorder = ({ 
+  onRecorded,
+  isUploading 
+}: { 
+  onRecorded: (blob: Blob, duration: number) => void;
+  isUploading: boolean;
+}) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const duration = recordingDuration;
+        onRecorded(blob, duration);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      startTimeRef.current = Date.now();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Update duration every 100ms
+      timerRef.current = setInterval(() => {
+        setRecordingDuration((Date.now() - startTimeRef.current) / 1000);
+      }, 100);
+
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+      toast.error('Could not access microphone');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (isUploading) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg">
+        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+        <span className="text-sm text-primary">Uploading...</span>
+      </div>
+    );
+  }
+
+  if (isRecording) {
+    return (
+      <div className="flex items-center gap-3 px-3 py-2 bg-red-500/10 rounded-lg border border-red-500/30">
+        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+        <span className="text-sm font-medium text-red-600">{formatDuration(recordingDuration)}</span>
+        <div className="flex-1" />
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={stopRecording}
+          className="h-8"
+        >
+          <Square className="w-4 h-4 mr-1" />
+          Stop
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={startRecording}
+      className="shrink-0"
+      title="Record voice note"
+    >
+      <Mic className="w-5 h-5" />
+    </Button>
+  );
+};
+
 const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: OrderChatProps) => {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [showLocationInfo, setShowLocationInfo] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], isLoading } = useChatMessages(orderId, riderRequestId);
   const { data: orderParticipants } = useOrderParticipants(orderId);
   const { data: requestParticipants } = useRiderRequestParticipants(riderRequestId);
   const sendMessage = useSendMessage();
+  const uploadVoiceNote = useUploadVoiceNote();
 
   const participants = orderId ? orderParticipants : requestParticipants;
 
@@ -139,9 +387,42 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
       riderRequestId,
       message,
       senderType: userType,
+      messageType: 'text',
     }, {
       onSuccess: () => setMessage(''),
+      onError: (err) => toast.error('Failed to send message'),
     });
+  };
+
+  const handleVoiceRecorded = async (blob: Blob, duration: number) => {
+    setIsUploading(true);
+    try {
+      // Upload voice note
+      const result = await uploadVoiceNote.mutateAsync({
+        orderId,
+        riderRequestId,
+        audioBlob: blob,
+        duration,
+      });
+
+      // Send message with voice note
+      await sendMessage.mutateAsync({
+        orderId,
+        riderRequestId,
+        message: '🎤 Voice message',
+        senderType: userType,
+        messageType: 'voice',
+        voiceUrl: result.url,
+        voiceDuration: result.duration,
+      });
+
+      toast.success('Voice note sent!');
+    } catch (err) {
+      console.error('Failed to send voice note:', err);
+      toast.error('Failed to send voice note');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const getSenderIcon = (senderType: string) => {
@@ -152,6 +433,8 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
         return <Store className="w-4 h-4" />;
       case 'rider':
         return <Bike className="w-4 h-4" />;
+      case 'admin':
+        return <Shield className="w-4 h-4" />;
       default:
         return <User className="w-4 h-4" />;
     }
@@ -167,6 +450,8 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
         return (orderParticipants as any)?.business?.name || 'Restaurant';
       case 'rider':
         return participants?.rider?.name || 'Rider';
+      case 'admin':
+        return 'Admin';
       default:
         return 'Unknown';
     }
@@ -188,45 +473,21 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
     return 'Order Chat';
   };
 
-  const getContactInfo = () => {
+  // Get participant name without phone (privacy)
+  const getParticipantName = () => {
     if (userType === 'customer') {
       const status = orderParticipants?.status || requestParticipants?.status;
-      if (status === 'on_way' && participants?.rider?.phone) {
-        return {
-          name: participants.rider.name,
-          phone: participants.rider.phone,
-          type: 'Rider'
-        };
+      if (status === 'on_way' && participants?.rider?.name) {
+        return participants.rider.name;
       }
       const business = (orderParticipants as any)?.business;
-      if ((status === 'placed' || status === 'preparing') && business?.owner_phone) {
-        return {
-          name: business.name,
-          phone: business.owner_phone,
-          type: 'Restaurant'
-        };
+      if ((status === 'placed' || status === 'preparing') && business?.name) {
+        return business.name;
       }
-      // For rider requests, always show rider contact
-      if (riderRequestId && participants?.rider?.phone) {
-        return {
-          name: participants.rider.name,
-          phone: participants.rider.phone,
-          type: 'Rider'
-        };
+      if (riderRequestId && participants?.rider?.name) {
+        return participants.rider.name;
       }
     }
-    
-    if (userType === 'rider' || userType === 'business') {
-      const customerPhone = orderParticipants?.customer_phone || requestParticipants?.customer_phone;
-      if (customerPhone) {
-        return {
-          name: 'Customer',
-          phone: customerPhone,
-          type: 'Customer'
-        };
-      }
-    }
-    
     return null;
   };
 
@@ -246,7 +507,7 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
     return null;
   };
 
-  const contactInfo = getContactInfo();
+  const participantName = getParticipantName();
   const locationInfo = getLocationInfo();
 
   if (!isOpen) return null;
@@ -259,41 +520,34 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
         exit={{ opacity: 0, y: 20 }}
         className="fixed inset-0 z-[100] bg-background flex flex-col md:inset-auto md:bottom-4 md:right-4 md:w-96 md:h-[500px] md:rounded-xl md:shadow-2xl md:border md:border-border overflow-hidden"
       >
-        {/* ==================== SECTION A: HEADER (Fixed) ==================== */}
+        {/* ==================== HEADER (Fixed) ==================== */}
         <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between md:rounded-t-xl shrink-0">
           <div className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
             <span className="font-semibold">{getChatTitle()}</span>
-            {contactInfo && (
+            {participantName && (
               <Badge variant="secondary" className="text-xs ml-2">
-                {contactInfo.name}
+                {participantName}
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-1">
-            {contactInfo && (
-              <a href={`tel:${contactInfo.phone}`}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-primary-foreground hover:bg-primary-foreground/20"
-                >
-                  <Phone className="w-5 h-5" />
-                </Button>
-              </a>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-primary-foreground hover:bg-primary-foreground/20"
+          >
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
-        {/* ==================== SECTION B: LOCATION INFO (Collapsible, ABOVE chat) ==================== */}
+        {/* Privacy Notice Banner */}
+        <div className="px-4 py-2 bg-blue-500/10 border-b border-blue-500/20 flex items-center gap-2 text-xs text-blue-600 shrink-0">
+          <Shield className="w-4 h-4" />
+          <span>Your phone number is private. Chat securely here.</span>
+        </div>
+
+        {/* ==================== LOCATION INFO (Collapsible) ==================== */}
         {locationInfo && (locationInfo.pickup || locationInfo.dropoff) && (
           <div className="shrink-0 border-b border-border">
             <button
@@ -324,7 +578,7 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
           </div>
         )}
 
-        {/* ==================== SECTION C: CHAT MESSAGES (Scrollable) ==================== */}
+        {/* ==================== CHAT MESSAGES (Scrollable) ==================== */}
         <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -335,6 +589,9 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
               <MessageCircle className="w-12 h-12 mb-2 opacity-50" />
               <p>No messages yet</p>
               <p className="text-sm">Start the conversation!</p>
+              <p className="text-xs mt-2 text-center max-w-[200px]">
+                You can send text or voice messages securely
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -355,17 +612,26 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
 
         {/* ==================== INPUT BAR (Fixed at bottom) ==================== */}
         <div className="p-4 border-t border-border bg-background md:rounded-b-xl shrink-0">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type a message..."
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               className="flex-1"
+              disabled={isUploading}
             />
+            
+            {/* Voice Recorder */}
+            <VoiceRecorder 
+              onRecorded={handleVoiceRecorded}
+              isUploading={isUploading}
+            />
+            
+            {/* Send Button */}
             <Button
               onClick={handleSend}
-              disabled={!message.trim() || sendMessage.isPending}
+              disabled={!message.trim() || sendMessage.isPending || isUploading}
               size="icon"
             >
               <Send className="w-4 h-4" />
