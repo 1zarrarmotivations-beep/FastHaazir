@@ -613,16 +613,19 @@ const Auth = () => {
         </div>
         
         <div className="relative z-10">
-          {step !== "select" && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="text-white hover:bg-white/20 mb-4"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
+          <div className="flex items-center justify-between mb-4">
+            {step !== "select" ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBack}
+                className="text-white hover:bg-white/20"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            ) : <div />}
+            <LanguageToggle variant="compact" className="bg-white/20" />
+          </div>
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             {step === "select" ? (
@@ -644,16 +647,16 @@ const Auth = () => {
             )}
             
             <h1 className="text-2xl font-bold text-white">
-              {step === "select" && "Welcome to Fast Haazir"}
-              {step === "phone" && "Enter Phone Number"}
-              {step === "otp" && "Verify OTP"}
-              {step === "email" && (isSignUp ? "Create Account" : "Email Login")}
+              {step === "select" && t('auth.welcomeToApp')}
+              {step === "phone" && t('auth.enterPhone')}
+              {step === "otp" && t('auth.verifyOTP')}
+              {step === "email" && (isSignUp ? t('auth.createAccount') : t('auth.emailLogin'))}
             </h1>
             <p className="text-white/80 text-sm mt-1">
-              {step === "select" && "Choose how you want to continue"}
-              {step === "phone" && "We'll send you a one-time code"}
-              {step === "otp" && `Enter the 6-digit code sent to ${formatPhoneForDisplay(getFullPhoneNumber())}`}
-              {step === "email" && (isSignUp ? "Create a new account with email" : "Sign in with your email")}
+              {step === "select" && t('auth.chooseMethod')}
+              {step === "phone" && t('auth.sendOTPMessage')}
+              {step === "otp" && `${t('auth.enterOTPCode')} ${formatPhoneForDisplay(getFullPhoneNumber())}`}
+              {step === "email" && (isSignUp ? t('auth.createAccountEmail') : t('auth.signInEmail'))}
             </p>
           </motion.div>
         </div>
@@ -679,7 +682,7 @@ const Auth = () => {
                   className="w-full h-14 text-base font-medium"
                 >
                   <Phone className="w-5 h-5 mr-3" />
-                  Continue with Phone
+                  {t('auth.continueWithPhone')}
                 </Button>
 
                 <div className="relative my-6">
@@ -687,7 +690,7 @@ const Auth = () => {
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">or</span>
+                    <span className="bg-card px-2 text-muted-foreground">{t('common.or')}</span>
                   </div>
                 </div>
 
