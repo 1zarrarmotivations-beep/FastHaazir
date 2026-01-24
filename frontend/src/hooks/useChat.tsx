@@ -189,11 +189,12 @@ export const useRiderRequestParticipants = (requestId?: string) => {
     queryFn: async () => {
       if (!requestId) return null;
 
+      // PRIVACY: Do not fetch phone numbers - only fetch names and IDs
       const { data: request, error } = await supabase
         .from('rider_requests')
         .select(`
           *,
-          rider:riders(id, name, phone, user_id)
+          rider:riders(id, name, user_id, vehicle_type, rating, total_trips, image)
         `)
         .eq('id', requestId)
         .maybeSingle();
