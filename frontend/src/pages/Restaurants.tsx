@@ -104,6 +104,10 @@ const DebugOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
 const Restaurants: React.FC = () => {
   const navigate = useNavigate();
+  const [showDebug, setShowDebug] = useState(false);
+  
+  // Check if user is admin (for debug overlay)
+  const { data: isAdmin } = useIsAdmin();
   
   // Use realtime-enabled hook instead of static data
   const { data: restaurants, isLoading, error, refetch, dataUpdatedAt } = useBusinesses('restaurant');
@@ -112,6 +116,14 @@ const Restaurants: React.FC = () => {
   useEffect(() => {
     console.log('[Restaurants] Data updated at:', new Date(dataUpdatedAt).toISOString());
     console.log('[Restaurants] Restaurant count:', restaurants?.length ?? 0);
+    if (restaurants) {
+      console.log('[Restaurants] Restaurant data:', restaurants.map(r => ({ 
+        id: r.id, 
+        name: r.name, 
+        type: r.type, 
+        is_active: r.is_active 
+      })));
+    }
   }, [dataUpdatedAt, restaurants]);
 
   // Loading state
