@@ -165,7 +165,8 @@
     "cancelOrder": "آرڈر منسوخ کریں",
     "orderCancelled": "آرڈر منسوخ ہو گیا",
     "noOrders": "ابھی کوئی آرڈر نہیں",
-    "startOrdering": "اپنی تاریخ دیکھنے کے لیے آرڈر دیں"
+    "startOrdering": "اپنی تاریخ دیکھنے کے لیے آرڈر دیں",
+    "ordersWillAppear": "آپ کے آرڈرز یہاں ظاہر ہوں گے"
   },
   "orderStatus": {
     "placed": "آرڈر ہو گیا",
