@@ -60,10 +60,10 @@ const Orders: React.FC = () => {
           </motion.div>
           <h2 className="font-bold text-lg mb-2">{t('auth.loginToViewOrders')}</h2>
           <p className="text-muted-foreground text-sm text-center mb-6">
-            Login to track your active orders
+            {t('auth.loginToTrackOrders')}
           </p>
           <Button onClick={() => navigate('/auth')}>
-            Sign In
+            {t('auth.login')}
           </Button>
         </div>
 
@@ -77,8 +77,8 @@ const Orders: React.FC = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="px-4 py-4">
-          <h1 className="text-xl font-bold text-foreground">Active Orders</h1>
-          <p className="text-sm text-muted-foreground">Track your deliveries</p>
+          <h1 className="text-xl font-bold text-foreground">{t('order.orderHistory')}</h1>
+          <p className="text-sm text-muted-foreground">{t('order.trackOrder')}</p>
         </div>
       </header>
 
@@ -97,12 +97,12 @@ const Orders: React.FC = () => {
             >
               <span className="text-4xl">📦</span>
             </motion.div>
-            <h2 className="font-bold text-lg mb-2">No active orders</h2>
+            <h2 className="font-bold text-lg mb-2">{t('empty.noOrders')}</h2>
             <p className="text-muted-foreground text-sm text-center mb-6">
-              Your orders will appear here
+              {t('order.ordersWillAppear')}
             </p>
             <Button onClick={() => navigate('/')}>
-              Order Now
+              {t('home.orderNow')}
             </Button>
           </div>
         ) : (
