@@ -51,6 +51,11 @@ const statusLabels = {
 export function RiderRequestsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewingChatRequestId, setViewingChatRequestId] = useState<string | null>(null);
+  const [chatRequestInfo, setChatRequestInfo] = useState<{
+    customerPhone?: string;
+    riderName?: string;
+  } | null>(null);
 
   const { data: requests, isLoading } = useAdminRiderRequests();
   const { data: riders } = useAdminRiders();
