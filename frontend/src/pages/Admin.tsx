@@ -183,7 +183,15 @@ export default function Admin() {
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="flex-1 lg:ml-0 min-h-screen">
-        <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+        {/* Admin Top Bar with Language Toggle */}
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-foreground">{t('admin.adminPanel')}</h1>
+          <div className="flex items-center gap-3">
+            <LanguageToggle variant="admin" />
+          </div>
+        </div>
+        
+        <div className="p-4 sm:p-6 lg:p-8">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 20 }}
