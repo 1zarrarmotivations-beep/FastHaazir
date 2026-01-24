@@ -265,10 +265,10 @@ const RiderDashboard = () => {
   }
 
   const tabs: { id: TabType; label: string; count: number }[] = [
-    { id: 'available', label: 'Available', count: pendingRequests.length },
-    { id: 'active', label: 'Active', count: activeDeliveries.length },
-    { id: 'completed', label: 'Completed', count: completedDeliveries.length },
-    { id: 'earnings', label: 'Earnings', count: 0 },
+    { id: 'available', label: t('riderApp.availableRequests'), count: pendingRequests.length },
+    { id: 'active', label: t('riderApp.activeDeliveries'), count: activeDeliveries.length },
+    { id: 'completed', label: t('riderApp.completedToday'), count: completedDeliveries.length },
+    { id: 'earnings', label: t('riderApp.earnings'), count: 0 },
   ];
 
   return (
@@ -290,11 +290,12 @@ const RiderDashboard = () => {
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                 <span>{riderProfile.rating?.toFixed(1) || '4.5'}</span>
                 <span>•</span>
-                <span>{riderProfile.total_trips || 0} trips</span>
+                <span>{riderProfile.total_trips || 0} {t('rider.trips')}</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageToggle variant="icon-only" />
             <NotificationBell onClick={() => setNotificationsOpen(true)} />
             <div className="flex items-center gap-2">
               {riderProfile.is_online ? (
