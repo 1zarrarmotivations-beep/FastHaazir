@@ -233,7 +233,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           </div>
         </div>
 
-        {/* Chat & Contact Actions */}
+        {/* Chat Actions - No phone numbers exposed */}
         <div className="flex items-center gap-2 pt-2 border-t border-border">
           {isRiderRequest ? (
             <ChatButton 
@@ -250,14 +250,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
               size="sm"
             />
           )}
-          {!isRiderRequest && (order.status === 'placed' || order.status === 'preparing') && order.businesses?.owner_phone && (
-            <a href={`tel:${order.businesses.owner_phone}`}>
-              <Button variant="outline" size="sm">
-                <Phone className="w-4 h-4 mr-1" />
-                Call Restaurant
-              </Button>
-            </a>
-          )}
+          {/* Privacy notice */}
+          <span className="text-xs text-muted-foreground ml-auto">
+            Chat securely
+          </span>
         </div>
       </Card>
     </motion.div>
