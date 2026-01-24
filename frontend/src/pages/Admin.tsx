@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin, useAdminStats } from "@/hooks/useAdmin";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -15,6 +16,7 @@ import { SystemNotifications } from "@/components/admin/SystemNotifications";
 import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
+import LanguageToggle from "@/components/LanguageToggle";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
