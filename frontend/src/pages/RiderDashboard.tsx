@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
@@ -30,6 +31,7 @@ import RiderEarningsCard from '@/components/rider/RiderEarningsCard';
 import { useRiderEarningsSummary } from '@/hooks/useRiderPayments';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import NotificationsSheet from '@/components/notifications/NotificationsSheet';
+import LanguageToggle from '@/components/LanguageToggle';
 import { useRiderLocation } from '@/hooks/useRiderLocation';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import {
@@ -48,6 +50,7 @@ import {
 type TabType = 'available' | 'active' | 'completed' | 'earnings';
 
 const RiderDashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('available');
