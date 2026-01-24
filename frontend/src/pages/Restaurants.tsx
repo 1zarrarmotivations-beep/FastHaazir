@@ -104,6 +104,7 @@ const DebugOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 };
 
 const Restaurants: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [showDebug, setShowDebug] = useState(false);
   
@@ -137,8 +138,8 @@ const Restaurants: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="font-bold text-foreground">Restaurants</h1>
-              <p className="text-xs text-muted-foreground">Loading...</p>
+              <h1 className="font-bold text-foreground">{t('restaurants.title')}</h1>
+              <p className="text-xs text-muted-foreground">{t('common.loading')}</p>
             </div>
           </div>
         </header>
@@ -167,15 +168,15 @@ const Restaurants: React.FC = () => {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="font-bold text-foreground">Restaurants</h1>
+              <h1 className="font-bold text-foreground">{t('restaurants.title')}</h1>
             </div>
           </div>
         </header>
         <div className="p-4 flex flex-col items-center justify-center gap-4 min-h-[50vh]">
-          <p className="text-muted-foreground">Failed to load restaurants</p>
+          <p className="text-muted-foreground">{t('errors.networkError')}</p>
           <Button onClick={() => refetch()} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Retry
+            {t('common.tryAgain')}
           </Button>
         </div>
       </div>
