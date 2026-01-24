@@ -9,8 +9,11 @@ export interface ChatMessage {
   order_id: string | null;
   rider_request_id: string | null;
   sender_id: string;
-  sender_type: 'customer' | 'business' | 'rider';
+  sender_type: 'customer' | 'business' | 'rider' | 'admin';
   message: string;
+  message_type: 'text' | 'voice';
+  voice_url: string | null;
+  voice_duration: number | null;
   created_at: string;
   read_at: string | null;
 }
