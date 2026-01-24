@@ -2,11 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useBusinesses, BusinessType } from '@/hooks/useBusinesses';
 
 interface CategoryAction {
-  title: string;
-  subtitle: string;
+  titleKey: string;
+  subtitleKey: string;
   path: string;
   emoji: string;
   color: string;
@@ -15,24 +16,24 @@ interface CategoryAction {
 
 const baseActions: CategoryAction[] = [
   {
-    title: 'Order Food',
-    subtitle: 'Restaurants & dining',
+    titleKey: 'home.orderFood',
+    subtitleKey: 'home.restaurantsDining',
     path: '/restaurants',
     emoji: '🍔',
     color: 'bg-orange-500',
     type: 'restaurant',
   },
   {
-    title: 'Order Grocery',
-    subtitle: 'Daily essentials',
+    titleKey: 'home.orderGrocery',
+    subtitleKey: 'home.dailyEssentials',
     path: '/grocery',
     emoji: '🛒',
     color: 'bg-emerald-500',
     type: 'grocery',
   },
   {
-    title: 'Assign Rider',
-    subtitle: 'On-demand delivery',
+    titleKey: 'home.assignRider',
+    subtitleKey: 'home.onDemandDelivery',
     path: '/assign-rider',
     emoji: '🚴',
     color: 'bg-blue-500',
@@ -40,6 +41,7 @@ const baseActions: CategoryAction[] = [
 ];
 
 const CoreActions: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   // Realtime-enabled business counts
@@ -95,7 +97,7 @@ const CoreActions: React.FC = () => {
 
           return (
             <motion.button
-              key={action.title}
+              key={action.titleKey}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{
@@ -114,9 +116,9 @@ const CoreActions: React.FC = () => {
 
               {/* Text content */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-bold text-white">{action.title}</h3>
+                <h3 className="text-xl font-bold text-white">{t(action.titleKey)}</h3>
                 <p className="text-sm text-white/80 mt-0.5">
-                  {action.subtitle}
+                  {t(action.subtitleKey)}
                   {/* Show count badge if this is a business category */}
                   {action.type && (
                     <span className="ml-2 inline-flex items-center">
@@ -124,7 +126,7 @@ const CoreActions: React.FC = () => {
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
                         <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-medium">
-                          {count} available
+                          {count} {t('home.available')}
                         </span>
                       )}
                     </span>
@@ -150,7 +152,7 @@ const CoreActions: React.FC = () => {
           className="mt-4 p-4 rounded-xl bg-muted text-center"
         >
           <p className="text-muted-foreground text-sm">
-            No services available in your area right now
+            {t('home.noServicesAvailable')}
           </p>
         </motion.div>
       )}
