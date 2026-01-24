@@ -509,7 +509,7 @@ export function OrdersManager() {
                             onClick={() => {
                               setViewingChatOrderId(order.id);
                               setChatOrderInfo({
-                                customerPhone: order.customer_phone,
+                                customerLabel: `Customer #${order.id.slice(0, 6)}`,
                                 riderName: assignedRider?.name,
                                 businessName: (order as any).business?.name,
                               });

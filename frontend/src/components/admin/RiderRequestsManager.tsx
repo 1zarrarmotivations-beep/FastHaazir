@@ -280,7 +280,7 @@ export function RiderRequestsManager() {
                           const assignedRider = riders?.find(r => r.id === request.rider_id);
                           setViewingChatRequestId(request.id);
                           setChatRequestInfo({
-                            customerPhone: request.customer_phone,
+                            customerLabel: `Customer #${request.id.slice(0, 6)}`,
                             riderName: assignedRider?.name,
                           });
                         }}
