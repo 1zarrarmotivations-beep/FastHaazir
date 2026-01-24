@@ -374,7 +374,9 @@
     "uploadFailed": "Upload failed",
     "deleteFailed": "Failed to delete",
     "updateFailed": "Failed to update",
-    "tryAgain": "Please try again"
+    "tryAgain": "Please try again",
+    "configError": "Configuration Error",
+    "firebaseNotConfigured": "Firebase is not properly configured. Please contact support."
   },
   "success": {
     "orderPlaced": "Order placed successfully!",
