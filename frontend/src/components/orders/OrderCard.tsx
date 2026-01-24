@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, ChevronRight, User, Phone, Package, Navigation, PartyPopper, Star } from 'lucide-react';
+import { Clock, MapPin, ChevronRight, User, Package, Navigation, PartyPopper, Star } from 'lucide-react';
 import { Order, OrderStatus } from '@/hooks/useOrders';
 import ChatButton from '@/components/chat/ChatButton';
 import LiveRiderTrackingMap from '@/components/tracking/LiveRiderTrackingMap';
