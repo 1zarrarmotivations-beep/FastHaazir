@@ -523,7 +523,7 @@ const Auth = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        {isSyncing && <p className="text-sm text-muted-foreground">Setting up your account...</p>}
+        {isSyncing && <p className="text-sm text-muted-foreground">{t('auth.settingUpAccount')}</p>}
       </div>
     );
   }
@@ -533,9 +533,9 @@ const Auth = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
         <AlertCircle className="h-16 w-16 text-destructive mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Configuration Error</h2>
+        <h2 className="text-xl font-semibold mb-2">{t('errors.configError')}</h2>
         <p className="text-muted-foreground text-center">
-          Firebase is not properly configured. Please contact support.
+          {t('errors.firebaseNotConfigured')}
         </p>
       </div>
     );
@@ -553,8 +553,8 @@ const Auth = () => {
             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Welcome Back!</h1>
-            <p className="text-white/80 text-sm mt-1">You're logged in</p>
+            <h1 className="text-2xl font-bold text-white">{t('auth.welcomeBack')}</h1>
+            <p className="text-white/80 text-sm mt-1">{t('auth.youAreLoggedIn')}</p>
           </motion.div>
         </div>
 
@@ -562,12 +562,12 @@ const Auth = () => {
           <div className="bg-card rounded-t-3xl min-h-full p-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div className="bg-muted rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Logged in as</p>
+                <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">{t('auth.loggedInAs')}</p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                     {firebaseUser.phoneNumber ? <Phone className="w-6 h-6 text-primary" /> : <Mail className="w-6 h-6 text-primary" />}
                   </div>
-                  <span className="text-lg font-semibold text-foreground">
+                  <span className="text-lg font-semibold text-foreground ltr-keep">
                     {firebaseUser.phoneNumber ? formatPhoneForDisplay(firebaseUser.phoneNumber) : firebaseUser.email}
                   </span>
                 </div>
@@ -576,11 +576,11 @@ const Auth = () => {
               <div className="space-y-3">
                 <Button onClick={() => navigate("/")} className="w-full h-14 text-base font-medium">
                   <Home className="w-5 h-5 mr-2" />
-                  Go to Home
+                  {t('auth.goToHome')}
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/profile")} className="w-full h-14 text-base font-medium">
                   <User className="w-5 h-5 mr-2" />
-                  View Profile
+                  {t('profile.profile')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -589,7 +589,7 @@ const Auth = () => {
                   className="w-full h-14 text-base font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   {isLoggingOut ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <LogOut className="w-5 h-5 mr-2" />}
-                  {isLoggingOut ? "Logging out..." : "Logout"}
+                  {isLoggingOut ? t('auth.loggingOut') : t('auth.logout')}
                 </Button>
               </div>
             </motion.div>
