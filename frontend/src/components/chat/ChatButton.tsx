@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 interface ChatButtonProps {
   orderId?: string;
   riderRequestId?: string;
-  userType: 'customer' | 'business' | 'rider';
+  userType: 'customer' | 'business' | 'rider' | 'admin';
   variant?: 'default' | 'outline' | 'ghost' | 'secondary';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   className?: string;
@@ -32,6 +32,8 @@ const ChatButton = ({
     msg => msg.sender_id !== user?.id && !msg.read_at
   ).length;
 
+  const isIconOnly = size === 'icon';
+
   return (
     <>
       <Button
@@ -40,8 +42,8 @@ const ChatButton = ({
         onClick={() => setIsOpen(true)}
         className={`relative ${className}`}
       >
-        <MessageCircle className="w-4 h-4 mr-1" />
-        Chat
+        <MessageCircle className={`w-4 h-4 ${!isIconOnly ? 'mr-1' : ''}`} />
+        {!isIconOnly && 'Chat'}
         {unreadCount > 0 && (
           <Badge 
             variant="destructive" 
