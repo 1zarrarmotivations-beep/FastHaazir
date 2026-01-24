@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { 
   Phone, Mail, ArrowLeft, Shield, Loader2, AlertCircle, 
   RefreshCw, LogOut, User, CheckCircle, Home, Eye, EyeOff 
@@ -14,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalizePhoneNumber, normalizePhoneDigits, isValidPakistaniMobile } from "@/lib/phoneUtils";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import LanguageToggle from "@/components/LanguageToggle";
 import fastHaazirLogo from "@/assets/fast-haazir-logo.png";
 
 type AuthMethod = "select" | "phone" | "email" | "otp";
