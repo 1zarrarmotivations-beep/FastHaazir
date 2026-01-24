@@ -197,8 +197,8 @@ const Restaurants: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="font-bold text-foreground">Restaurants</h1>
-            <p className="text-xs text-muted-foreground">{restaurantList.length} places near you</p>
+            <h1 className="font-bold text-foreground">{t('restaurants.title')}</h1>
+            <p className="text-xs text-muted-foreground">{restaurantList.length} {t('restaurants.placesNearYou')}</p>
           </div>
           {/* Debug Button - Admin Only */}
           {isAdmin && (
@@ -219,7 +219,7 @@ const Restaurants: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search restaurants..."
+              placeholder={t('restaurants.searchRestaurants')}
               className="w-full h-10 pl-10 pr-4 rounded-xl bg-card shadow-soft border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -232,15 +232,15 @@ const Restaurants: React.FC = () => {
       {/* Empty state */}
       {restaurantList.length === 0 && (
         <div className="p-4 flex flex-col items-center justify-center gap-4 min-h-[50vh]">
-          <p className="text-muted-foreground text-center">No restaurants available right now</p>
+          <p className="text-muted-foreground text-center">{t('restaurants.noRestaurants')}</p>
           {isAdmin && (
             <p className="text-xs text-muted-foreground text-center">
-              Admin: Click the bug icon to see debug info
+              {t('admin.debugInfo')}
             </p>
           )}
           <Button onClick={() => refetch()} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
+            {t('common.refresh')}
           </Button>
         </div>
       )}
