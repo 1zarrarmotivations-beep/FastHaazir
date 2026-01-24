@@ -18,6 +18,20 @@ export interface Business {
   is_active: boolean;
 }
 
+// Debug info interface for troubleshooting
+export interface BusinessDebugInfo {
+  totalInDb: number;
+  activeCount: number;
+  filteredByType: number;
+  filteredOut: Array<{
+    id: string;
+    name: string;
+    reason: string;
+    type: string;
+    is_active: boolean;
+  }>;
+}
+
 export const useBusinesses = (type?: BusinessType) => {
   const queryClient = useQueryClient();
 
@@ -39,6 +53,7 @@ export const useBusinesses = (type?: BusinessType) => {
           // Invalidate query to refresh businesses list
           queryClient.invalidateQueries({ queryKey: ['businesses', type] });
           queryClient.invalidateQueries({ queryKey: ['businesses'] });
+          queryClient.invalidateQueries({ queryKey: ['businesses-debug'] });
         }
       )
       .subscribe();
@@ -52,34 +67,131 @@ export const useBusinesses = (type?: BusinessType) => {
   return useQuery({
     queryKey: ['businesses', type],
     queryFn: async () => {
-      console.log('[Query] Fetching businesses, type:', type);
+      console.log('[useBusinesses] Fetching businesses, requested type:', type);
       
-      // Use public view to avoid exposing sensitive owner data
-      // CRITICAL: Only fetch active businesses for customer-facing pages
+      // FIXED: Query directly from 'businesses' table instead of 'public_business_info' view
+      // The view may have RLS policies or data issues preventing customer access
+      // We only select non-sensitive fields (excluding owner_phone, owner_email, owner_user_id)
       let query = supabase
-        .from('public_business_info')
-        .select('*')
+        .from('businesses')
+        .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
         .eq('is_active', true) // Only show active businesses
         .order('featured', { ascending: false })
-        .order('rating', { ascending: false });
+        .order('rating', { ascending: false, nullsFirst: false });
 
       if (type) {
-        query = query.eq('type', type);
+        // Case-insensitive type matching - normalize to lowercase
+        const normalizedType = type.toLowerCase();
+        console.log('[useBusinesses] Filtering by type:', normalizedType);
+        query = query.eq('type', normalizedType);
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('[Query] Error fetching businesses:', error);
-        throw error;
+        console.error('[useBusinesses] Error fetching businesses:', error);
+        
+        // Fallback: Try the view if direct table access fails (RLS might block)
+        console.log('[useBusinesses] Trying fallback to public_business_info view...');
+        let fallbackQuery = supabase
+          .from('public_business_info')
+          .select('*')
+          .eq('is_active', true)
+          .order('featured', { ascending: false })
+          .order('rating', { ascending: false });
+        
+        if (type) {
+          fallbackQuery = fallbackQuery.eq('type', type.toLowerCase());
+        }
+        
+        const fallbackResult = await fallbackQuery;
+        if (fallbackResult.error) {
+          console.error('[useBusinesses] Fallback also failed:', fallbackResult.error);
+          throw error; // Throw original error
+        }
+        
+        console.log('[useBusinesses] Fallback succeeded, count:', fallbackResult.data?.length);
+        return (fallbackResult.data || []) as Business[];
       }
 
-      console.log('[Query] Fetched businesses count:', data?.length);
-      return data as Business[];
+      console.log('[useBusinesses] Fetched businesses:', {
+        count: data?.length,
+        type: type,
+        businesses: data?.map(b => ({ id: b.id, name: b.name, type: b.type, is_active: b.is_active }))
+      });
+      
+      return (data || []) as Business[];
     },
     // Data stays fresh with realtime, no need for aggressive polling
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
+  });
+};
+
+// Debug hook - shows why businesses might be hidden (admin/dev use only)
+export const useBusinessesDebug = (requestedType?: BusinessType) => {
+  return useQuery({
+    queryKey: ['businesses-debug', requestedType],
+    queryFn: async (): Promise<BusinessDebugInfo> => {
+      console.log('[useBusinessesDebug] Running debug query...');
+      
+      // Fetch ALL businesses without filters
+      const { data: allBusinesses, error } = await supabase
+        .from('businesses')
+        .select('id, name, type, is_active, image, category')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('[useBusinessesDebug] Error:', error);
+        return {
+          totalInDb: 0,
+          activeCount: 0,
+          filteredByType: 0,
+          filteredOut: [],
+        };
+      }
+
+      const businesses = allBusinesses || [];
+      const totalInDb = businesses.length;
+      const activeBusinesses = businesses.filter(b => b.is_active === true);
+      const activeCount = activeBusinesses.length;
+      
+      // Filter by type if specified
+      const normalizedType = requestedType?.toLowerCase();
+      const matchingType = normalizedType 
+        ? activeBusinesses.filter(b => b.type?.toLowerCase() === normalizedType)
+        : activeBusinesses;
+      const filteredByType = matchingType.length;
+
+      // Find businesses that are filtered out and why
+      const filteredOut = businesses
+        .filter(b => {
+          // If it would NOT show to customer, include it in filtered out list
+          if (!b.is_active) return true;
+          if (normalizedType && b.type?.toLowerCase() !== normalizedType) return true;
+          return false;
+        })
+        .map(b => ({
+          id: b.id,
+          name: b.name,
+          type: b.type || 'unknown',
+          is_active: b.is_active,
+          reason: !b.is_active 
+            ? 'INACTIVE (is_active = false)' 
+            : `TYPE_MISMATCH (type="${b.type}" but requested="${requestedType}")`
+        }));
+
+      const debugInfo: BusinessDebugInfo = {
+        totalInDb,
+        activeCount,
+        filteredByType,
+        filteredOut,
+      };
+
+      console.log('[useBusinessesDebug] Debug info:', debugInfo);
+      return debugInfo;
+    },
+    staleTime: 10000,
   });
 };
 
