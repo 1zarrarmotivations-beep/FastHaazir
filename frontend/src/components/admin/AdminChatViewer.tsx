@@ -23,7 +23,7 @@ interface AdminChatViewerProps {
   isOpen: boolean;
   onClose: () => void;
   orderInfo?: {
-    customerPhone?: string;
+    customerLabel?: string;
     riderName?: string;
     businessName?: string;
   };
