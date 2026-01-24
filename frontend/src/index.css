@@ -266,3 +266,223 @@
   background: white !important;
   color: hsl(var(--foreground)) !important;
 }
+
+
+
+/* ==================== RTL Support for Urdu ==================== */
+
+/* Urdu font */
+.font-urdu {
+  font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Nafees Nastaleeq', serif;
+}
+
+/* RTL base styles */
+html[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="rtl"] body {
+  direction: rtl;
+}
+
+/* RTL flex direction adjustments */
+html.rtl .flex-row {
+  flex-direction: row-reverse;
+}
+
+html.rtl .flex:not(.flex-col):not(.flex-col-reverse) {
+  /* Most flex containers should reverse in RTL */
+}
+
+/* Keep certain elements LTR (like icons, numbers) */
+html.rtl .ltr-keep {
+  direction: ltr;
+  text-align: left;
+}
+
+/* RTL spacing fixes */
+html.rtl .space-x-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+html.rtl .space-x-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+html.rtl .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* RTL margin fixes */
+html.rtl .ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html.rtl .mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+html.rtl .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+html.rtl .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+html.rtl .ml-4 {
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+html.rtl .mr-4 {
+  margin-right: 0;
+  margin-left: 1rem;
+}
+
+/* RTL padding fixes */
+html.rtl .pl-2 {
+  padding-left: 0;
+  padding-right: 0.5rem;
+}
+
+html.rtl .pr-2 {
+  padding-right: 0;
+  padding-left: 0.5rem;
+}
+
+html.rtl .pl-4 {
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+html.rtl .pr-4 {
+  padding-right: 0;
+  padding-left: 1rem;
+}
+
+/* RTL text alignment */
+html.rtl .text-left {
+  text-align: right;
+}
+
+html.rtl .text-right {
+  text-align: left;
+}
+
+/* RTL border radius */
+html.rtl .rounded-l-lg {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+html.rtl .rounded-r-lg {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+}
+
+/* RTL icon positioning - keep icons LTR */
+html.rtl .lucide,
+html.rtl [class*="lucide-"] {
+  direction: ltr;
+}
+
+/* RTL input fields */
+html.rtl input,
+html.rtl textarea {
+  text-align: right;
+}
+
+html.rtl input[type="tel"],
+html.rtl input[type="number"],
+html.rtl input[type="email"] {
+  direction: ltr;
+  text-align: left;
+}
+
+/* RTL for chat bubbles */
+html.rtl .chat-bubble-sent {
+  border-radius: 18px 18px 18px 4px;
+}
+
+html.rtl .chat-bubble-received {
+  border-radius: 18px 18px 4px 18px;
+}
+
+/* RTL dropdown positioning */
+html.rtl [data-side="left"] {
+  --radix-popper-available-width: var(--radix-popper-available-width);
+  --radix-popper-available-height: var(--radix-popper-available-height);
+}
+
+/* RTL sidebar */
+html.rtl .sidebar-left {
+  left: auto;
+  right: 0;
+}
+
+/* RTL scrollbar (optional, for consistent appearance) */
+html.rtl ::-webkit-scrollbar-track {
+  direction: ltr;
+}
+
+/* RTL transitions */
+html.rtl .translate-x-full {
+  --tw-translate-x: -100%;
+}
+
+html.rtl .-translate-x-full {
+  --tw-translate-x: 100%;
+}
+
+/* RTL grid gap adjustments handled by Tailwind */
+
+/* RTL order card styling */
+html.rtl .order-card .status-badge {
+  text-align: right;
+}
+
+/* Prevent double-mirroring of emojis */
+html.rtl .emoji {
+  direction: ltr;
+  display: inline-block;
+}
+
+/* Fix navigation in RTL */
+html.rtl nav .nav-item {
+  direction: rtl;
+}
+
+/* RTL message bubbles */
+html.rtl .message-sent {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html.rtl .message-received {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Numbers should stay LTR */
+html.rtl .num,
+html.rtl .price,
+html.rtl .phone-number,
+html.rtl [data-numeric="true"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Maps stay LTR */
+html.rtl .leaflet-container {
+  direction: ltr;
+}
