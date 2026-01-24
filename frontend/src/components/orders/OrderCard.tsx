@@ -139,13 +139,14 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
                   {order.riders?.vehicle_type || 'Bike'} • {order.riders?.total_trips || 0} trips
                 </p>
               </div>
-              {order.riders?.phone && (
-                <a href={`tel:${order.riders.phone}`}>
-                  <Button variant="outline" size="icon" className="shrink-0">
-                    <Phone className="w-4 h-4" />
-                  </Button>
-                </a>
-              )}
+              {/* Chat button instead of phone - Privacy protected */}
+              <ChatButton 
+                orderId={order.id} 
+                userType="customer" 
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+              />
             </div>
           </motion.div>
         )}
