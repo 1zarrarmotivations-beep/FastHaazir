@@ -85,6 +85,12 @@ const statusConfig = {
 export function OrdersManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewingChatOrderId, setViewingChatOrderId] = useState<string | null>(null);
+  const [chatOrderInfo, setChatOrderInfo] = useState<{
+    customerPhone?: string;
+    riderName?: string;
+    businessName?: string;
+  } | null>(null);
 
   const { data: orders, isLoading, refetch } = useAdminOrders();
   const { data: riders } = useAdminRiders();
