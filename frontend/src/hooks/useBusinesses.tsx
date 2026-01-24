@@ -54,6 +54,7 @@ export const useBusinesses = (type?: BusinessType) => {
           queryClient.invalidateQueries({ queryKey: ['businesses', type] });
           queryClient.invalidateQueries({ queryKey: ['businesses'] });
           queryClient.invalidateQueries({ queryKey: ['businesses-debug'] });
+          queryClient.invalidateQueries({ queryKey: ['business'] });
         }
       )
       .subscribe();
