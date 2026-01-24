@@ -1,0 +1,152 @@
+name: Build Android APK & AAB
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    name: Build APK & AAB
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Auto-detect frontend path
+        id: detect-frontend
+        run: |
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+            echo "FRONTEND_PATH=frontend" >> $GITHUB_OUTPUT
+            echo "Frontend detected at: frontend/"
+          elif [ -d "app/frontend" ] && [ -f "app/frontend/package.json" ]; then
+            echo "FRONTEND_PATH=app/frontend" >> $GITHUB_OUTPUT
+            echo "Frontend detected at: app/frontend/"
+          elif [ -f "package.json" ] && [ -d "src" ]; then
+            echo "FRONTEND_PATH=." >> $GITHUB_OUTPUT
+            echo "Frontend detected at: root"
+          else
+            echo "ERROR: Could not detect frontend path"
+            exit 1
+          fi
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+          cache-dependency-path: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/yarn.lock
+
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Install dependencies
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
+        run: |
+          yarn install --frozen-lockfile || yarn install
+
+      - name: Build web assets
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
+        run: |
+          yarn build
+        env:
+          CI: false
+
+      - name: Verify dist folder
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "ERROR: dist folder not found after build"
+            exit 1
+          fi
+          echo "Build output:"
+          ls -la dist/
+
+      - name: Initialize Capacitor Android (if missing)
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Android folder missing, adding Capacitor Android..."
+            npx cap add android
+          fi
+
+      - name: Sync Capacitor
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
+        run: |
+          npx cap sync android
+
+      - name: Verify gradlew permissions
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android
+        run: |
+          chmod +x gradlew
+          ls -la gradlew
+
+      - name: Build Debug APK
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Build Release AAB (Play Store)
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android
+        run: |
+          ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Build Release APK
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: List build outputs
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android
+        run: |
+          echo "=== Debug APK ==="
+          find . -name "*.apk" -type f | head -20
+          echo ""
+          echo "=== Release AAB ==="
+          find . -name "*.aab" -type f | head -20
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-debug-apk
+          path: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-release-apk
+          path: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload Release AAB (Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-release-aab
+          path: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}/android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Build Summary
+        run: |
+          echo "## ✅ Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts Generated:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Debug APK**: Ready for testing" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release APK**: Ready for distribution" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release AAB**: Ready for Play Store upload" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download artifacts from the Actions tab above." >> $GITHUB_STEP_SUMMARY
