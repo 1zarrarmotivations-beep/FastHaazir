@@ -374,7 +374,9 @@
     "uploadFailed": "اپ لوڈ ناکام",
     "deleteFailed": "حذف کرنے میں ناکامی",
     "updateFailed": "اپڈیٹ کرنے میں ناکامی",
-    "tryAgain": "دوبارہ کوشش کریں"
+    "tryAgain": "دوبارہ کوشش کریں",
+    "configError": "کنفیگریشن خرابی",
+    "firebaseNotConfigured": "فائربیس ٹھیک سے سیٹ نہیں ہے۔ سپورٹ سے رابطہ کریں۔"
   },
   "success": {
     "orderPlaced": "آرڈر کامیابی سے دے دیا گیا!",
