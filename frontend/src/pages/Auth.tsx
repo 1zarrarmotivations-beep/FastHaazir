@@ -304,6 +304,7 @@ const redirectByRole = (
 // ==================== MAIN COMPONENT ====================
 
 const Auth = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
