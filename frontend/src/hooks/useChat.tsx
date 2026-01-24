@@ -203,3 +203,61 @@ export const useRiderRequestParticipants = (requestId?: string) => {
     enabled: !!requestId,
   });
 };
+
+
+// Voice message upload hook
+export const useUploadVoiceNote = () => {
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      riderRequestId,
+      audioBlob,
+      duration,
+    }: {
+      orderId?: string;
+      riderRequestId?: string;
+      audioBlob: Blob;
+      duration: number;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const contextId = orderId || riderRequestId;
+      if (!contextId) throw new Error('Order or rider request ID is required');
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${user.id}.webm`;
+      const filePath = `${contextId}/${fileName}`;
+
+      console.log('[useUploadVoiceNote] Uploading voice note:', { filePath, duration, size: audioBlob.size });
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat-voice-notes')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[useUploadVoiceNote] Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('chat-voice-notes')
+        .getPublicUrl(filePath);
+
+      console.log('[useUploadVoiceNote] Voice note uploaded:', urlData.publicUrl);
+
+      return {
+        url: urlData.publicUrl,
+        duration,
+      };
+    },
+  });
+};
+
