@@ -22,6 +22,7 @@ import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Admin() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("dashboard");
   const { user, loading: authLoading } = useAuth();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
