@@ -178,20 +178,20 @@ export const useBusinessesDebug = (requestedType?: BusinessType) => {
 export const useBusiness = (id: string) => {
   const queryClient = useQueryClient();
 
-  // Set up realtime subscription for single business
+  // Set up realtime subscription for single business (public safe table)
   useEffect(() => {
     if (!id) return;
     
     console.log('[useBusiness] Setting up realtime subscription for business:', id);
     
     const channel = supabase
-      .channel(`business-realtime-${id}`)
+      .channel(`public-business-realtime-${id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'businesses',
+          table: 'public_businesses',
           filter: `id=eq.${id}`,
         },
         (payload) => {
@@ -212,25 +212,19 @@ export const useBusiness = (id: string) => {
     queryFn: async () => {
       console.log('[useBusiness] Fetching single business:', id);
       
-      // FIXED: Query directly from 'businesses' table with non-sensitive fields only
+      // Customer reads MUST come from the safe public table (no PII)
       const { data, error } = await supabase
-        .from('businesses')
-        .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
+        .from('public_businesses')
+        .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active, is_approved, deleted_at')
         .eq('id', id)
+        .eq('is_active', true)
+        .eq('is_approved', true)
+        .is('deleted_at', null)
         .maybeSingle();
 
       if (error) {
         console.error('[useBusiness] Error fetching business:', error);
-        
-        // Fallback to public view
-        const fallback = await supabase
-          .from('public_business_info')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-        
-        if (fallback.error) throw error;
-        return fallback.data as Business | null;
+        throw error;
       }
 
       console.log('[useBusiness] Fetched business:', data?.name);
