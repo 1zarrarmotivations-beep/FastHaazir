@@ -50,40 +50,8 @@ import {
 import { format } from "date-fns";
 import AdminChatViewer from "./AdminChatViewer";
 
-const statusConfig = {
-  placed: { 
-    color: "bg-amber-500/10 text-amber-600 border-amber-500/30", 
-    icon: Clock,
-    label: "New Order",
-    gradient: "from-amber-500 to-orange-500"
-  },
-  preparing: { 
-    color: "bg-blue-500/10 text-blue-600 border-blue-500/30", 
-    icon: Package,
-    label: "Preparing",
-    gradient: "from-blue-500 to-indigo-500"
-  },
-  on_way: { 
-    color: "bg-purple-500/10 text-purple-600 border-purple-500/30", 
-    icon: Truck,
-    label: "On the Way",
-    gradient: "from-purple-500 to-violet-500"
-  },
-  delivered: { 
-    color: "bg-green-500/10 text-green-600 border-green-500/30", 
-    icon: CheckCircle,
-    label: "Delivered",
-    gradient: "from-green-500 to-emerald-500"
-  },
-  cancelled: { 
-    color: "bg-red-500/10 text-red-600 border-red-500/30", 
-    icon: XCircle,
-    label: "Cancelled",
-    gradient: "from-red-500 to-rose-500"
-  },
-};
-
 export function OrdersManager() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewingChatOrderId, setViewingChatOrderId] = useState<string | null>(null);
@@ -92,6 +60,39 @@ export function OrdersManager() {
     riderName?: string;
     businessName?: string;
   } | null>(null);
+
+  const statusConfig = {
+    placed: { 
+      color: "bg-amber-500/10 text-amber-600 border-amber-500/30", 
+      icon: Clock,
+      label: t('orderStatus.placed'),
+      gradient: "from-amber-500 to-orange-500"
+    },
+    preparing: { 
+      color: "bg-blue-500/10 text-blue-600 border-blue-500/30", 
+      icon: Package,
+      label: t('orderStatus.preparing'),
+      gradient: "from-blue-500 to-indigo-500"
+    },
+    on_way: { 
+      color: "bg-purple-500/10 text-purple-600 border-purple-500/30", 
+      icon: Truck,
+      label: t('orderStatus.onTheWay'),
+      gradient: "from-purple-500 to-violet-500"
+    },
+    delivered: { 
+      color: "bg-green-500/10 text-green-600 border-green-500/30", 
+      icon: CheckCircle,
+      label: t('orderStatus.delivered'),
+      gradient: "from-green-500 to-emerald-500"
+    },
+    cancelled: { 
+      color: "bg-red-500/10 text-red-600 border-red-500/30", 
+      icon: XCircle,
+      label: t('orderStatus.cancelled'),
+      gradient: "from-red-500 to-rose-500"
+    },
+  };
 
   const { data: orders, isLoading, refetch } = useAdminOrders();
   const { data: riders } = useAdminRiders();
