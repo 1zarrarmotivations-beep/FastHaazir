@@ -117,14 +117,21 @@ export const useSendMessage = () => {
       riderRequestId,
       message,
       senderType,
+      messageType = 'text',
+      voiceUrl,
+      voiceDuration,
     }: {
       orderId?: string;
       riderRequestId?: string;
       message: string;
-      senderType: 'customer' | 'business' | 'rider';
+      senderType: 'customer' | 'business' | 'rider' | 'admin';
+      messageType?: 'text' | 'voice';
+      voiceUrl?: string;
+      voiceDuration?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
-      if (!message.trim()) throw new Error('Message cannot be empty');
+      if (messageType === 'text' && !message.trim()) throw new Error('Message cannot be empty');
+      if (messageType === 'voice' && !voiceUrl) throw new Error('Voice URL is required');
 
       const { data, error } = await supabase
         .from('chat_messages')
@@ -133,7 +140,10 @@ export const useSendMessage = () => {
           rider_request_id: riderRequestId || null,
           sender_id: user.id,
           sender_type: senderType,
-          message: message.trim(),
+          message: messageType === 'voice' ? '🎤 Voice message' : message.trim(),
+          message_type: messageType,
+          voice_url: voiceUrl || null,
+          voice_duration: voiceDuration || null,
         })
         .select()
         .single();
