@@ -144,14 +144,11 @@ export const RequestCard = ({
           </div>
         </div>
 
-        {request.customer_phone && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <Phone className="w-4 h-4" />
-            <a href={`tel:${request.customer_phone}`} className="hover:text-primary">
-              {request.customer_phone}
-            </a>
-          </div>
-        )}
+        {/* Customer contact via chat only - Privacy protected */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3 p-2 bg-blue-500/5 rounded-lg border border-blue-500/10">
+          <User className="w-4 h-4 text-blue-500" />
+          <span className="text-xs">Contact customer via in-app chat</span>
+        </div>
 
         {showActions && (
           <div className="flex gap-2">
