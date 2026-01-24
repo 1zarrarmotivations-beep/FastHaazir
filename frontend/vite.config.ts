@@ -17,7 +17,14 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   build: {
-    sourcemap: true,
+    sourcemap: mode === "development",
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === "production",
+        drop_debugger: true,
+      },
+    },
   },
   plugins: [
     react(),
