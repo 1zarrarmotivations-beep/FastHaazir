@@ -165,12 +165,13 @@ export const useOrderParticipants = (orderId?: string) => {
     queryFn: async () => {
       if (!orderId) return null;
 
+      // PRIVACY: Do not fetch phone numbers - only fetch names and IDs
       const { data: order, error } = await supabase
         .from('orders')
         .select(`
           *,
-          business:businesses(id, name, owner_phone, owner_user_id),
-          rider:riders(id, name, phone, user_id)
+          business:businesses(id, name),
+          rider:riders(id, name, user_id, vehicle_type, rating, total_trips, image)
         `)
         .eq('id', orderId)
         .maybeSingle();
