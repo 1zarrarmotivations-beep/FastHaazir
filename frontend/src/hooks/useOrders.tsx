@@ -179,13 +179,13 @@ export const useActiveOrders = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      // Fetch regular orders
+      // Fetch regular orders - PRIVACY: No phone numbers
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select(`
           *,
-          businesses(name, image, owner_phone),
-          riders(name, phone, image, rating, vehicle_type, total_trips)
+          businesses(name, image),
+          riders(name, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
         .in('status', ['placed', 'preparing', 'on_way'])
@@ -196,12 +196,12 @@ export const useActiveOrders = () => {
         throw ordersError;
       }
 
-      // Fetch rider requests
+      // Fetch rider requests - PRIVACY: No phone numbers
       const { data: riderRequests, error: riderRequestsError } = await supabase
         .from('rider_requests')
         .select(`
           *,
-          riders(name, phone, image, rating, vehicle_type, total_trips)
+          riders(name, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
         .in('status', ['placed', 'preparing', 'on_way'])
