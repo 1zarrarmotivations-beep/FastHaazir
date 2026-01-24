@@ -102,8 +102,8 @@ export const useOrders = () => {
         .from('orders')
         .select(`
           *,
-          businesses(name, image, owner_phone),
-          riders(name, phone, image, rating, vehicle_type, total_trips)
+          businesses(name, image),
+          riders(name, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
         .order('created_at', { ascending: false });
