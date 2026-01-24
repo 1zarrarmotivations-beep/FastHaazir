@@ -56,6 +56,16 @@ jobs:
         run: |
           yarn install --frozen-lockfile || yarn install
 
+      - name: Create .env file for build
+        working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
+        run: |
+          if [ ! -f ".env" ]; then
+            echo "Creating minimal .env for build..."
+            echo "VITE_SUPABASE_PROJECT_ID=${{ secrets.SUPABASE_PROJECT_ID || 'pmqkclhqvjfmcxzuoypa' }}" > .env
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_ANON_KEY || 'placeholder_for_build' }}" >> .env
+            echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://pmqkclhqvjfmcxzuoypa.supabase.co' }}" >> .env
+          fi
+
       - name: Build web assets
         working-directory: ${{ steps.detect-frontend.outputs.FRONTEND_PATH }}
         run: |
