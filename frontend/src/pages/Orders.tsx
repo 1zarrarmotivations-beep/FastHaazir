@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { User } from 'lucide-react';
@@ -12,6 +13,7 @@ import OrderCard from '@/components/orders/OrderCard';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 
 const Orders: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { data: orders, isLoading } = useActiveOrders();
@@ -43,8 +45,8 @@ const Orders: React.FC = () => {
       <div className="mobile-container bg-background min-h-screen pb-24">
         <header className="sticky top-0 z-50 glass border-b border-border/50">
           <div className="px-4 py-4">
-            <h1 className="text-xl font-bold text-foreground">Active Orders</h1>
-            <p className="text-sm text-muted-foreground">Track your deliveries</p>
+            <h1 className="text-xl font-bold text-foreground">{t('order.orderHistory')}</h1>
+            <p className="text-sm text-muted-foreground">{t('order.trackOrder')}</p>
           </div>
         </header>
 
@@ -56,7 +58,7 @@ const Orders: React.FC = () => {
           >
             <User className="w-10 h-10 text-muted-foreground" />
           </motion.div>
-          <h2 className="font-bold text-lg mb-2">Sign in to view orders</h2>
+          <h2 className="font-bold text-lg mb-2">{t('auth.loginToViewOrders')}</h2>
           <p className="text-muted-foreground text-sm text-center mb-6">
             Login to track your active orders
           </p>
