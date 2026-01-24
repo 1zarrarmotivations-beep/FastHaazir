@@ -56,7 +56,7 @@ export function OrdersManager() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewingChatOrderId, setViewingChatOrderId] = useState<string | null>(null);
   const [chatOrderInfo, setChatOrderInfo] = useState<{
-    customerPhone?: string;
+    customerLabel?: string;
     riderName?: string;
     businessName?: string;
   } | null>(null);
@@ -328,7 +328,7 @@ export function OrdersManager() {
                               <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground font-medium">Customer</p>
                                 <p className="text-sm font-medium text-foreground truncate">
-                                  {order.customer_phone || 'Unknown'}
+                                  Customer #{order.id.slice(0, 6)}
                                 </p>
                               </div>
                             </div>

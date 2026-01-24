@@ -53,7 +53,7 @@ export function RiderRequestsManager() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewingChatRequestId, setViewingChatRequestId] = useState<string | null>(null);
   const [chatRequestInfo, setChatRequestInfo] = useState<{
-    customerPhone?: string;
+    customerLabel?: string;
     riderName?: string;
   } | null>(null);
 
@@ -189,15 +189,13 @@ export function RiderRequestsManager() {
                         </div>
                       )}
 
-                      {/* Customer */}
-                      {request.customer_phone && (
-                        <div className="mt-3 flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {request.customer_phone}
-                          </span>
-                        </div>
-                      )}
+                      {/* Customer (privacy: do NOT show phone numbers) */}
+                      <div className="mt-3 flex items-center gap-2">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Customer #{request.id.slice(0, 6)}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Actions */}
