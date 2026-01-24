@@ -270,6 +270,24 @@ export function RiderRequestsManager() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
+
+                      {/* Silent Chat Monitor Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 bg-slate-100 hover:bg-slate-200 border-slate-300"
+                        onClick={() => {
+                          const assignedRider = riders?.find(r => r.id === request.rider_id);
+                          setViewingChatRequestId(request.id);
+                          setChatRequestInfo({
+                            customerPhone: request.customer_phone,
+                            riderName: assignedRider?.name,
+                          });
+                        }}
+                      >
+                        <EyeOff className="w-4 h-4 mr-2 text-slate-600" />
+                        <span className="text-slate-700">Monitor Chat</span>
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -278,6 +296,17 @@ export function RiderRequestsManager() {
           ))}
         </div>
       )}
+
+      {/* Admin Chat Viewer (Silent Mode) */}
+      <AdminChatViewer
+        riderRequestId={viewingChatRequestId || undefined}
+        isOpen={!!viewingChatRequestId}
+        onClose={() => {
+          setViewingChatRequestId(null);
+          setChatRequestInfo(null);
+        }}
+        orderInfo={chatRequestInfo || undefined}
+      />
 
       {filteredRequests?.length === 0 && !isLoading && (
         <div className="text-center py-12">
