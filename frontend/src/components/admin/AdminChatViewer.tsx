@@ -143,7 +143,7 @@ const AdminMessageBubble = memo(({
 }: { 
   msg: ChatMessage;
   orderInfo?: {
-    customerPhone?: string;
+    customerLabel?: string;
     riderName?: string;
     businessName?: string;
   };
@@ -154,7 +154,7 @@ const AdminMessageBubble = memo(({
   const getSenderLabel = () => {
     switch (msg.sender_type) {
       case 'customer':
-        return orderInfo?.customerPhone ? `Customer (${orderInfo.customerPhone})` : 'Customer';
+        return orderInfo?.customerLabel ? `${orderInfo.customerLabel}` : 'Customer';
       case 'rider':
         return orderInfo?.riderName ? `Rider: ${orderInfo.riderName}` : 'Rider';
       case 'business':
@@ -308,7 +308,7 @@ const AdminChatViewer = ({
           <div className="flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-blue-500" />
             <span className="text-muted-foreground">
-              {orderInfo?.customerPhone || 'Customer'}
+              {orderInfo?.customerLabel || 'Customer'}
             </span>
           </div>
           <span className="text-muted-foreground">↔</span>
