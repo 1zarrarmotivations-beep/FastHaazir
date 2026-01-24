@@ -230,20 +230,30 @@ export const useBusiness = (id: string) => {
   return useQuery({
     queryKey: ['business', id],
     queryFn: async () => {
-      console.log('[Query] Fetching single business:', id);
+      console.log('[useBusiness] Fetching single business:', id);
       
-      // Use public view to avoid exposing sensitive owner data
+      // FIXED: Query directly from 'businesses' table with non-sensitive fields only
       const { data, error } = await supabase
-        .from('public_business_info')
-        .select('*')
+        .from('businesses')
+        .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
         .eq('id', id)
         .maybeSingle();
 
       if (error) {
-        console.error('[Query] Error fetching business:', error);
-        throw error;
+        console.error('[useBusiness] Error fetching business:', error);
+        
+        // Fallback to public view
+        const fallback = await supabase
+          .from('public_business_info')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+        
+        if (fallback.error) throw error;
+        return fallback.data as Business | null;
       }
 
+      console.log('[useBusiness] Fetched business:', data?.name);
       return data as Business | null;
     },
     enabled: !!id,
