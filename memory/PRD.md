@@ -50,6 +50,23 @@ Rider → Picks up → Delivers to customer
 - [x] Order acceptance
 - [x] Delivery completion
 
+### Admin Chat Monitoring (Silent Mode)
+- [x] View all order chats (customer ↔ rider)
+- [x] Silent mode - admin doesn't appear as participant
+- [x] Read-only interface - no input, mic, or send buttons
+- [x] Can play voice notes and read text messages
+- [x] Timestamps and sender roles visible
+- [x] "Silent Mode" banner with privacy notice
+- [x] Customer/rider unaware of admin viewing
+
+### Chat System (Extended)
+- [x] Text messaging (existing)
+- [x] Voice note recording (NEW)
+- [x] Voice note playback with waveform (NEW)
+- [x] Privacy notice banner (NEW)
+- [x] Realtime message delivery
+- [x] Unread message badges
+
 ## What's Been Implemented (January 2026)
 
 ### Session: UI Enhancement & Business Role Removal
