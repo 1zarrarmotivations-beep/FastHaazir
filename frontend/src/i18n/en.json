@@ -165,7 +165,8 @@
     "cancelOrder": "Cancel Order",
     "orderCancelled": "Order Cancelled",
     "noOrders": "No orders yet",
-    "startOrdering": "Start ordering to see your history"
+    "startOrdering": "Start ordering to see your history",
+    "ordersWillAppear": "Your orders will appear here"
   },
   "orderStatus": {
     "placed": "Order Placed",
