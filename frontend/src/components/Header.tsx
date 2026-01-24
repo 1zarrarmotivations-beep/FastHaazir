@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import NotificationBell from './notifications/NotificationBell';
 import NotificationsSheet from './notifications/NotificationsSheet';
+import LanguageToggle from './LanguageToggle';
 import fastHaazirLogo from '@/assets/fast-haazir-logo-optimized.webp';
 
 const Header: React.FC = () => {
+  const { t } = useTranslation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
@@ -28,13 +31,16 @@ const Header: React.FC = () => {
               />
               <div>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> Deliver to
+                  <MapPin className="w-3 h-3" /> {t('home.deliverTo')}
                 </p>
                 <p className="font-semibold text-sm text-foreground">Quetta, Pakistan</p>
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-card shadow-soft flex items-center justify-center">
-              <NotificationBell onClick={() => setNotificationsOpen(true)} />
+            <div className="flex items-center gap-2">
+              <LanguageToggle variant="compact" />
+              <div className="w-10 h-10 rounded-xl bg-card shadow-soft flex items-center justify-center">
+                <NotificationBell onClick={() => setNotificationsOpen(true)} />
+              </div>
             </div>
           </div>
 
@@ -43,7 +49,7 @@ const Header: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search restaurants, groceries..."
+              placeholder={t('home.searchPlaceholder')}
               className="w-full h-12 pl-12 pr-4 rounded-xl bg-card shadow-soft border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             />
           </div>
