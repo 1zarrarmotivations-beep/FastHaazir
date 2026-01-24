@@ -324,14 +324,12 @@ const OrderCard = ({ order, index, onStatusUpdate, onReject, isPast }: OrderCard
                 )}
               </div>
 
-              {/* Customer Info */}
+              {/* Customer Info - Privacy Protected: No phone number shown */}
               <div className="flex flex-wrap gap-4 text-sm">
-                {order.customer_phone && (
-                  <span className="flex items-center gap-1 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    {order.customer_phone}
-                  </span>
-                )}
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  Customer #{order.id.slice(0, 6)}
+                </span>
                 {order.delivery_address && (
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <MapPin className="h-4 w-4" />
@@ -347,7 +345,7 @@ const OrderCard = ({ order, index, onStatusUpdate, onReject, isPast }: OrderCard
                 </p>
               )}
 
-              {/* Actions */}
+              {/* Actions - Chat only, no phone calls */}
               <div className="flex gap-3 pt-2 flex-wrap">
                 <ChatButton 
                   orderId={order.id} 
@@ -355,14 +353,6 @@ const OrderCard = ({ order, index, onStatusUpdate, onReject, isPast }: OrderCard
                   variant="outline"
                   size="sm"
                 />
-                {order.customer_phone && (
-                  <a href={`tel:${order.customer_phone}`}>
-                    <Button variant="outline" size="sm">
-                      <Phone className="h-4 w-4 mr-1" />
-                      Call
-                    </Button>
-                  </a>
-                )}
                 {!isPast && nextStatus && (
                   <>
                     {order.status === 'placed' && onReject && (
