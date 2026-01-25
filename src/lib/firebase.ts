@@ -1,5 +1,5 @@
 // Firebase SDK - Multi-auth support (Phone OTP, Email/Password, Google)
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
   RecaptchaVerifier, 
@@ -8,9 +8,15 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
+  PhoneAuthProvider,
   onAuthStateChanged, 
-  signOut 
+  signOut,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  indexedDBLocalPersistence,
+  initializeAuth
 } from 'firebase/auth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,6 +26,9 @@ let firebaseAuth: any = null;
 let googleProvider: any = null;
 let configLoaded = false;
 let configValid = false;
+
+// Detect if running in Capacitor (native app)
+const isNativeApp = typeof (window as any)?.Capacitor !== 'undefined';
 
 interface FirebaseConfig {
   apiKey: string;
@@ -33,6 +42,7 @@ interface FirebaseConfig {
  */
 export const fetchFirebaseConfig = async (): Promise<FirebaseConfig | null> => {
   try {
+    console.log('[Firebase] Fetching config from edge function...');
     const { data, error } = await supabase.functions.invoke('get-firebase-config');
     
     if (error) {
@@ -45,6 +55,7 @@ export const fetchFirebaseConfig = async (): Promise<FirebaseConfig | null> => {
       return null;
     }
     
+    console.log('[Firebase] Config fetched successfully for project:', data.config.projectId);
     return data.config as FirebaseConfig;
   } catch (err) {
     console.error('[Firebase] Error fetching config:', err);
@@ -61,6 +72,17 @@ export const initializeFirebase = async (): Promise<boolean> => {
   }
   
   try {
+    // Check if Firebase is already initialized
+    if (getApps().length > 0) {
+      console.log('[Firebase] Already initialized, reusing existing app');
+      firebaseApp = getApp();
+      firebaseAuth = getAuth(firebaseApp);
+      googleProvider = new GoogleAuthProvider();
+      configLoaded = true;
+      configValid = true;
+      return true;
+    }
+    
     const config = await fetchFirebaseConfig();
     
     if (!config) {
@@ -69,8 +91,27 @@ export const initializeFirebase = async (): Promise<boolean> => {
       return false;
     }
     
+    console.log('[Firebase] Initializing app...', isNativeApp ? '(Native APK)' : '(Web)');
     firebaseApp = initializeApp(config);
-    firebaseAuth = getAuth(firebaseApp);
+    
+    // Initialize auth with appropriate persistence for the platform
+    if (isNativeApp) {
+      // For native apps, use indexedDB persistence (works better on Android WebView)
+      try {
+        firebaseAuth = initializeAuth(firebaseApp, {
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence]
+        });
+        console.log('[Firebase] Auth initialized with indexedDB persistence (Native)');
+      } catch (e) {
+        // Fallback if initializeAuth fails
+        firebaseAuth = getAuth(firebaseApp);
+        console.log('[Firebase] Auth initialized with default persistence (Native fallback)');
+      }
+    } else {
+      firebaseAuth = getAuth(firebaseApp);
+      console.log('[Firebase] Auth initialized with default persistence (Web)');
+    }
+    
     firebaseAuth.languageCode = 'en';
     
     // Initialize Google Auth Provider
@@ -83,6 +124,8 @@ export const initializeFirebase = async (): Promise<boolean> => {
     configValid = true;
     
     console.log('[Firebase] Initialized successfully with multi-auth support');
+    console.log('[Firebase] Project ID:', config.projectId);
+    console.log('[Firebase] Auth Domain:', config.authDomain);
     return true;
   } catch (err) {
     console.error('[Firebase] Initialization error:', err);
@@ -120,6 +163,13 @@ export const isConfigLoaded = (): boolean => {
   return configLoaded;
 };
 
+/**
+ * Check if running in native app (Capacitor)
+ */
+export const isRunningInNativeApp = (): boolean => {
+  return isNativeApp;
+};
+
 // Re-export Firebase auth functions
 export { 
   RecaptchaVerifier, 
@@ -128,7 +178,9 @@ export {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
+  PhoneAuthProvider,
   onAuthStateChanged, 
   signOut 
 };
