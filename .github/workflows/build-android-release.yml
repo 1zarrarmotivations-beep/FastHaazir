@@ -1,0 +1,169 @@
+name: Build Android Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+env:
+  # Supabase Configuration - PRODUCTION VALUES
+  VITE_SUPABASE_URL: "https://pmqkclhqvjfmcxzuoypa.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64"
+  VITE_SUPABASE_PROJECT_ID: "pmqkclhqvjfmcxzuoypa"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: Create production .env file
+        working-directory: frontend
+        run: |
+          cat > .env << EOF
+          VITE_SUPABASE_URL=${{ env.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY=${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID=${{ env.VITE_SUPABASE_PROJECT_ID }}
+          EOF
+          echo "✅ Created .env file with production values"
+          cat .env
+
+      - name: Build frontend for production
+        working-directory: frontend
+        run: npm run build
+        env:
+          CI: false
+          NODE_ENV: production
+          VITE_SUPABASE_URL: ${{ env.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.VITE_SUPABASE_PROJECT_ID }}
+
+      - name: Verify build output
+        working-directory: frontend
+        run: |
+          echo "📦 Build output:"
+          ls -la dist/
+          echo ""
+          echo "📄 Checking index.html exists:"
+          test -f dist/index.html && echo "✅ index.html found" || echo "❌ index.html missing"
+
+      - name: Sync Capacitor Android
+        working-directory: frontend
+        run: |
+          npx cap sync android
+          echo "✅ Capacitor sync complete"
+
+      - name: Verify google-services.json
+        working-directory: frontend/android/app
+        run: |
+          if [ -f "google-services.json" ]; then
+            echo "✅ google-services.json found"
+            echo "📋 Package name in google-services.json:"
+            grep -o '"package_name": "[^"]*"' google-services.json || true
+          else
+            echo "❌ google-services.json NOT found - Firebase will fail!"
+            exit 1
+          fi
+
+      - name: Make gradlew executable
+        working-directory: frontend/android
+        run: chmod +x gradlew
+
+      - name: Setup Release Keystore
+        if: ${{ github.event.inputs.build_type == 'release' || startsWith(github.ref, 'refs/tags/') }}
+        working-directory: frontend/android
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/release-keystore.jks
+            echo "✅ Release keystore created"
+          else
+            echo "⚠️ No keystore secret found - building debug APK instead"
+          fi
+
+      - name: Build Debug APK
+        if: ${{ github.event.inputs.build_type == 'debug' || (github.event.inputs.build_type != 'release' && !startsWith(github.ref, 'refs/tags/')) }}
+        working-directory: frontend/android
+        run: |
+          echo "🔨 Building Debug APK..."
+          ./gradlew assembleDebug --stacktrace
+          echo "✅ Debug APK build complete"
+
+      - name: Build Release APK
+        if: ${{ github.event.inputs.build_type == 'release' || startsWith(github.ref, 'refs/tags/') }}
+        working-directory: frontend/android
+        run: |
+          if [ -f "app/release-keystore.jks" ]; then
+            echo "🔨 Building Signed Release APK..."
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file=$(pwd)/app/release-keystore.jks \
+              -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+              -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+              -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }} \
+              --stacktrace
+            echo "✅ Signed Release APK build complete"
+          else
+            echo "🔨 Building Unsigned Release APK..."
+            ./gradlew assembleRelease --stacktrace
+            echo "✅ Unsigned Release APK build complete"
+          fi
+
+      - name: List APK outputs
+        working-directory: frontend/android
+        run: |
+          echo "📦 APK outputs:"
+          find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APKs found"
+
+      - name: Upload Debug APK
+        if: ${{ github.event.inputs.build_type == 'debug' || (github.event.inputs.build_type != 'release' && !startsWith(github.ref, 'refs/tags/')) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Upload Release APK
+        if: ${{ github.event.inputs.build_type == 'release' || startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-release-apk
+          path: frontend/android/app/build/outputs/apk/release/*.apk
+          retention-days: 90
+
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            frontend/android/app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,8 +2,19 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Production Supabase Configuration with robust fallbacks
+// These values are safe publishable keys - identical for Web and APK
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://pmqkclhqvjfmcxzuoypa.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64";
+
+// Detect if running in Capacitor (native app)
+const isNativeApp = typeof (window as any)?.Capacitor !== 'undefined';
+
+// Log environment for debugging (only in development)
+if (import.meta.env.DEV) {
+  console.log('[Supabase] Environment:', isNativeApp ? 'Native APK' : 'Web');
+  console.log('[Supabase] URL:', SUPABASE_URL);
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -13,5 +24,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: !isNativeApp, // Disable URL detection in native app
+  },
+  global: {
+    headers: {
+      'X-Client-Info': isNativeApp ? 'fasthaazir-android' : 'fasthaazir-web',
+    },
+  },
 });
+
+// Export configuration for debugging
+export const supabaseConfig = {
+  url: SUPABASE_URL,
+  isNativeApp,
+};
