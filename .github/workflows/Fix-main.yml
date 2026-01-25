@@ -1,0 +1,6 @@
+- name: Fix Gradle Wrapper
+  working-directory: frontend/android
+  run: |
+    mkdir -p gradle/wrapper
+    curl -L https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar \
+      -o gradle/wrapper/gradle-wrapper.jar
