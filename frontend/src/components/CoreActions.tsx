@@ -141,18 +141,16 @@ const CoreActions: React.FC = () => {
         })}
       </div>
 
-      {/* Fallback: Show message if no businesses available at all */}
-      {!loadingRestaurants && !loadingGrocery && !loadingBakeries && 
-       (restaurants?.length ?? 0) === 0 && 
-       (grocery?.length ?? 0) === 0 && 
-       (bakeries?.length ?? 0) === 0 && (
+      {/* Only show loading indicator while all categories are loading */}
+      {loadingRestaurants && loadingGrocery && loadingBakeries && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="mt-4 p-4 rounded-xl bg-muted text-center"
         >
-          <p className="text-muted-foreground text-sm">
-            {t('home.noServicesAvailable')}
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-muted-foreground text-sm mt-2">
+            {t('home.loadingServices')}
           </p>
         </motion.div>
       )}

@@ -39,25 +39,44 @@ export const useBusinesses = (type?: BusinessType) => {
   useEffect(() => {
     console.log('[useBusinesses] Setting up realtime subscription for businesses, type:', type);
     
+    // Subscribe to BOTH businesses and public_businesses for full coverage
     const channel = supabase
       .channel(`public-businesses-realtime-${type || 'all'}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
-          table: 'public_businesses',
+          table: 'businesses',
         },
         (payload) => {
-          console.log('[useBusinesses] Business changed:', payload);
-          // Invalidate query to refresh businesses list
+          console.log('[useBusinesses] businesses table changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ['businesses', type] });
           queryClient.invalidateQueries({ queryKey: ['businesses'] });
           queryClient.invalidateQueries({ queryKey: ['businesses-debug'] });
           queryClient.invalidateQueries({ queryKey: ['business'] });
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'public_businesses',
+        },
+        (payload) => {
+          console.log('[useBusinesses] public_businesses table changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ['businesses', type] });
+          queryClient.invalidateQueries({ queryKey: ['businesses'] });
+          queryClient.invalidateQueries({ queryKey: ['businesses-debug'] });
+          queryClient.invalidateQueries({ queryKey: ['business'] });
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[useBusinesses] ✓ Realtime subscription active for type:', type);
+        }
+      });
 
     return () => {
       console.log('[useBusinesses] Cleaning up realtime subscription');
