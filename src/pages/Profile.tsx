@@ -159,7 +159,7 @@ const Profile: React.FC = () => {
   const addressCount = useMemo(() => isCustomer ? addresses.length : 0, [addresses, isCustomer]);
   const defaultAddress = useMemo(() => addresses.find(a => a.is_default), [addresses]);
 
-  // Role-based dashboard config
+  // Role-based dashboard config (Business role removed - Admin controls all)
   const roleConfig = {
     admin: { 
       label: 'Admin Dashboard', 
@@ -174,13 +174,6 @@ const Profile: React.FC = () => {
       icon: Bike, 
       color: 'text-blue-500', 
       bgColor: 'bg-blue-500/10' 
-    },
-    business: { 
-      label: 'Business Dashboard', 
-      path: '/business', 
-      icon: Store, 
-      color: 'text-accent', 
-      bgColor: 'bg-accent/10' 
     },
   };
 

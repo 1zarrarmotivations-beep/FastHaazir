@@ -47,7 +47,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalizePhoneNumber } from "@/lib/phoneUtils";
 
+// Business role removed for new users - Admin controls all businesses
+// Keep 'business' in type for reading legacy/existing data
 type RoleType = 'rider' | 'business' | 'admin';
+type NewUserRole = 'rider' | 'admin'; // Only these roles can be added
 
 interface UserEntry {
   id: string;
@@ -74,10 +77,10 @@ export function UsersManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<"all" | RoleType>("all");
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{ name: string; phone: string; role: NewUserRole }>({
     name: "",
     phone: "",
-    role: "rider" as RoleType,
+    role: "rider",
   });
 
   const queryClient = useQueryClient();
@@ -154,7 +157,7 @@ export function UsersManager() {
 
   // Add new user with role
   const addUser = useMutation({
-    mutationFn: async (data: { name: string; phone: string; role: RoleType }) => {
+    mutationFn: async (data: { name: string; phone: string; role: NewUserRole }) => {
       const normalizedPhone = normalizePhoneNumber(data.phone);
       
       if (data.role === 'admin') {
@@ -170,15 +173,8 @@ export function UsersManager() {
           is_active: true,
         });
         if (error) throw error;
-      } else if (data.role === 'business') {
-        const { error } = await supabase.from('businesses').insert({
-          name: data.name,
-          owner_phone: normalizedPhone,
-          type: 'restaurant',
-          is_active: true,
-        });
-        if (error) throw error;
       }
+      // Business role removed - Admin creates businesses via Businesses Manager
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -334,7 +330,7 @@ export function UsersManager() {
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admins</SelectItem>
               <SelectItem value="rider">Riders</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
+              {/* Business role removed - filter option kept for legacy entries */}
             </SelectContent>
           </Select>
         </div>
@@ -354,7 +350,7 @@ export function UsersManager() {
                 <Label htmlFor="role">Select Role *</Label>
                 <Select
                   value={newUser.role}
-                  onValueChange={(value: RoleType) => setNewUser({ ...newUser, role: value })}
+                  onValueChange={(value: NewUserRole) => setNewUser({ ...newUser, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -372,12 +368,7 @@ export function UsersManager() {
                         <span>Rider</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="business">
-                      <div className="flex items-center gap-2">
-                        <Store className="w-4 h-4" />
-                        <span>Business Owner</span>
-                      </div>
-                    </SelectItem>
+                    {/* Business role removed - use Businesses Manager */}
                   </SelectContent>
                 </Select>
               </div>
@@ -402,8 +393,7 @@ export function UsersManager() {
                 />
                 <p className="text-xs text-muted-foreground">
                   User will login with this number and access {
-                    newUser.role === 'admin' ? 'Admin' : 
-                    newUser.role === 'rider' ? 'Rider' : 'Business'
+                    newUser.role === 'admin' ? 'Admin' : 'Rider'
                   } Dashboard
                 </p>
               </div>
