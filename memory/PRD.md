@@ -151,8 +151,9 @@ npx cap sync android  # Sync to Android
 - `riders`: id, user_id, name, is_active, is_online, vehicle_type
 - `users`: id, phone, role (admin/rider/customer)
 
-## Test Credentials
-- **OTP Code (Testing)**: `911911`
+## Authentication
+- **Firebase Auth**: Real Phone OTP, Email/Password, and Google Sign-In
+- **NO test OTP codes** - All authentication uses real Firebase verification
 
 ## Key Files Reference
 - Admin Page: `/app/frontend/src/pages/Admin.tsx`

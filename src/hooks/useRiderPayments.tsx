@@ -36,7 +36,7 @@ export interface RiderPayment {
   };
 }
 
-// Calculate distance using Haversine formula
+// Calculate distance using Haversine formula (fallback for client-side)
 export const calculateDistanceKm = (
   lat1: number,
   lon1: number,
@@ -53,7 +53,37 @@ export const calculateDistanceKm = (
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
+  // Multiply by 1.3 to approximate road distance
+  return Math.round(R * c * 1.3 * 10) / 10;
+};
+
+// Calculate distance using edge function (road-based, more accurate)
+export const calculateRoadDistance = async (
+  originLat: number,
+  originLng: number,
+  destLat: number,
+  destLng: number
+): Promise<{ distance_km: number; duration_minutes: number; method: string } | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('calculate-distance', {
+      body: {
+        origin_lat: originLat,
+        origin_lng: originLng,
+        destination_lat: destLat,
+        destination_lng: destLng,
+      },
+    });
+
+    if (error) {
+      console.error('[Distance] Edge function error:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('[Distance] Failed to calculate road distance:', err);
+    return null;
+  }
 };
 
 // Calculate payment based on distance and settings
