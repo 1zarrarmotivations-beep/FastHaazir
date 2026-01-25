@@ -266,3 +266,196 @@
   background: white !important;
   color: hsl(var(--foreground)) !important;
 }
+
+/* ============================================
+   HYBRID RTL SUPPORT - Urdu Language
+   Layout stays LTR, only text changes for Urdu
+   ============================================ */
+
+/* Noori Nastaleeq font for Urdu */
+@font-face {
+  font-family: 'Noori Nastaleeq';
+  src: url('https://cdn.jsdelivr.net/npm/@aspect-community-urdu/noori-nastaleeq@1.0.0/fonts/NoorehudaRegular.woff2') format('woff2'),
+       url('https://fonts.mufeedazam.com/font-files/noori-nastaleeq.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* English language - Default LTR */
+.lang-en {
+  direction: ltr;
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+}
+
+/* Urdu language - HYBRID: Layout LTR, Text RTL */
+.lang-ur {
+  /* DO NOT set direction: rtl here - it breaks layouts */
+  direction: ltr; /* Keep layouts stable */
+}
+
+/* Urdu font utility class - apply to text elements only */
+.font-urdu,
+.lang-ur .urdu-text {
+  font-family: 'Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+  line-height: 2;
+  letter-spacing: 0;
+}
+
+/* Text-only RTL for Urdu (NOT layout) */
+.lang-ur p,
+.lang-ur span:not(.ltr-keep):not([class*="lucide"]),
+.lang-ur h1, .lang-ur h2, .lang-ur h3, .lang-ur h4, .lang-ur h5, .lang-ur h6,
+.lang-ur label,
+.lang-ur .text-content {
+  font-family: 'Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: plaintext;
+  line-height: 2;
+  word-break: break-word;
+}
+
+/* PRESERVE LTR for layouts, icons, and structural elements */
+.lang-ur .ltr-keep,
+.lang-ur [class*="flex"],
+.lang-ur [class*="grid"],
+.lang-ur [class*="gap-"],
+.lang-ur button,
+.lang-ur .btn,
+.lang-ur nav,
+.lang-ur header,
+.lang-ur footer,
+.lang-ur aside,
+.lang-ur [role="navigation"],
+.lang-ur [role="button"] {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Icons must ALWAYS stay LTR */
+.lang-ur svg,
+.lang-ur [class*="lucide"],
+.lang-ur .icon,
+.lang-ur img {
+  direction: ltr !important;
+  transform: none !important; /* Prevent icon flipping */
+}
+
+/* Cards, containers stay LTR */
+.lang-ur [class*="card"],
+.lang-ur [class*="Card"],
+.lang-ur .rounded,
+.lang-ur [class*="rounded-"] {
+  direction: ltr;
+}
+
+/* But text INSIDE cards can be RTL */
+.lang-ur [class*="card"] p,
+.lang-ur [class*="card"] span:not(.ltr-keep),
+.lang-ur [class*="Card"] p,
+.lang-ur [class*="Card"] span:not(.ltr-keep) {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: plaintext;
+  font-family: 'Noori Nastaleeq', serif;
+}
+
+/* Buttons - Layout LTR, but text can be Urdu styled */
+.lang-ur button,
+.lang-ur [role="button"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  direction: ltr !important;
+}
+
+.lang-ur button span,
+.lang-ur [role="button"] span {
+  font-family: 'Noori Nastaleeq', serif;
+}
+
+/* Input fields stay LTR for typing */
+.lang-ur input,
+.lang-ur textarea,
+.lang-ur select {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Numbers always LTR */
+.lang-ur .number,
+.lang-ur [class*="price"],
+.lang-ur [class*="amount"],
+.lang-ur time,
+.lang-ur [class*="stat"] {
+  direction: ltr !important;
+  font-family: 'Poppins', sans-serif !important;
+}
+
+/* Tables stay LTR */
+.lang-ur table,
+.lang-ur thead,
+.lang-ur tbody,
+.lang-ur tr,
+.lang-ur th,
+.lang-ur td {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Maps always LTR */
+.lang-ur .leaflet-container,
+.lang-ur [class*="map"] {
+  direction: ltr !important;
+}
+
+/* Sidebar navigation stays LTR */
+.lang-ur [class*="sidebar"],
+.lang-ur [class*="Sidebar"],
+.lang-ur nav[class*="side"] {
+  direction: ltr !important;
+}
+
+/* Bottom navigation stays LTR */
+.lang-ur .bottom-nav,
+.lang-ur [class*="BottomNav"],
+.lang-ur nav[class*="bottom"] {
+  direction: ltr !important;
+}
+
+/* Chat messages - special handling */
+.lang-ur .chat-message,
+.lang-ur [class*="message"] {
+  direction: ltr; /* Bubble layout LTR */
+}
+
+.lang-ur .chat-message p,
+.lang-ur [class*="message"] p {
+  direction: rtl; /* But text content RTL */
+  text-align: right;
+  font-family: 'Noori Nastaleeq', serif;
+}
+
+/* Dropdowns need background and z-index */
+.lang-ur [role="menu"],
+.lang-ur [class*="dropdown"],
+.lang-ur [class*="Dropdown"] {
+  direction: ltr !important;
+  background: hsl(var(--popover));
+  z-index: 50;
+}
+
+/* Admin panel stays completely LTR */
+.lang-ur [class*="admin"],
+.lang-ur [class*="Admin"],
+.lang-ur .admin-panel {
+  direction: ltr !important;
+}
+
+/* Emoji and special characters stay LTR */
+.lang-ur .emoji,
+.lang-ur [class*="emoji"] {
+  direction: ltr !important;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif !important;
+}
