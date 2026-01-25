@@ -8,17 +8,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:285845112968:android:0a6e3d003ffe7da421b73d",
+        "mobilesdk_app_id": "1:285845112968:android:2a12ea7d2818207d21b73d",
         "android_client_info": {
-          "package_name": "co.median.android.nmmbybx"
+          "package_name": "com.fasthaazir.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "285845112968-ovsqplrdqtskhh731o59b93tvd62vt7m.apps.googleusercontent.com",
+          "client_id": "285845112968-4003ahmsri3jbb7835i9jc2dtg009501.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "co.median.android.nmmbybx",
+            "package_name": "com.fasthaazir.app",
             "certificate_hash": "a39cf33fc280cdc7466c530ac871a0fb2adac0f6"
           }
         },
