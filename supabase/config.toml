@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.assign-rider-api]
 verify_jwt = false
+
+[functions.calculate-distance]
+verify_jwt = false
+
+[functions.get-firebase-config]
+verify_jwt = false
+
+[functions.send-delivery-push]
+verify_jwt = false
