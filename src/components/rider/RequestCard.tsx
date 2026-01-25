@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Clock, Phone, Map } from 'lucide-react';
+import { Package, Clock, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -144,14 +144,7 @@ export const RequestCard = ({
           </div>
         </div>
 
-        {request.customer_phone && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <Phone className="w-4 h-4" />
-            <a href={`tel:${request.customer_phone}`} className="hover:text-primary">
-              {request.customer_phone}
-            </a>
-          </div>
-        )}
+        {/* PRIVACY: Phone number removed - use in-app chat instead */}
 
         {showActions && (
           <div className="flex gap-2">

@@ -9,8 +9,11 @@ export interface ChatMessage {
   order_id: string | null;
   rider_request_id: string | null;
   sender_id: string;
-  sender_type: 'customer' | 'business' | 'rider';
+  sender_type: 'customer' | 'business' | 'rider' | 'admin';
   message: string;
+  message_type: 'text' | 'voice';
+  voice_url: string | null;
+  voice_duration: number | null;
   created_at: string;
   read_at: string | null;
 }
@@ -38,7 +41,48 @@ export const useChatMessages = (orderId?: string, riderRequestId?: string) => {
 
       const { data, error } = await queryBuilder;
       if (error) throw error;
-      return data as ChatMessage[];
+
+      const messages = (data || []) as ChatMessage[];
+
+      // If bucket is private, voice_url is stored as a storage path (e.g. "{orderId}/{file}.webm").
+      // Convert paths to short-lived signed URLs for playback.
+      const voicePaths = Array.from(
+        new Set(
+          messages
+            .filter(
+              (m) =>
+                m.message_type === 'voice' &&
+                !!m.voice_url &&
+                !m.voice_url.startsWith('http')
+            )
+            .map((m) => m.voice_url as string)
+        )
+      );
+
+      if (voicePaths.length === 0) return messages;
+
+      const signedEntries = await Promise.all(
+        voicePaths.map(async (path) => {
+          const { data: signed, error: signedError } = await supabase.storage
+            .from('chat-voice-notes')
+            .createSignedUrl(path, 60 * 60);
+
+          if (signedError || !signed?.signedUrl) return [path, null] as const;
+          return [path, signed.signedUrl] as const;
+        })
+      );
+
+      const signedMap = new Map<string, string>();
+      for (const [path, signedUrl] of signedEntries) {
+        if (signedUrl) signedMap.set(path, signedUrl);
+      }
+
+      return messages.map((m) => {
+        if (m.message_type !== 'voice' || !m.voice_url) return m;
+        if (m.voice_url.startsWith('http')) return m;
+        const signedUrl = signedMap.get(m.voice_url);
+        return signedUrl ? { ...m, voice_url: signedUrl } : m;
+      });
     },
     enabled: !!(orderId || riderRequestId),
     refetchInterval: 3000, // Faster polling for better responsiveness
@@ -114,14 +158,22 @@ export const useSendMessage = () => {
       riderRequestId,
       message,
       senderType,
+      messageType = 'text',
+      voiceUrl,
+      voiceDuration,
     }: {
       orderId?: string;
       riderRequestId?: string;
       message: string;
-      senderType: 'customer' | 'business' | 'rider';
+      senderType: 'customer' | 'business' | 'rider' | 'admin';
+      messageType?: 'text' | 'voice';
+      voiceUrl?: string;
+      voiceDuration?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
-      if (!message.trim()) throw new Error('Message cannot be empty');
+      if (senderType === 'admin') throw new Error('Admins cannot send chat messages');
+      if (messageType === 'text' && !message.trim()) throw new Error('Message cannot be empty');
+      if (messageType === 'voice' && !voiceUrl) throw new Error('Voice URL is required');
 
       const { data, error } = await supabase
         .from('chat_messages')
@@ -130,7 +182,10 @@ export const useSendMessage = () => {
           rider_request_id: riderRequestId || null,
           sender_id: user.id,
           sender_type: senderType,
-          message: message.trim(),
+          message: messageType === 'voice' ? '🎤 Voice message' : message.trim(),
+          message_type: messageType,
+          voice_url: voiceUrl || null,
+          voice_duration: voiceDuration || null,
         })
         .select()
         .single();
@@ -152,12 +207,13 @@ export const useOrderParticipants = (orderId?: string) => {
     queryFn: async () => {
       if (!orderId) return null;
 
+      // PRIVACY: Do not fetch phone numbers - only fetch names and IDs
       const { data: order, error } = await supabase
         .from('orders')
         .select(`
           *,
-          business:businesses(id, name, owner_phone, owner_user_id),
-          rider:riders(id, name, phone, user_id)
+          business:businesses(id, name),
+          rider:riders(id, name, user_id, vehicle_type, rating, total_trips, image)
         `)
         .eq('id', orderId)
         .maybeSingle();
@@ -175,11 +231,12 @@ export const useRiderRequestParticipants = (requestId?: string) => {
     queryFn: async () => {
       if (!requestId) return null;
 
+      // PRIVACY: Do not fetch phone numbers - only fetch names and IDs
       const { data: request, error } = await supabase
         .from('rider_requests')
         .select(`
           *,
-          rider:riders(id, name, phone, user_id)
+          rider:riders(id, name, user_id, vehicle_type, rating, total_trips, image)
         `)
         .eq('id', requestId)
         .maybeSingle();
@@ -188,5 +245,57 @@ export const useRiderRequestParticipants = (requestId?: string) => {
       return request;
     },
     enabled: !!requestId,
+  });
+};
+
+
+// Voice message upload hook
+export const useUploadVoiceNote = () => {
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      riderRequestId,
+      audioBlob,
+      duration,
+    }: {
+      orderId?: string;
+      riderRequestId?: string;
+      audioBlob: Blob;
+      duration: number;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+      
+      const contextId = orderId || riderRequestId;
+      if (!contextId) throw new Error('Order or rider request ID is required');
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${user.id}.webm`;
+      const filePath = `${contextId}/${fileName}`;
+
+      console.log('[useUploadVoiceNote] Uploading voice note:', { filePath, duration, size: audioBlob.size });
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat-voice-notes')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[useUploadVoiceNote] Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Bucket is private: store the storage path in DB.
+      // A signed URL is generated when fetching messages for playback.
+      return {
+        path: filePath,
+        duration,
+      };
+    },
   });
 };
