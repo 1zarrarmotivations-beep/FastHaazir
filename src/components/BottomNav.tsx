@@ -2,16 +2,18 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Home, ShoppingBag, ClipboardList, User } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
-
-const navItems = [
-  { icon: Home, label: 'Home', path: '/' },
-  { icon: ShoppingBag, label: 'Orders', path: '/orders' },
-  { icon: ClipboardList, label: 'History', path: '/history' },
-  { icon: User, label: 'Profile', path: '/profile' },
-];
+import { useTranslation } from 'react-i18next';
 
 const BottomNav: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
+
+  const navItems = [
+    { icon: Home, labelKey: 'nav.home', path: '/' },
+    { icon: ShoppingBag, labelKey: 'nav.orders', path: '/orders' },
+    { icon: ClipboardList, labelKey: 'order.orderHistory', path: '/history' },
+    { icon: User, labelKey: 'nav.profile', path: '/profile' },
+  ];
 
   return (
     <motion.nav 
@@ -20,7 +22,7 @@ const BottomNav: React.FC = () => {
       className="fixed bottom-0 left-0 right-0 w-full z-50 glass border-t border-border/50 px-1 pb-safe"
     >
       <div className="flex items-center justify-evenly py-2 max-w-[414px] mx-auto">
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
           
@@ -53,7 +55,7 @@ const BottomNav: React.FC = () => {
               <span className={`text-[10px] font-medium ${
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`}>
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </Link>
           );

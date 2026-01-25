@@ -26,7 +26,25 @@
     "and": "اور",
     "language": "زبان",
     "english": "English",
-    "urdu": "اردو"
+    "urdu": "اردو",
+    "select": "منتخب کریں",
+    "add": "شامل کریں",
+    "remove": "ہٹائیں",
+    "update": "اپڈیٹ کریں",
+    "details": "تفصیلات",
+    "all": "سب",
+    "none": "کوئی نہیں",
+    "active": "فعال",
+    "inactive": "غیر فعال",
+    "online": "آن لائن",
+    "offline": "آف لائن",
+    "from": "سے",
+    "to": "تک",
+    "at": "پر",
+    "by": "کی طرف سے",
+    "total": "کل",
+    "items": "اشیاء",
+    "browse": "براؤز کریں"
   },
   "auth": {
     "login": "لاگ ان",
@@ -68,7 +86,16 @@
     "loggedInAs": "لاگ ان ہیں بطور",
     "goToHome": "ہوم پر جائیں",
     "loginToViewOrders": "آرڈرز دیکھنے کے لیے لاگ ان کریں",
-    "loginToTrackOrders": "اپنے آرڈرز ٹریک کرنے کے لیے لاگ ان کریں"
+    "loginToTrackOrders": "اپنے آرڈرز ٹریک کرنے کے لیے لاگ ان کریں",
+    "signIn": "سائن ان",
+    "signOut": "سائن آؤٹ",
+    "register": "رجسٹر کریں",
+    "newUser": "نئے صارف؟",
+    "existingUser": "پہلے سے صارف ہیں؟",
+    "phoneVerification": "فون تصدیق",
+    "verifyPhone": "فون تصدیق کریں",
+    "phoneRequired": "فون نمبر ضروری ہے",
+    "invalidPhoneFormat": "غلط فون نمبر فارمیٹ"
   },
   "nav": {
     "home": "ہوم",
@@ -76,7 +103,10 @@
     "profile": "پروفائل",
     "settings": "سیٹنگز",
     "help": "مدد",
-    "about": "ہمارے بارے میں"
+    "about": "ہمارے بارے میں",
+    "cart": "کارٹ",
+    "history": "تاریخ",
+    "search": "تلاش"
   },
   "home": {
     "greeting": "السلام علیکم",
@@ -94,8 +124,8 @@
     "riderService": "رائیڈر سروس",
     "orderNow": "آرڈر کریں",
     "orderFood": "کھانا آرڈر کریں",
-    "orderGrocery": "گروسری آرڈر کریں",
-    "assignRider": "رائیڈر مقرر کریں",
+    "orderGrocery": "گروسری منگوائیں",
+    "assignRider": "رائیڈر بلائیں",
     "restaurantsDining": "ریستوران اور کھانا",
     "dailyEssentials": "روزمرہ ضروریات",
     "onDemandDelivery": "فوری ڈیلیوری",
@@ -107,7 +137,14 @@
     "free": "مفت",
     "eta": "وقت",
     "mins": "منٹ",
-    "km": "کلومیٹر"
+    "km": "کلومیٹر",
+    "tagline": "کوئٹہ کی تیز ترین ڈیلیوری سروس",
+    "quickDelivery": "تیز ڈیلیوری",
+    "nearbyPlaces": "قریبی جگہیں",
+    "topRated": "بہترین درجہ بندی",
+    "newArrivals": "نئی آمد",
+    "allCategories": "تمام اقسام",
+    "exploreMore": "مزید دریافت کریں"
   },
   "restaurants": {
     "title": "ریستوران",
@@ -119,7 +156,12 @@
     "open": "کھلا ہے",
     "closed": "بند ہے",
     "featured": "نمایاں",
-    "popular": "مقبول"
+    "popular": "مقبول",
+    "all": "سب",
+    "filter": "فلٹر کریں",
+    "sortBy": "ترتیب دیں",
+    "distance": "فاصلہ",
+    "deliveryTime": "ڈیلیوری کا وقت"
   },
   "menu": {
     "menu": "مینو",
@@ -130,7 +172,14 @@
     "outOfStock": "دستیاب نہیں",
     "customize": "اپنی مرضی کے مطابق",
     "specialInstructions": "خاص ہدایات",
-    "optional": "اختیاری"
+    "optional": "اختیاری",
+    "freshBaked": "تازہ بیکری",
+    "popular": "مقبول",
+    "recommended": "تجویز کردہ",
+    "viewDetails": "تفصیلات دیکھیں",
+    "addOns": "اضافی اشیاء",
+    "selectSize": "سائز منتخب کریں",
+    "quantity": "مقدار"
   },
   "cart": {
     "cart": "کارٹ",
@@ -145,7 +194,14 @@
     "clearCart": "کارٹ خالی کریں",
     "itemsInCart": "اشیاء کارٹ میں",
     "removeItem": "ہٹائیں",
-    "quantity": "مقدار"
+    "quantity": "مقدار",
+    "viewCart": "کارٹ دیکھیں",
+    "browseRestaurants": "ریستوران دیکھیں",
+    "addMoreItems": "مزید شامل کریں",
+    "orderSummary": "آرڈر کا خلاصہ",
+    "discount": "رعایت",
+    "promoCode": "پرومو کوڈ",
+    "applyCode": "کوڈ لگائیں"
   },
   "order": {
     "placeOrder": "آرڈر دیں",
@@ -166,7 +222,15 @@
     "orderCancelled": "آرڈر منسوخ ہو گیا",
     "noOrders": "ابھی کوئی آرڈر نہیں",
     "startOrdering": "اپنی تاریخ دیکھنے کے لیے آرڈر دیں",
-    "ordersWillAppear": "آپ کے آرڈرز یہاں ظاہر ہوں گے"
+    "ordersWillAppear": "آپ کے آرڈرز یہاں ظاہر ہوں گے",
+    "activeOrders": "فعال آرڈرز",
+    "pastOrders": "گزشتہ آرڈرز",
+    "orderAgain": "دوبارہ آرڈر کریں",
+    "viewReceipt": "رسید دیکھیں",
+    "helpWithOrder": "آرڈر میں مدد",
+    "rateOrder": "آرڈر کی درجہ بندی کریں",
+    "deliveryNote": "ڈیلیوری نوٹ",
+    "specialRequests": "خاص درخواستیں"
   },
   "orderStatus": {
     "placed": "آرڈر ہو گیا",
@@ -176,7 +240,11 @@
     "cancelled": "منسوخ",
     "findingRider": "رائیڈر تلاش ہو رہا ہے...",
     "riderAssigned": "رائیڈر مقرر ہو گیا",
-    "pickedUp": "اٹھا لیا گیا"
+    "pickedUp": "اٹھا لیا گیا",
+    "pending": "زیر التواء",
+    "confirmed": "تصدیق شدہ",
+    "ready": "تیار",
+    "outForDelivery": "ڈیلیوری کے لیے نکلا"
   },
   "rider": {
     "rider": "رائیڈر",
@@ -191,7 +259,11 @@
     "bike": "بائیک",
     "car": "کار",
     "onlineRiders": "آن لائن رائیڈرز",
-    "noRidersOnline": "کوئی رائیڈر آن لائن نہیں"
+    "noRidersOnline": "کوئی رائیڈر آن لائن نہیں",
+    "riderDetails": "رائیڈر کی تفصیلات",
+    "trackRider": "رائیڈر ٹریک کریں",
+    "callRider": "رائیڈر کو کال کریں",
+    "chatWithRider": "رائیڈر سے چیٹ کریں"
   },
   "riderApp": {
     "riderDashboard": "رائیڈر ڈیش بورڈ",
@@ -218,7 +290,19 @@
     "registerAsRider": "رائیڈر کے طور پر رجسٹر کریں",
     "riderName": "آپ کا نام",
     "riderPhone": "فون نمبر",
-    "vehicleTypeSelect": "گاڑی کی قسم منتخب کریں"
+    "vehicleTypeSelect": "گاڑی کی قسم منتخب کریں",
+    "deliveryDetails": "ڈیلیوری کی تفصیلات",
+    "customerLocation": "صارف کا مقام",
+    "pickupLocation": "پک اپ مقام",
+    "navigation": "نیویگیشن",
+    "arrived": "پہنچ گئے",
+    "delivered": "ڈیلیور ہو گیا",
+    "earnings_summary": "آمدنی کا خلاصہ",
+    "weekly_earnings": "ہفتہ وار آمدنی",
+    "monthly_earnings": "ماہانہ آمدنی",
+    "distance_covered": "طے شدہ فاصلہ",
+    "payment_pending": "ادائیگی زیر التواء",
+    "payment_completed": "ادائیگی مکمل"
   },
   "chat": {
     "chat": "چیٹ",
@@ -235,7 +319,13 @@
     "viewingPrivately": "آپ یہ چیٹ نجی طور پر دیکھ رہے ہیں۔ شرکاء کو اطلاع نہیں دی جاتی۔",
     "readOnlyMode": "صرف پڑھنے کا موڈ",
     "messages": "پیغامات",
-    "contactViaChat": "ایپ چیٹ کے ذریعے صارف سے رابطہ کریں"
+    "contactViaChat": "ایپ چیٹ کے ذریعے صارف سے رابطہ کریں",
+    "voiceNote": "وائس نوٹ",
+    "recordVoice": "وائس ریکارڈ کریں",
+    "tapToRecord": "ریکارڈ کرنے کے لیے ٹیپ کریں",
+    "holdToRecord": "ریکارڈ کرنے کے لیے دبائیں",
+    "messageSent": "پیغام بھیج دیا گیا",
+    "messageFailed": "پیغام بھیجنے میں ناکامی"
   },
   "address": {
     "addAddress": "پتہ شامل کریں",
@@ -249,7 +339,16 @@
     "area": "علاقہ",
     "landmark": "نشانی",
     "addressLabel": "لیبل (گھر، دفتر وغیرہ)",
-    "setAsDefault": "ڈیفالٹ بنائیں"
+    "setAsDefault": "ڈیفالٹ بنائیں",
+    "currentLocation": "موجودہ مقام",
+    "useCurrentLocation": "📍 موجودہ مقام استعمال کریں",
+    "searchLocation": "مقام تلاش کریں",
+    "confirmLocation": "مقام کی تصدیق کریں",
+    "home": "گھر",
+    "work": "دفتر",
+    "other": "دیگر",
+    "locationAccuracy": "مقام کی درستگی",
+    "gettingLocation": "مقام حاصل ہو رہا ہے..."
   },
   "profile": {
     "profile": "پروفائل",
@@ -266,7 +365,13 @@
     "termsConditions": "شرائط و ضوابط",
     "privacyPolicy": "رازداری کی پالیسی",
     "deleteAccount": "اکاؤنٹ حذف کریں",
-    "version": "ورژن"
+    "version": "ورژن",
+    "updateProfile": "پروفائل اپڈیٹ کریں",
+    "saveChanges": "تبدیلیاں محفوظ کریں",
+    "profileUpdated": "پروفائل اپڈیٹ ہو گیا",
+    "completeProfile": "پروفائل مکمل کریں",
+    "verifyPhone": "فون تصدیق کریں",
+    "phoneVerified": "فون تصدیق شدہ"
   },
   "admin": {
     "adminPanel": "ایڈمن پینل",
@@ -291,7 +396,19 @@
     "cancelledOrders": "منسوخ آرڈرز",
     "todayOrders": "آج کے آرڈرز",
     "thisWeek": "اس ہفتے",
-    "thisMonth": "اس مہینے"
+    "thisMonth": "اس مہینے",
+    "liveMap": "لائیو نقشہ",
+    "riderRequests": "رائیڈر درخواستیں",
+    "riderPayments": "رائیڈر ادائیگیاں",
+    "paymentSettings": "ادائیگی سیٹنگز",
+    "pushNotifications": "پش نوٹیفیکیشنز",
+    "systemNotifications": "سسٹم نوٹیفیکیشنز",
+    "chats": "چیٹس",
+    "monitorChats": "چیٹس دیکھیں",
+    "silentMonitoring": "خاموش نگرانی",
+    "totalUsers": "کل صارفین",
+    "activeUsers": "فعال صارفین",
+    "todayRevenue": "آج کی آمدنی"
   },
   "adminOrders": {
     "orderManagement": "آرڈر مینجمنٹ",
@@ -313,7 +430,9 @@
     "ordersWillAppear": "جب صارفین آرڈر دیں گے تو یہاں ظاہر ہوں گے",
     "newOrdersWaiting": "نئے آرڈرز انتظار میں!",
     "takeAction": "صارفین کو خوش رکھنے کے لیے کارروائی کریں",
-    "viewNow": "ابھی دیکھیں"
+    "viewNow": "ابھی دیکھیں",
+    "selectRider": "رائیڈر منتخب کریں",
+    "noRidersAvailable": "کوئی رائیڈر دستیاب نہیں"
   },
   "adminBusiness": {
     "businessManagement": "کاروبار مینجمنٹ",
@@ -336,7 +455,10 @@
     "inactive": "غیر فعال",
     "featured": "نمایاں",
     "totalBusinesses": "کل کاروبار",
-    "noBusinesses": "کوئی کاروبار نہیں ملا"
+    "noBusinesses": "کوئی کاروبار نہیں ملا",
+    "addMenuItem": "مینو آئٹم شامل کریں",
+    "manageMenu": "مینو مینج کریں",
+    "businessDetails": "کاروبار کی تفصیلات"
   },
   "adminRiders": {
     "riderManagement": "رائیڈر مینجمنٹ",
@@ -352,7 +474,11 @@
     "riderPayments": "ادائیگیاں",
     "approveRider": "منظور کریں",
     "suspendRider": "معطل کریں",
-    "noRidersFound": "کوئی رائیڈر نہیں ملا"
+    "noRidersFound": "کوئی رائیڈر نہیں ملا",
+    "addRider": "رائیڈر شامل کریں",
+    "editRider": "رائیڈر ترمیم کریں",
+    "blockRider": "رائیڈر بلاک کریں",
+    "unblockRider": "رائیڈر ان بلاک کریں"
   },
   "notifications": {
     "notifications": "اطلاعات",
@@ -361,7 +487,11 @@
     "newOrder": "نیا آرڈر موصول ہوا",
     "orderUpdate": "آرڈر کی حیثیت اپڈیٹ ہوئی",
     "riderAssigned": "رائیڈر مقرر ہو گیا",
-    "delivered": "آپ کا آرڈر ڈیلیور ہو گیا"
+    "delivered": "آپ کا آرڈر ڈیلیور ہو گیا",
+    "orderConfirmed": "آرڈر کی تصدیق ہو گئی",
+    "riderOnWay": "رائیڈر راستے میں ہے",
+    "orderPreparing": "آرڈر تیار ہو رہا ہے",
+    "orderPickedUp": "آرڈر اٹھا لیا گیا"
   },
   "errors": {
     "networkError": "نیٹ ورک خرابی۔ اپنا کنکشن چیک کریں۔",
@@ -379,7 +509,11 @@
     "updateFailed": "اپڈیٹ کرنے میں ناکامی",
     "tryAgain": "دوبارہ کوشش کریں",
     "configError": "کنفیگریشن خرابی",
-    "firebaseNotConfigured": "فائربیس ٹھیک سے سیٹ نہیں ہے۔ سپورٹ سے رابطہ کریں۔"
+    "firebaseNotConfigured": "فائربیس ٹھیک سے سیٹ نہیں ہے۔ سپورٹ سے رابطہ کریں۔",
+    "locationError": "مقام کی خرابی",
+    "gpsDisabled": "GPS غیر فعال ہے",
+    "permissionDenied": "اجازت نہیں دی گئی",
+    "sessionExpired": "سیشن ختم ہو گیا"
   },
   "success": {
     "orderPlaced": "آرڈر کامیابی سے دے دیا گیا!",
@@ -393,7 +527,11 @@
     "statusUpdated": "حیثیت اپڈیٹ ہو گئی",
     "businessCreated": "کاروبار بنایا گیا",
     "businessUpdated": "کاروبار اپڈیٹ ہو گیا",
-    "businessDeleted": "کاروبار حذف ہو گیا"
+    "businessDeleted": "کاروبار حذف ہو گیا",
+    "saved": "محفوظ ہو گیا",
+    "deleted": "حذف ہو گیا",
+    "updated": "اپڈیٹ ہو گیا",
+    "copied": "کاپی ہو گیا"
   },
   "empty": {
     "noOrders": "ابھی کوئی آرڈر نہیں",
@@ -403,7 +541,9 @@
     "noNotifications": "کوئی اطلاع نہیں",
     "noAddresses": "کوئی محفوظ پتہ نہیں",
     "noItems": "کوئی اشیاء دستیاب نہیں",
-    "noResults": "کوئی نتیجہ نہیں ملا"
+    "noResults": "کوئی نتیجہ نہیں ملا",
+    "noData": "کوئی ڈیٹا نہیں",
+    "emptyHere": "یہاں کچھ نہیں"
   },
   "time": {
     "now": "ابھی",
@@ -413,10 +553,50 @@
     "hours": "گھنٹے",
     "days": "دن",
     "justNow": "ابھی ابھی",
-    "ago": "پہلے"
+    "ago": "پہلے",
+    "week": "ہفتہ",
+    "month": "مہینہ",
+    "year": "سال"
   },
   "currency": {
     "rs": "روپے",
     "pkr": "PKR"
+  },
+  "location": {
+    "pickupLocation": "پک اپ مقام",
+    "dropoffLocation": "ڈراپ آف مقام",
+    "selectPickup": "پک اپ منتخب کریں",
+    "selectDropoff": "ڈراپ آف منتخب کریں",
+    "distance": "فاصلہ",
+    "estimatedTime": "متوقع وقت",
+    "deliveryCharge": "ڈیلیوری چارج",
+    "itemDescription": "آئٹم کی تفصیل",
+    "whatAreYouSending": "آپ کیا بھیج رہے ہیں؟",
+    "locateMe": "مجھے تلاش کریں",
+    "confirmPickup": "پک اپ کی تصدیق",
+    "confirmDropoff": "ڈراپ آف کی تصدیق",
+    "requestRider": "رائیڈر کی درخواست کریں",
+    "waitingForRider": "رائیڈر کا انتظار...",
+    "riderAccepted": "رائیڈر نے قبول کر لیا!",
+    "viewOrder": "آرڈر دیکھیں"
+  },
+  "payment": {
+    "baseFee": "بیس فیس",
+    "perKmRate": "فی کلومیٹر شرح",
+    "totalPayment": "کل ادائیگی",
+    "riderPayment": "رائیڈر کی ادائیگی",
+    "pendingPayments": "زیر التواء ادائیگیاں",
+    "completedPayments": "مکمل ادائیگیاں",
+    "paymentHistory": "ادائیگی کی تاریخ"
+  },
+  "buttons": {
+    "continue": "جاری رکھیں",
+    "proceed": "آگے بڑھیں",
+    "done": "ہو گیا",
+    "ok": "ٹھیک ہے",
+    "gotIt": "سمجھ گیا",
+    "skip": "چھوڑیں",
+    "retry": "دوبارہ",
+    "later": "بعد میں"
   }
 }
