@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Poppins', 'sans-serif'],
+        urdu: ["'Noori Nastaleeq'", "'Noto Nastaliq Urdu'", "'Jameel Noori Nastaleeq'", 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
