@@ -32,6 +32,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import NotificationsSheet from '@/components/notifications/NotificationsSheet';
 import { useRiderLocation } from '@/hooks/useRiderLocation';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import LanguageToggle from '@/components/LanguageToggle';
 import {
   useRiderProfile,
   usePendingRequests,
@@ -292,6 +293,7 @@ const RiderDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <LanguageToggle variant="compact" />
             <NotificationBell onClick={() => setNotificationsOpen(true)} />
             <div className="flex items-center gap-2">
               {riderProfile.is_online ? (
