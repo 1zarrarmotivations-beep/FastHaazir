@@ -133,31 +133,40 @@ export type Database = {
           created_at: string
           id: string
           message: string
+          message_type: string
           order_id: string | null
           read_at: string | null
           rider_request_id: string | null
           sender_id: string
           sender_type: string
+          voice_duration: number | null
+          voice_url: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           message: string
+          message_type?: string
           order_id?: string | null
           read_at?: string | null
           rider_request_id?: string | null
           sender_id: string
           sender_type: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           message?: string
+          message_type?: string
           order_id?: string | null
           read_at?: string | null
           rider_request_id?: string | null
           sender_id?: string
           sender_type?: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Relationships: [
           {
