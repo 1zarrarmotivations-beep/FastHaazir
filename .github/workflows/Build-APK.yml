@@ -1,0 +1,85 @@
+name: Build Android APK (Clean)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Setup Node.js (NO CACHE)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3️⃣ Setup Java (for Android build)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      # 4️⃣ Install frontend dependencies
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      # 5️⃣ Create production .env file
+      - name: Create production env
+        working-directory: frontend
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env
+          echo "VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}" >> .env
+          echo "VITE_SUPABASE_PROJECT_ID=${{ secrets.VITE_SUPABASE_PROJECT_ID }}" >> .env
+          echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" >> .env
+          echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> .env
+          echo "NODE_ENV=production" >> .env
+
+      # 6️⃣ Build frontend
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      # 7️⃣ Sync Capacitor Android
+      - name: Sync Capacitor Android
+        working-directory: frontend
+        run: npx cap sync android
+
+      # 8️⃣ Verify google-services.json
+      - name: Verify google-services.json
+        working-directory: frontend/android/app
+        run: |
+          if [ ! -f google-services.json ]; then
+            echo "❌ google-services.json missing"
+            exit 1
+          fi
+          echo "✅ google-services.json found"
+
+      # 9️⃣ Make gradlew executable
+      - name: Make gradlew executable
+        working-directory: frontend/android
+        run: chmod +x gradlew
+
+      # 🔟 Build Debug APK
+      - name: Build Debug APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug
+
+      # 1️⃣1️⃣ Upload APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
