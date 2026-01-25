@@ -9,7 +9,7 @@ This document verifies all connections between Customer → Business → Rider �
 ## 1️⃣ CUSTOMER PLACES ORDER FROM BUSINESS
 
 ### Flow:
-1. **Customer logs in** → `/auth` (OTP: 911911)
+1. **Customer logs in** → `/auth` (Real Firebase OTP/Email/Google)
 2. **Selects restaurant** → Sees live businesses from `useBusinesses('restaurant')` hook
 3. **Views menu** → Sees live menu items from `useMenuItems(businessId)` hook
 4. **Adds items to cart** → `CartContext` manages state
