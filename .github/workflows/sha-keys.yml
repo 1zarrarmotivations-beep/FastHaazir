@@ -1,0 +1,16 @@
+name: Get SHA Keys
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sha:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show Debug SHA Keys
+        run: |
+          keytool -list -v \
+          -keystore ~/.android/debug.keystore \
+          -alias androiddebugkey \
+          -storepass android \
+          -keypass android
