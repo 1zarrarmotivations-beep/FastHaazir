@@ -15,9 +15,11 @@ import { SystemNotifications } from "@/components/admin/SystemNotifications";
 import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
+import AdminChatViewer from "@/components/admin/AdminChatViewer";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LanguageToggle from "@/components/LanguageToggle";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -180,6 +182,10 @@ export default function Admin() {
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="flex-1 lg:ml-0 min-h-screen">
+        {/* Language Toggle in top-right corner */}
+        <div className="absolute top-4 right-4 z-50 lg:right-8">
+          <LanguageToggle variant="compact" />
+        </div>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
           <motion.div
             key={activeTab}
