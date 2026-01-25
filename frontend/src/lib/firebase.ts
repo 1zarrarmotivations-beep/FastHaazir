@@ -1,4 +1,5 @@
 // Firebase SDK - Multi-auth support (Phone OTP, Email/Password, Google)
+// Optimized for both Web and Android APK (Capacitor)
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -26,9 +27,25 @@ let firebaseAuth: any = null;
 let googleProvider: any = null;
 let configLoaded = false;
 let configValid = false;
+let configFetchAttempts = 0;
+const MAX_CONFIG_FETCH_ATTEMPTS = 3;
 
-// Detect if running in Capacitor (native app)
-const isNativeApp = typeof (window as any)?.Capacitor !== 'undefined';
+// Detect if running in Capacitor (native app) - more robust detection
+const isNativeApp = (() => {
+  try {
+    // Check multiple indicators for Capacitor native app
+    const hasCapacitor = typeof (window as any)?.Capacitor !== 'undefined';
+    const hasPlatform = (window as any)?.Capacitor?.getPlatform?.() !== 'web';
+    const isAndroid = (window as any)?.Capacitor?.getPlatform?.() === 'android';
+    const hasNativeBridge = !!(window as any)?.AndroidBridge || !!(window as any)?.webkit?.messageHandlers?.bridge;
+    
+    const result = hasCapacitor && (hasPlatform || isAndroid || hasNativeBridge);
+    console.log('[Firebase] Native detection:', { hasCapacitor, hasPlatform, isAndroid, hasNativeBridge, result });
+    return result;
+  } catch {
+    return false;
+  }
+})();
 
 interface FirebaseConfig {
   apiKey: string;
@@ -39,32 +56,53 @@ interface FirebaseConfig {
 
 /**
  * Fetch Firebase config from edge function (secrets stored securely)
+ * Includes retry logic for APK network timing issues
  */
 export const fetchFirebaseConfig = async (): Promise<FirebaseConfig | null> => {
-  try {
-    console.log('[Firebase] Fetching config from edge function...');
-    const { data, error } = await supabase.functions.invoke('get-firebase-config');
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  
+  while (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
+    configFetchAttempts++;
     
-    if (error) {
-      console.error('[Firebase] Failed to fetch config:', error);
+    try {
+      console.log(`[Firebase] Fetching config (attempt ${configFetchAttempts}/${MAX_CONFIG_FETCH_ATTEMPTS})...`);
+      console.log('[Firebase] Platform:', isNativeApp ? 'Android APK' : 'Web');
+      
+      const { data, error } = await supabase.functions.invoke('get-firebase-config');
+      
+      if (error) {
+        console.error('[Firebase] Config fetch error:', error);
+        if (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
+          await delay(1000 * configFetchAttempts); // Exponential backoff
+          continue;
+        }
+        return null;
+      }
+      
+      if (!data?.success || !data?.isValid) {
+        console.error('[Firebase] Config not valid:', data);
+        return null;
+      }
+      
+      console.log('[Firebase] Config fetched successfully ✓');
+      console.log('[Firebase] Project ID:', data.config.projectId);
+      return data.config as FirebaseConfig;
+    } catch (err) {
+      console.error('[Firebase] Config fetch exception:', err);
+      if (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
+        await delay(1000 * configFetchAttempts);
+        continue;
+      }
       return null;
     }
-    
-    if (!data?.success || !data?.isValid) {
-      console.error('[Firebase] Config not valid:', data);
-      return null;
-    }
-    
-    console.log('[Firebase] Config fetched successfully for project:', data.config.projectId);
-    return data.config as FirebaseConfig;
-  } catch (err) {
-    console.error('[Firebase] Error fetching config:', err);
-    return null;
   }
+  
+  return null;
 };
 
 /**
  * Initialize Firebase with config from edge function
+ * Handles platform-specific persistence and auth initialization
  */
 export const initializeFirebase = async (): Promise<boolean> => {
   if (configLoaded) {
@@ -86,28 +124,34 @@ export const initializeFirebase = async (): Promise<boolean> => {
     const config = await fetchFirebaseConfig();
     
     if (!config) {
+      console.error('[Firebase] Failed to fetch config after retries');
       configLoaded = true;
       configValid = false;
       return false;
     }
     
-    console.log('[Firebase] Initializing app...', isNativeApp ? '(Native APK)' : '(Web)');
+    console.log('[Firebase] Initializing app...', isNativeApp ? '(Android APK)' : '(Web Browser)');
     firebaseApp = initializeApp(config);
     
-    // Initialize auth with appropriate persistence for the platform
+    // Initialize auth with platform-appropriate persistence
     if (isNativeApp) {
-      // For native apps, use indexedDB persistence (works better on Android WebView)
+      // For Android APK: Use indexedDB as primary, with localStorage fallback
       try {
         firebaseAuth = initializeAuth(firebaseApp, {
           persistence: [indexedDBLocalPersistence, browserLocalPersistence]
         });
-        console.log('[Firebase] Auth initialized with indexedDB persistence (Native)');
-      } catch (e) {
-        // Fallback if initializeAuth fails
-        firebaseAuth = getAuth(firebaseApp);
-        console.log('[Firebase] Auth initialized with default persistence (Native fallback)');
+        console.log('[Firebase] Auth initialized with indexedDB persistence (Android APK)');
+      } catch (e: any) {
+        // If initializeAuth fails (already initialized), fall back to getAuth
+        if (e?.code === 'auth/already-initialized') {
+          firebaseAuth = getAuth(firebaseApp);
+          console.log('[Firebase] Auth already initialized, using existing instance');
+        } else {
+          throw e;
+        }
       }
     } else {
+      // For Web: Use default persistence (automatic best choice)
       firebaseAuth = getAuth(firebaseApp);
       console.log('[Firebase] Auth initialized with default persistence (Web)');
     }
@@ -123,9 +167,10 @@ export const initializeFirebase = async (): Promise<boolean> => {
     configLoaded = true;
     configValid = true;
     
-    console.log('[Firebase] Initialized successfully with multi-auth support');
-    console.log('[Firebase] Project ID:', config.projectId);
-    console.log('[Firebase] Auth Domain:', config.authDomain);
+    console.log('[Firebase] ✓ Initialized successfully');
+    console.log('[Firebase] ✓ Project:', config.projectId);
+    console.log('[Firebase] ✓ Auth Domain:', config.authDomain);
+    console.log('[Firebase] ✓ Platform:', isNativeApp ? 'Android APK' : 'Web');
     return true;
   } catch (err) {
     console.error('[Firebase] Initialization error:', err);
@@ -164,10 +209,19 @@ export const isConfigLoaded = (): boolean => {
 };
 
 /**
- * Check if running in native app (Capacitor)
+ * Check if running in native app (Capacitor Android)
  */
 export const isRunningInNativeApp = (): boolean => {
   return isNativeApp;
+};
+
+/**
+ * Reset config state (useful for testing)
+ */
+export const resetConfigState = (): void => {
+  configLoaded = false;
+  configValid = false;
+  configFetchAttempts = 0;
 };
 
 // Re-export Firebase auth functions

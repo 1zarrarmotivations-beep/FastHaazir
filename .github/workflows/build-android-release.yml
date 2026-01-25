@@ -16,7 +16,7 @@ on:
           - release
 
 env:
-  # Supabase Configuration - PRODUCTION VALUES
+  # Supabase Configuration - PRODUCTION VALUES (identical to web)
   VITE_SUPABASE_URL: "https://pmqkclhqvjfmcxzuoypa.supabase.co"
   VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64"
   VITE_SUPABASE_PROJECT_ID: "pmqkclhqvjfmcxzuoypa"
@@ -75,6 +75,9 @@ jobs:
           echo ""
           echo "📄 Checking index.html exists:"
           test -f dist/index.html && echo "✅ index.html found" || echo "❌ index.html missing"
+          echo ""
+          echo "🔍 Checking for Supabase URL in bundle (should be embedded):"
+          grep -r "pmqkclhqvjfmcxzuoypa" dist/assets/*.js | head -1 && echo "✅ Supabase URL found in bundle" || echo "⚠️ Supabase URL not found in bundle - fallback will be used"
 
       - name: Sync Capacitor Android
         working-directory: frontend
@@ -89,10 +92,21 @@ jobs:
             echo "✅ google-services.json found"
             echo "📋 Package name in google-services.json:"
             grep -o '"package_name": "[^"]*"' google-services.json || true
+            echo ""
+            echo "📋 Project ID in google-services.json:"
+            grep -o '"project_id": "[^"]*"' google-services.json || true
           else
             echo "❌ google-services.json NOT found - Firebase will fail!"
             exit 1
           fi
+
+      - name: Verify AndroidManifest.xml permissions
+        working-directory: frontend/android/app/src/main
+        run: |
+          echo "📋 Checking Android permissions..."
+          grep -q "android.permission.INTERNET" AndroidManifest.xml && echo "✅ INTERNET permission found" || echo "❌ INTERNET permission missing"
+          grep -q "android.permission.ACCESS_NETWORK_STATE" AndroidManifest.xml && echo "✅ ACCESS_NETWORK_STATE permission found" || echo "❌ ACCESS_NETWORK_STATE permission missing"
+          grep -q "network_security_config" AndroidManifest.xml && echo "✅ network_security_config found" || echo "⚠️ network_security_config not found"
 
       - name: Make gradlew executable
         working-directory: frontend/android

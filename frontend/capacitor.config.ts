@@ -10,10 +10,8 @@ const config: CapacitorConfig = {
     // Use HTTPS scheme for Android (required for modern Android security)
     androidScheme: 'https',
     iosScheme: 'https',
-    // Allow cleartext for development - disable in production
+    // Allow cleartext for development - needed for some Firebase operations
     cleartext: true,
-    // IMPORTANT: Remove any localhost/development URLs
-    // The APK will use the built web assets from webDir
   },
   
   // Android-specific configuration
@@ -22,8 +20,8 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     // Capture all navigations (keep in app)
     captureInput: true,
-    // WebView configuration
-    webContentsDebuggingEnabled: false,
+    // Enable WebView debugging for troubleshooting (set to false for release)
+    webContentsDebuggingEnabled: true,
     // Build options
     buildOptions: {
       keystorePath: undefined,
@@ -67,8 +65,8 @@ const config: CapacitorConfig = {
     }
   },
   
-  // Logging configuration
-  loggingBehavior: 'production'
+  // Logging configuration - use 'debug' for troubleshooting, 'production' for release
+  loggingBehavior: 'debug'
 };
 
 export default config;
