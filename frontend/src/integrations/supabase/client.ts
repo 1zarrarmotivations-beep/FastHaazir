@@ -2,18 +2,31 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Production Supabase Configuration with robust fallbacks
-// These values are safe publishable keys - identical for Web and APK
+// Production Supabase Configuration - IDENTICAL for Web and Android APK
+// These values are safe publishable keys with hardcoded fallbacks to ensure APK works
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://pmqkclhqvjfmcxzuoypa.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64";
 
-// Detect if running in Capacitor (native app)
-const isNativeApp = typeof (window as any)?.Capacitor !== 'undefined';
+// Robust native app detection for Capacitor Android
+const detectNativeApp = (): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    const cap = (window as any)?.Capacitor;
+    if (!cap) return false;
+    const platform = cap?.getPlatform?.();
+    return platform === 'android' || platform === 'ios';
+  } catch {
+    return false;
+  }
+};
 
-// Log environment for debugging (only in development)
+const isNativeApp = detectNativeApp();
+
+// Logging for debugging (development only)
 if (import.meta.env.DEV) {
   console.log('[Supabase] Environment:', isNativeApp ? 'Native APK' : 'Web');
   console.log('[Supabase] URL:', SUPABASE_URL);
+  console.log('[Supabase] Has env URL:', !!import.meta.env.VITE_SUPABASE_URL);
 }
 
 // Import the supabase client like this:
@@ -21,10 +34,11 @@ if (import.meta.env.DEV) {
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: typeof window !== 'undefined' ? localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: !isNativeApp, // Disable URL detection in native app
+    // Disable URL detection in native app (no browser URL bar)
+    detectSessionInUrl: !isNativeApp,
   },
   global: {
     headers: {
@@ -37,4 +51,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const supabaseConfig = {
   url: SUPABASE_URL,
   isNativeApp,
+  hasEnvUrl: !!import.meta.env.VITE_SUPABASE_URL,
 };
