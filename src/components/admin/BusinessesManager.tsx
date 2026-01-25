@@ -11,7 +11,6 @@ import {
   ShoppingCart,
   Cake,
   Package,
-  Phone,
   Trash2,
   Percent,
   Menu,
@@ -77,14 +76,13 @@ export function BusinessesManager() {
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop">("all");
+  // Business role removed - Admin controls all, no owner phone/email needed
   const [newBusiness, setNewBusiness] = useState({
     name: "",
     type: "restaurant" as 'restaurant' | 'grocery' | 'bakery' | 'shop',
     description: "",
     category: "",
     image: "",
-    owner_phone: "",
-    owner_email: "",
     commission_rate: 15,
   });
 
@@ -115,8 +113,6 @@ export function BusinessesManager() {
           description: "", 
           category: "", 
           image: "", 
-          owner_phone: "",
-          owner_email: "",
           commission_rate: 15 
         });
       },
@@ -272,28 +268,7 @@ export function BusinessesManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner-phone">Owner Phone (Login via OTP)</Label>
-                <Input
-                  id="owner-phone"
-                  placeholder="03XX-XXXXXXX"
-                  value={formatPhone(newBusiness.owner_phone)}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, owner_phone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner-email">Owner Email (Login via Email/Google)</Label>
-                <Input
-                  id="owner-email"
-                  type="email"
-                  placeholder="owner@business.com"
-                  value={newBusiness.owner_email}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, owner_email: e.target.value })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Owner can login with Phone OTP or Email/Google
-                </p>
-              </div>
+              {/* Owner phone/email removed - Admin controls all businesses */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Input
@@ -428,12 +403,7 @@ export function BusinessesManager() {
                       </Badge>
                     </div>
 
-                    {(business as any).owner_phone && (
-                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                        <Phone className="w-3 h-3" />
-                        <span>{(business as any).owner_phone}</span>
-                      </div>
-                    )}
+                    {/* Owner phone removed - Admin controls all businesses */}
 
                     <div className="flex items-center gap-4 mt-3">
                       <div className="flex items-center gap-1">

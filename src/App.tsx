@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import RealtimeProvider from "@/components/RealtimeProvider";
 import PushNotificationProvider from "@/components/push/PushNotificationProvider";
 import Index from "./pages/Index";
+import "./i18n";
 
 // Lazy load non-critical pages
 const Auth = lazy(() => import("./pages/Auth"));
@@ -23,7 +24,7 @@ const History = lazy(() => import("./pages/History"));
 const Profile = lazy(() => import("./pages/Profile"));
 const RiderDashboard = lazy(() => import("./pages/RiderDashboard"));
 const Admin = lazy(() => import("./pages/Admin"));
-const BusinessDashboard = lazy(() => import("./pages/BusinessDashboard"));
+// Business role removed - Admin controls all businesses
 const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -93,22 +94,7 @@ const App = () => (
                       }
                     />
 
-                    <Route
-                      path="/business"
-                      element={
-                        <ProtectedRoute allowedRoles={["business"]}>
-                          <BusinessDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/business-dashboard"
-                      element={
-                        <ProtectedRoute allowedRoles={["business"]}>
-                          <BusinessDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
+                    {/* Business routes removed - Admin controls all businesses */}
 
                     <Route path="*" element={<NotFound />} />
                   </Routes>
