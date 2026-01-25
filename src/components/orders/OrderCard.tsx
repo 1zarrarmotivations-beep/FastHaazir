@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, MapPin, ChevronRight, User, Phone, Package, Navigation, PartyPopper, Star } from 'lucide-react';
+import { Clock, MapPin, ChevronRight, User, Package, Navigation, PartyPopper, Star, Phone } from 'lucide-react';
 import { Order, OrderStatus } from '@/hooks/useOrders';
 import ChatButton from '@/components/chat/ChatButton';
 import LiveRiderTrackingMap from '@/components/tracking/LiveRiderTrackingMap';
@@ -126,7 +126,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
                 className="w-12 h-12 rounded-xl object-cover"
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                   <p className="font-semibold text-foreground">{order.riders?.name}</p>
                   {order.riders?.rating && (
                     <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
@@ -139,13 +139,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
                   {order.riders?.vehicle_type || 'Bike'} • {order.riders?.total_trips || 0} trips
                 </p>
               </div>
-              {order.riders?.phone && (
-                <a href={`tel:${order.riders.phone}`}>
-                  <Button variant="outline" size="icon" className="shrink-0">
-                    <Phone className="w-4 h-4" />
-                  </Button>
-                </a>
-              )}
+              {/* PRIVACY: Phone removed - use in-app chat only */}
             </div>
           </motion.div>
         )}
@@ -232,7 +226,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           </div>
         </div>
 
-        {/* Chat & Contact Actions */}
+        {/* Chat Actions - No phone numbers exposed */}
         <div className="flex items-center gap-2 pt-2 border-t border-border">
           {isRiderRequest ? (
             <ChatButton 
@@ -249,14 +243,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
               size="sm"
             />
           )}
-          {!isRiderRequest && (order.status === 'placed' || order.status === 'preparing') && order.businesses?.owner_phone && (
-            <a href={`tel:${order.businesses.owner_phone}`}>
-              <Button variant="outline" size="sm">
-                <Phone className="w-4 h-4 mr-1" />
-                Call Restaurant
-              </Button>
-            </a>
-          )}
+          {/* PRIVACY: Restaurant phone removed - use in-app chat only */}
         </div>
       </Card>
     </motion.div>
