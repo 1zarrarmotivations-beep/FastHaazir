@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import CoreActions from '@/components/CoreActions';
@@ -12,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useAdmin';
 
 const Index: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { data: userRole, isLoading: roleLoading } = useUserRole();
@@ -22,8 +24,6 @@ const Index: React.FC = () => {
   const { data: grocery, isLoading: loadingGrocery } = useBusinesses('grocery');
 
   // Redirect non-customer users to their respective dashboards
-  // Only redirect once to prevent loops
-  // Business role removed - only admin and rider have dashboards
   useEffect(() => {
     if (!authLoading && !roleLoading && user && userRole && !hasRedirected.current) {
       if (userRole === 'admin') {
@@ -33,7 +33,6 @@ const Index: React.FC = () => {
         hasRedirected.current = true;
         navigate('/rider', { replace: true });
       }
-      // Customers stay on the home page
     }
   }, [authLoading, roleLoading, user, userRole, navigate]);
 
@@ -60,11 +59,11 @@ const Index: React.FC = () => {
           className="px-4 pt-4 pb-2"
         >
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground">
-              Fast Haazir 🚀
+            <h1 className="text-2xl font-bold text-foreground ltr-keep">
+              {t('common.appName')} 🚀
             </h1>
             <p className="text-sm mt-1 text-primary">
-              Quetta's fastest delivery service
+              {t('home.tagline', 'کوئٹہ کی تیز ترین ڈیلیوری سروس')}
             </p>
           </div>
         </motion.section>
@@ -84,8 +83,8 @@ const Index: React.FC = () => {
           </div>
         ) : restaurants && restaurants.length > 0 && (
           <HorizontalScrollSection 
-            title="🍽 Restaurants" 
-            subtitle="Delicious meals delivered" 
+            title={`🍽 ${t('home.restaurants')}`}
+            subtitle={t('home.restaurantsDining')}
             businesses={restaurants.map(formatBusinessForCard)} 
             onViewAll={() => navigate('/restaurants')} 
             onBusinessClick={id => navigate(`/restaurant/${id}`)} 
@@ -105,8 +104,8 @@ const Index: React.FC = () => {
           </div>
         ) : bakeries && bakeries.length > 0 && (
           <HorizontalScrollSection 
-            title="🥐 Bakeries" 
-            subtitle="Fresh baked goodness" 
+            title={`🥐 ${t('home.bakery')}`}
+            subtitle={t('menu.freshBaked', 'تازہ بیکری')}
             businesses={bakeries.map(formatBusinessForCard)} 
             onViewAll={() => navigate('/restaurants?type=bakery')} 
             onBusinessClick={id => navigate(`/restaurant/${id}`)} 
@@ -125,8 +124,8 @@ const Index: React.FC = () => {
           </div>
         ) : grocery && grocery.length > 0 && (
           <HorizontalScrollSection 
-            title="🛒 Grocery" 
-            subtitle="Daily essentials" 
+            title={`🛒 ${t('home.grocery')}`}
+            subtitle={t('home.dailyEssentials')}
             businesses={grocery.map(formatBusinessForCard)} 
             onViewAll={() => navigate('/restaurants?type=grocery')} 
             onBusinessClick={id => navigate(`/restaurant/${id}`)} 

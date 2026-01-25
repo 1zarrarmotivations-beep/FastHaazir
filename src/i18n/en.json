@@ -26,7 +26,25 @@
     "and": "and",
     "language": "Language",
     "english": "English",
-    "urdu": "اردو"
+    "urdu": "اردو",
+    "select": "Select",
+    "add": "Add",
+    "remove": "Remove",
+    "update": "Update",
+    "details": "Details",
+    "all": "All",
+    "none": "None",
+    "active": "Active",
+    "inactive": "Inactive",
+    "online": "Online",
+    "offline": "Offline",
+    "from": "from",
+    "to": "to",
+    "at": "at",
+    "by": "by",
+    "total": "Total",
+    "items": "items",
+    "browse": "Browse"
   },
   "auth": {
     "login": "Login",
@@ -68,7 +86,16 @@
     "loggedInAs": "Logged in as",
     "goToHome": "Go to Home",
     "loginToViewOrders": "Sign in to view orders",
-    "loginToTrackOrders": "Login to track your active orders"
+    "loginToTrackOrders": "Login to track your active orders",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "register": "Register",
+    "newUser": "New user?",
+    "existingUser": "Existing user?",
+    "phoneVerification": "Phone Verification",
+    "verifyPhone": "Verify Phone",
+    "phoneRequired": "Phone number is required",
+    "invalidPhoneFormat": "Invalid phone number format"
   },
   "nav": {
     "home": "Home",
@@ -76,7 +103,10 @@
     "profile": "Profile",
     "settings": "Settings",
     "help": "Help",
-    "about": "About"
+    "about": "About",
+    "cart": "Cart",
+    "history": "History",
+    "search": "Search"
   },
   "home": {
     "greeting": "Hello",
@@ -107,7 +137,14 @@
     "free": "Free",
     "eta": "ETA",
     "mins": "mins",
-    "km": "km"
+    "km": "km",
+    "tagline": "Quetta's fastest delivery service",
+    "quickDelivery": "Quick Delivery",
+    "nearbyPlaces": "Nearby Places",
+    "topRated": "Top Rated",
+    "newArrivals": "New Arrivals",
+    "allCategories": "All Categories",
+    "exploreMore": "Explore More"
   },
   "restaurants": {
     "title": "Restaurants",
@@ -119,7 +156,12 @@
     "open": "Open",
     "closed": "Closed",
     "featured": "Featured",
-    "popular": "Popular"
+    "popular": "Popular",
+    "all": "All",
+    "filter": "Filter",
+    "sortBy": "Sort by",
+    "distance": "Distance",
+    "deliveryTime": "Delivery Time"
   },
   "menu": {
     "menu": "Menu",
@@ -130,7 +172,14 @@
     "outOfStock": "Out of Stock",
     "customize": "Customize",
     "specialInstructions": "Special Instructions",
-    "optional": "Optional"
+    "optional": "Optional",
+    "freshBaked": "Fresh Baked",
+    "popular": "Popular",
+    "recommended": "Recommended",
+    "viewDetails": "View Details",
+    "addOns": "Add-ons",
+    "selectSize": "Select Size",
+    "quantity": "Quantity"
   },
   "cart": {
     "cart": "Cart",
@@ -145,7 +194,14 @@
     "clearCart": "Clear Cart",
     "itemsInCart": "items in cart",
     "removeItem": "Remove Item",
-    "quantity": "Quantity"
+    "quantity": "Quantity",
+    "viewCart": "View Cart",
+    "browseRestaurants": "Browse Restaurants",
+    "addMoreItems": "Add More Items",
+    "orderSummary": "Order Summary",
+    "discount": "Discount",
+    "promoCode": "Promo Code",
+    "applyCode": "Apply Code"
   },
   "order": {
     "placeOrder": "Place Order",
@@ -166,7 +222,15 @@
     "orderCancelled": "Order Cancelled",
     "noOrders": "No orders yet",
     "startOrdering": "Start ordering to see your history",
-    "ordersWillAppear": "Your orders will appear here"
+    "ordersWillAppear": "Your orders will appear here",
+    "activeOrders": "Active Orders",
+    "pastOrders": "Past Orders",
+    "orderAgain": "Order Again",
+    "viewReceipt": "View Receipt",
+    "helpWithOrder": "Help with Order",
+    "rateOrder": "Rate Order",
+    "deliveryNote": "Delivery Note",
+    "specialRequests": "Special Requests"
   },
   "orderStatus": {
     "placed": "Order Placed",
@@ -176,7 +240,11 @@
     "cancelled": "Cancelled",
     "findingRider": "Finding Rider...",
     "riderAssigned": "Rider Assigned",
-    "pickedUp": "Picked Up"
+    "pickedUp": "Picked Up",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "ready": "Ready",
+    "outForDelivery": "Out for Delivery"
   },
   "rider": {
     "rider": "Rider",
@@ -191,7 +259,11 @@
     "bike": "Bike",
     "car": "Car",
     "onlineRiders": "Online Riders",
-    "noRidersOnline": "No riders online"
+    "noRidersOnline": "No riders online",
+    "riderDetails": "Rider Details",
+    "trackRider": "Track Rider",
+    "callRider": "Call Rider",
+    "chatWithRider": "Chat with Rider"
   },
   "riderApp": {
     "riderDashboard": "Rider Dashboard",
@@ -218,7 +290,19 @@
     "registerAsRider": "Register as Rider",
     "riderName": "Your Name",
     "riderPhone": "Phone Number",
-    "vehicleTypeSelect": "Select Vehicle Type"
+    "vehicleTypeSelect": "Select Vehicle Type",
+    "deliveryDetails": "Delivery Details",
+    "customerLocation": "Customer Location",
+    "pickupLocation": "Pickup Location",
+    "navigation": "Navigation",
+    "arrived": "Arrived",
+    "delivered": "Delivered",
+    "earnings_summary": "Earnings Summary",
+    "weekly_earnings": "Weekly Earnings",
+    "monthly_earnings": "Monthly Earnings",
+    "distance_covered": "Distance Covered",
+    "payment_pending": "Payment Pending",
+    "payment_completed": "Payment Completed"
   },
   "chat": {
     "chat": "Chat",
@@ -235,7 +319,13 @@
     "viewingPrivately": "You are viewing this chat privately. Participants are not notified.",
     "readOnlyMode": "Read-only mode",
     "messages": "Messages",
-    "contactViaChat": "Contact customer via in-app chat"
+    "contactViaChat": "Contact customer via in-app chat",
+    "voiceNote": "Voice Note",
+    "recordVoice": "Record Voice",
+    "tapToRecord": "Tap to record",
+    "holdToRecord": "Hold to record",
+    "messageSent": "Message sent",
+    "messageFailed": "Failed to send message"
   },
   "address": {
     "addAddress": "Add Address",
@@ -249,7 +339,16 @@
     "area": "Area",
     "landmark": "Landmark",
     "addressLabel": "Label (Home, Work, etc.)",
-    "setAsDefault": "Set as Default"
+    "setAsDefault": "Set as Default",
+    "currentLocation": "Current Location",
+    "useCurrentLocation": "📍 Use My Current Location",
+    "searchLocation": "Search location",
+    "confirmLocation": "Confirm Location",
+    "home": "Home",
+    "work": "Work",
+    "other": "Other",
+    "locationAccuracy": "Location Accuracy",
+    "gettingLocation": "Getting location..."
   },
   "profile": {
     "profile": "Profile",
@@ -266,7 +365,13 @@
     "termsConditions": "Terms & Conditions",
     "privacyPolicy": "Privacy Policy",
     "deleteAccount": "Delete Account",
-    "version": "Version"
+    "version": "Version",
+    "updateProfile": "Update Profile",
+    "saveChanges": "Save Changes",
+    "profileUpdated": "Profile Updated",
+    "completeProfile": "Complete Profile",
+    "verifyPhone": "Verify Phone",
+    "phoneVerified": "Phone Verified"
   },
   "admin": {
     "adminPanel": "Admin Panel",
@@ -291,7 +396,19 @@
     "cancelledOrders": "Cancelled Orders",
     "todayOrders": "Today's Orders",
     "thisWeek": "This Week",
-    "thisMonth": "This Month"
+    "thisMonth": "This Month",
+    "liveMap": "Live Map",
+    "riderRequests": "Rider Requests",
+    "riderPayments": "Rider Payments",
+    "paymentSettings": "Payment Settings",
+    "pushNotifications": "Push Notifications",
+    "systemNotifications": "System Notifications",
+    "chats": "Chats",
+    "monitorChats": "Monitor Chats",
+    "silentMonitoring": "Silent Monitoring",
+    "totalUsers": "Total Users",
+    "activeUsers": "Active Users",
+    "todayRevenue": "Today's Revenue"
   },
   "adminOrders": {
     "orderManagement": "Order Management",
@@ -313,7 +430,9 @@
     "ordersWillAppear": "Orders will appear here when customers place them",
     "newOrdersWaiting": "New Orders Waiting!",
     "takeAction": "Take action to keep customers happy",
-    "viewNow": "View Now"
+    "viewNow": "View Now",
+    "selectRider": "Select Rider",
+    "noRidersAvailable": "No riders available"
   },
   "adminBusiness": {
     "businessManagement": "Business Management",
@@ -336,7 +455,10 @@
     "inactive": "Inactive",
     "featured": "Featured",
     "totalBusinesses": "Total Businesses",
-    "noBusinesses": "No businesses found"
+    "noBusinesses": "No businesses found",
+    "addMenuItem": "Add Menu Item",
+    "manageMenu": "Manage Menu",
+    "businessDetails": "Business Details"
   },
   "adminRiders": {
     "riderManagement": "Rider Management",
@@ -352,7 +474,11 @@
     "riderPayments": "Payments",
     "approveRider": "Approve",
     "suspendRider": "Suspend",
-    "noRidersFound": "No riders found"
+    "noRidersFound": "No riders found",
+    "addRider": "Add Rider",
+    "editRider": "Edit Rider",
+    "blockRider": "Block Rider",
+    "unblockRider": "Unblock Rider"
   },
   "notifications": {
     "notifications": "Notifications",
@@ -361,7 +487,11 @@
     "newOrder": "New order received",
     "orderUpdate": "Order status updated",
     "riderAssigned": "Rider has been assigned",
-    "delivered": "Your order has been delivered"
+    "delivered": "Your order has been delivered",
+    "orderConfirmed": "Order confirmed",
+    "riderOnWay": "Rider is on the way",
+    "orderPreparing": "Order is being prepared",
+    "orderPickedUp": "Order picked up"
   },
   "errors": {
     "networkError": "Network error. Please check your connection.",
@@ -379,7 +509,11 @@
     "updateFailed": "Failed to update",
     "tryAgain": "Please try again",
     "configError": "Configuration Error",
-    "firebaseNotConfigured": "Firebase is not properly configured. Please contact support."
+    "firebaseNotConfigured": "Firebase is not properly configured. Please contact support.",
+    "locationError": "Location Error",
+    "gpsDisabled": "GPS is disabled",
+    "permissionDenied": "Permission denied",
+    "sessionExpired": "Session expired"
   },
   "success": {
     "orderPlaced": "Order placed successfully!",
@@ -393,7 +527,11 @@
     "statusUpdated": "Status updated",
     "businessCreated": "Business created",
     "businessUpdated": "Business updated",
-    "businessDeleted": "Business deleted"
+    "businessDeleted": "Business deleted",
+    "saved": "Saved",
+    "deleted": "Deleted",
+    "updated": "Updated",
+    "copied": "Copied"
   },
   "empty": {
     "noOrders": "No orders yet",
@@ -403,7 +541,9 @@
     "noNotifications": "No notifications",
     "noAddresses": "No saved addresses",
     "noItems": "No items available",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "noData": "No data",
+    "emptyHere": "Nothing here"
   },
   "time": {
     "now": "Now",
@@ -413,10 +553,50 @@
     "hours": "hours",
     "days": "days",
     "justNow": "Just now",
-    "ago": "ago"
+    "ago": "ago",
+    "week": "week",
+    "month": "month",
+    "year": "year"
   },
   "currency": {
     "rs": "Rs.",
     "pkr": "PKR"
+  },
+  "location": {
+    "pickupLocation": "Pickup Location",
+    "dropoffLocation": "Dropoff Location",
+    "selectPickup": "Select Pickup",
+    "selectDropoff": "Select Dropoff",
+    "distance": "Distance",
+    "estimatedTime": "Estimated Time",
+    "deliveryCharge": "Delivery Charge",
+    "itemDescription": "Item Description",
+    "whatAreYouSending": "What are you sending?",
+    "locateMe": "Locate Me",
+    "confirmPickup": "Confirm Pickup",
+    "confirmDropoff": "Confirm Dropoff",
+    "requestRider": "Request Rider",
+    "waitingForRider": "Waiting for rider...",
+    "riderAccepted": "Rider accepted!",
+    "viewOrder": "View Order"
+  },
+  "payment": {
+    "baseFee": "Base Fee",
+    "perKmRate": "Per KM Rate",
+    "totalPayment": "Total Payment",
+    "riderPayment": "Rider Payment",
+    "pendingPayments": "Pending Payments",
+    "completedPayments": "Completed Payments",
+    "paymentHistory": "Payment History"
+  },
+  "buttons": {
+    "continue": "Continue",
+    "proceed": "Proceed",
+    "done": "Done",
+    "ok": "OK",
+    "gotIt": "Got it",
+    "skip": "Skip",
+    "retry": "Retry",
+    "later": "Later"
   }
 }
