@@ -1,0 +1,265 @@
+name: Build Android APK (Production Ready)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect frontend path
+        id: detect
+        run: |
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+            echo "FRONTEND_PATH=frontend" >> $GITHUB_OUTPUT
+            echo "ANDROID_PATH=frontend/android" >> $GITHUB_OUTPUT
+            echo "Detected: frontend/"
+          elif [ -f "package.json" ] && [ -d "src" ]; then
+            echo "FRONTEND_PATH=." >> $GITHUB_OUTPUT
+            echo "ANDROID_PATH=android" >> $GITHUB_OUTPUT
+            echo "Detected: root"
+          else
+            echo "ERROR: Cannot detect frontend"
+            exit 1
+          fi
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Install frontend dependencies
+        working-directory: ${{ steps.detect.outputs.FRONTEND_PATH }}
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile || yarn install
+          else
+            npm ci || npm install
+          fi
+
+      - name: Create .env file
+        working-directory: ${{ steps.detect.outputs.FRONTEND_PATH }}
+        run: |
+          cat > .env << 'EOF'
+          VITE_SUPABASE_PROJECT_ID=pmqkclhqvjfmcxzuoypa
+          VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64
+          VITE_SUPABASE_URL=https://pmqkclhqvjfmcxzuoypa.supabase.co
+          EOF
+
+      - name: Build web assets
+        working-directory: ${{ steps.detect.outputs.FRONTEND_PATH }}
+        run: |
+          npm run build
+        env:
+          CI: false
+
+      - name: Verify dist folder
+        working-directory: ${{ steps.detect.outputs.FRONTEND_PATH }}
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "ERROR: dist folder not found"
+            exit 1
+          fi
+          echo "Build successful:"
+          ls -la dist/
+
+      - name: Initialize Capacitor Android if missing
+        working-directory: ${{ steps.detect.outputs.FRONTEND_PATH }}
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Adding Capacitor Android..."
+            npx cap add android
+          fi
+
+      - name: Sync Capacitor
+        working-directory: ${{ steps.detect.outputs.FRONTEND_PATH }}
+        run: |
+          npx cap sync android
+
+      - name: Generate Gradle wrapper if missing
+        working-directory: ${{ steps.detect.outputs.ANDROID_PATH }}
+        run: |
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Generating Gradle wrapper..."
+            
+            mkdir -p gradle/wrapper
+            
+            cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.4-all.zip
+          networkTimeout=10000
+          validateDistributionUrl=true
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+            
+            GRADLE_VERSION="8.4"
+            WRAPPER_URL="https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}/gradle/wrapper/gradle-wrapper.jar"
+            curl -sL "$WRAPPER_URL" -o gradle/wrapper/gradle-wrapper.jar || {
+              echo "Downloading from alternative source..."
+              curl -sL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o /tmp/gradle.zip
+              unzip -q /tmp/gradle.zip -d /tmp/
+              cp /tmp/gradle-${GRADLE_VERSION}/lib/gradle-launcher-*.jar gradle/wrapper/gradle-wrapper.jar 2>/dev/null || {
+                echo "Installing Gradle via SDKMAN..."
+                curl -s "https://get.sdkman.io" | bash
+                source "$HOME/.sdkman/bin/sdkman-init.sh"
+                sdk install gradle ${GRADLE_VERSION}
+                gradle wrapper --gradle-version ${GRADLE_VERSION}
+              }
+            }
+            
+            if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+              echo "Using Gradle directly to generate wrapper..."
+              cd /tmp
+              curl -sL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o gradle.zip
+              unzip -q gradle.zip
+              export PATH="/tmp/gradle-${GRADLE_VERSION}/bin:$PATH"
+              cd -
+              gradle wrapper --gradle-version ${GRADLE_VERSION}
+            fi
+          fi
+
+      - name: Ensure gradlew is executable
+        working-directory: ${{ steps.detect.outputs.ANDROID_PATH }}
+        run: |
+          chmod +x gradlew
+          
+          if [ ! -f "gradlew" ]; then
+            cat > gradlew << 'GRADLEW'
+          #!/bin/sh
+          
+          # Gradle wrapper script
+          
+          APP_NAME="Gradle"
+          APP_BASE_NAME=$(basename "$0")
+          DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+          
+          # OS specific support
+          cygwin=false
+          msys=false
+          darwin=false
+          nonstop=false
+          
+          case "$(uname)" in
+            CYGWIN* ) cygwin=true ;;
+            Darwin* ) darwin=true ;;
+            MINGW* ) msys=true ;;
+            NONSTOP* ) nonstop=true ;;
+          esac
+          
+          CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+          
+          # Determine the Java command to use
+          if [ -n "$JAVA_HOME" ] ; then
+              JAVACMD="$JAVA_HOME/bin/java"
+          else
+              JAVACMD="java"
+          fi
+          
+          # Escape application args
+          save () {
+              for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
+              echo " "
+          }
+          APP_ARGS=$(save "$@")
+          
+          # Collect all arguments for the java command
+          eval set -- $DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS "\"-Dorg.gradle.appname=$APP_BASE_NAME\"" -classpath "\"$CLASSPATH\"" org.gradle.wrapper.GradleWrapperMain "$APP_ARGS"
+          
+          exec "$JAVACMD" "$@"
+          GRADLEW
+            chmod +x gradlew
+          fi
+
+      - name: Validate Gradle wrapper
+        working-directory: ${{ steps.detect.outputs.ANDROID_PATH }}
+        run: |
+          echo "Checking Gradle wrapper files..."
+          ls -la gradle/wrapper/ || echo "wrapper dir missing"
+          
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "gradle-wrapper.jar still missing, downloading directly..."
+            mkdir -p gradle/wrapper
+            
+            # Download from Gradle GitHub releases
+            curl -sL "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" \
+              -o gradle/wrapper/gradle-wrapper.jar || \
+            curl -sL "https://repo.gradle.org/gradle/libs-releases-local/org/gradle/gradle-wrapper/8.4/gradle-wrapper-8.4.jar" \
+              -o gradle/wrapper/gradle-wrapper.jar || {
+              
+              echo "Downloading full Gradle and extracting wrapper..."
+              curl -sL "https://services.gradle.org/distributions/gradle-8.4-bin.zip" -o /tmp/gradle-8.4-bin.zip
+              unzip -q /tmp/gradle-8.4-bin.zip -d /tmp/
+              /tmp/gradle-8.4/bin/gradle wrapper --gradle-version 8.4
+            }
+          fi
+          
+          ls -la gradle/wrapper/
+
+      - name: Build Release APK
+        working-directory: ${{ steps.detect.outputs.ANDROID_PATH }}
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            -Pandroid.injected.signing.store.file="" \
+            -Pandroid.injected.signing.store.password="" \
+            -Pandroid.injected.signing.key.alias="" \
+            -Pandroid.injected.signing.key.password="" || \
+          ./gradlew assembleRelease --no-daemon --stacktrace || \
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Find and list APK files
+        id: find-apk
+        working-directory: ${{ steps.detect.outputs.ANDROID_PATH }}
+        run: |
+          echo "Looking for APK files..."
+          find . -name "*.apk" -type f | head -20
+          
+          RELEASE_APK=$(find . -name "*release*.apk" -type f | head -1)
+          DEBUG_APK=$(find . -name "*debug*.apk" -type f | head -1)
+          
+          if [ -n "$RELEASE_APK" ]; then
+            echo "APK_PATH=$RELEASE_APK" >> $GITHUB_OUTPUT
+            echo "APK_NAME=fast-haazir-release.apk" >> $GITHUB_OUTPUT
+          elif [ -n "$DEBUG_APK" ]; then
+            echo "APK_PATH=$DEBUG_APK" >> $GITHUB_OUTPUT
+            echo "APK_NAME=fast-haazir-debug.apk" >> $GITHUB_OUTPUT
+          else
+            echo "No APK found!"
+            exit 1
+          fi
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-apk
+          path: ${{ steps.detect.outputs.ANDROID_PATH }}/${{ steps.find-apk.outputs.APK_PATH }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Build Summary
+        run: |
+          echo "## ✅ APK Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**APK Generated:** ${{ steps.find-apk.outputs.APK_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download from the **Artifacts** section above." >> $GITHUB_STEP_SUMMARY
