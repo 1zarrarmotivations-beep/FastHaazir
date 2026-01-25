@@ -175,6 +175,8 @@ export const useSendMessage = () => {
       if (messageType === 'text' && !message.trim()) throw new Error('Message cannot be empty');
       if (messageType === 'voice' && !voiceUrl) throw new Error('Voice URL is required');
 
+      console.log('[useChat] Sending message:', { orderId, riderRequestId, senderType, userId: user.id });
+      
       const { data, error } = await supabase
         .from('chat_messages')
         .insert({
@@ -190,7 +192,10 @@ export const useSendMessage = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useChat] Insert error:', error.message, error.details, error.hint);
+        throw new Error(`Message failed: ${error.message}`);
+      }
       return data;
     },
     onSuccess: (_, variables) => {
