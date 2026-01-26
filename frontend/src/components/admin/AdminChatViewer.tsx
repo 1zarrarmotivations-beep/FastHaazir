@@ -30,6 +30,9 @@ interface AdminChatViewerProps {
 }
 
 // Voice Note Player Component (Read-only) - Fixed for Android WebView compatibility
+// Uses fresh Audio instances per play to avoid mobile browser issues
+import { createVoicePlayer, stopCurrentAudio, unlockAudio, type VoicePlaybackResult } from '@/lib/voicePlayback';
+
 const VoiceNotePlayer = memo(({ 
   voiceUrl, 
   duration,
@@ -40,11 +43,11 @@ const VoiceNotePlayer = memo(({
   isOwnMessage: boolean;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<VoicePlaybackResult | null>(null);
   const waveformHeightsRef = useRef<number[]>([]);
 
   // Generate stable waveform heights once
@@ -52,111 +55,145 @@ const VoiceNotePlayer = memo(({
     waveformHeightsRef.current = Array.from({ length: 25 }, () => Math.random() * 100);
   }
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.cleanup();
+        playerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Create fresh player when URL changes
   useEffect(() => {
     if (!voiceUrl) {
-      console.error('[VoicePlayer] No voice URL provided');
       setHasError(true);
-      setIsLoading(false);
       return;
     }
 
-    console.log('[VoicePlayer] Initializing audio with URL:', voiceUrl.substring(0, 100) + '...');
+    // Cleanup previous player
+    if (playerRef.current) {
+      playerRef.current.cleanup();
+      playerRef.current = null;
+    }
+
+    setHasError(false);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setIsLoading(false);
+
+    // Pre-create player with callbacks
+    const player = createVoicePlayer(voiceUrl, {
+      onCanPlay: () => {
+        setIsLoading(false);
+        if (player.getDuration() > 0) {
+          setAudioDuration(player.getDuration());
+        }
+      },
+      onTimeUpdate: (time, dur) => {
+        setCurrentTime(time);
+        if (dur > 0 && audioDuration === 0) {
+          setAudioDuration(dur);
+        }
+      },
+      onEnded: () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      },
+      onError: () => {
+        setHasError(true);
+        setIsPlaying(false);
+        setIsLoading(false);
+      },
+      onPlay: () => setIsPlaying(true),
+      onPause: () => setIsPlaying(false),
+    });
+
+    playerRef.current = player;
     
-    const audio = new Audio();
-    audioRef.current = audio;
-    
-    audio.crossOrigin = 'anonymous';
-    audio.preload = 'metadata';
+    if (duration && duration > 0) {
+      setAudioDuration(duration);
+    }
 
-    const handleLoadedMetadata = () => {
-      console.log('[VoicePlayer] Audio metadata loaded, duration:', audio.duration);
-      setAudioDuration(audio.duration || duration || 0);
-      setIsLoading(false);
-    };
-
-    const handleCanPlay = () => {
-      setIsLoading(false);
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    const handleError = (e: Event) => {
-      const audioError = (e.target as HTMLAudioElement)?.error;
-      console.error('[VoicePlayer] Audio error:', {
-        code: audioError?.code,
-        message: audioError?.message,
-      });
-      setHasError(true);
-      setIsLoading(false);
-      setIsPlaying(false);
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-
-    audio.src = voiceUrl;
-    audio.load();
-
-    return () => {
-      audio.pause();
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.src = '';
-      audioRef.current = null;
-    };
-  }, [voiceUrl, duration]);
+  }, [voiceUrl]);
 
   const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    unlockAudio();
 
     if (hasError) {
       setHasError(false);
       setIsLoading(true);
-      audio.load();
+      
+      if (playerRef.current) {
+        playerRef.current.cleanup();
+      }
+
+      const player = createVoicePlayer(voiceUrl, {
+        onCanPlay: () => setIsLoading(false),
+        onTimeUpdate: (time, dur) => {
+          setCurrentTime(time);
+          if (dur > 0) setAudioDuration(dur);
+        },
+        onEnded: () => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        },
+        onError: () => {
+          setHasError(true);
+          setIsPlaying(false);
+          setIsLoading(false);
+        },
+        onPlay: () => setIsPlaying(true),
+        onPause: () => setIsPlaying(false),
+      });
+
+      playerRef.current = player;
+      
+      try {
+        await player.play();
+      } catch {
+        setHasError(true);
+        setIsLoading(false);
+      }
       return;
     }
 
     try {
       if (isPlaying) {
-        audio.pause();
-        setIsPlaying(false);
+        playerRef.current?.pause();
       } else {
-        if (audio.readyState < 2) {
-          setIsLoading(true);
-          await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Load timeout')), 10000);
-            const onCanPlay = () => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              resolve();
-            };
-            audio.addEventListener('canplay', onCanPlay);
-          });
-          setIsLoading(false);
+        setIsLoading(true);
+        stopCurrentAudio();
+        
+        if (playerRef.current) {
+          playerRef.current.cleanup();
         }
-
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-        }
-        setIsPlaying(true);
+        
+        const freshPlayer = createVoicePlayer(voiceUrl, {
+          onCanPlay: () => setIsLoading(false),
+          onTimeUpdate: (time, dur) => {
+            setCurrentTime(time);
+            if (dur > 0) setAudioDuration(dur);
+          },
+          onEnded: () => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          },
+          onError: () => {
+            setHasError(true);
+            setIsPlaying(false);
+            setIsLoading(false);
+          },
+          onPlay: () => setIsPlaying(true),
+          onPause: () => setIsPlaying(false),
+        });
+        
+        playerRef.current = freshPlayer;
+        await freshPlayer.play();
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      console.error('[VoicePlayer] Playback error:', error.message);
+    } catch {
       setHasError(true);
       setIsPlaying(false);
       setIsLoading(false);

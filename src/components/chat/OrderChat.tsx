@@ -73,6 +73,9 @@ const MiniMapPreview = memo(({
 MiniMapPreview.displayName = 'MiniMapPreview';
 
 // Voice Note Player Component - Fixed for Android WebView compatibility
+// Uses fresh Audio instances per play to avoid mobile browser issues
+import { createVoicePlayer, stopCurrentAudio, unlockAudio, type VoicePlaybackResult } from '@/lib/voicePlayback';
+
 const VoiceNotePlayer = memo(({ 
   voiceUrl, 
   duration,
@@ -83,11 +86,11 @@ const VoiceNotePlayer = memo(({
   isOwnMessage: boolean;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<VoicePlaybackResult | null>(null);
   const waveformHeightsRef = useRef<number[]>([]);
 
   // Generate stable waveform heights once
@@ -95,169 +98,173 @@ const VoiceNotePlayer = memo(({
     waveformHeightsRef.current = Array.from({ length: 25 }, () => Math.random() * 100);
   }
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.cleanup();
+        playerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Create fresh player when URL changes
   useEffect(() => {
     if (!voiceUrl) {
-      console.error('[VoicePlayer] No voice URL provided');
       setHasError(true);
-      setIsLoading(false);
       return;
     }
 
-    console.log('[VoicePlayer] Initializing audio with URL:', voiceUrl.substring(0, 100) + '...');
+    // Cleanup previous player
+    if (playerRef.current) {
+      playerRef.current.cleanup();
+      playerRef.current = null;
+    }
+
+    setHasError(false);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setIsLoading(false);
+
+    // Pre-create player with callbacks (but don't play yet)
+    const player = createVoicePlayer(voiceUrl, {
+      onCanPlay: () => {
+        console.log('[VoicePlayer] Ready to play');
+        setIsLoading(false);
+        if (player.getDuration() > 0) {
+          setAudioDuration(player.getDuration());
+        }
+      },
+      onTimeUpdate: (time, dur) => {
+        setCurrentTime(time);
+        if (dur > 0 && audioDuration === 0) {
+          setAudioDuration(dur);
+        }
+      },
+      onEnded: () => {
+        console.log('[VoicePlayer] Ended');
+        setIsPlaying(false);
+        setCurrentTime(0);
+      },
+      onError: (err) => {
+        console.error('[VoicePlayer] Error:', err);
+        setHasError(true);
+        setIsPlaying(false);
+        setIsLoading(false);
+      },
+      onPlay: () => {
+        setIsPlaying(true);
+      },
+      onPause: () => {
+        setIsPlaying(false);
+      },
+    });
+
+    playerRef.current = player;
     
-    const audio = new Audio();
-    audioRef.current = audio;
-    
-    // Enable cross-origin for signed URLs
-    audio.crossOrigin = 'anonymous';
-    
-    // Preload metadata
-    audio.preload = 'metadata';
+    // Set initial duration if provided
+    if (duration && duration > 0) {
+      setAudioDuration(duration);
+    }
 
-    const handleLoadStart = () => {
-      console.log('[VoicePlayer] Audio load started');
-      setIsLoading(true);
-      setHasError(false);
-    };
-
-    const handleLoadedMetadata = () => {
-      console.log('[VoicePlayer] Audio metadata loaded, duration:', audio.duration);
-      setAudioDuration(audio.duration || duration || 0);
-      setIsLoading(false);
-    };
-
-    const handleCanPlay = () => {
-      console.log('[VoicePlayer] Audio can play');
-      setIsLoading(false);
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      console.log('[VoicePlayer] Audio playback ended');
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    const handleError = (e: Event) => {
-      const audioError = (e.target as HTMLAudioElement)?.error;
-      console.error('[VoicePlayer] Audio error:', {
-        code: audioError?.code,
-        message: audioError?.message,
-        url: voiceUrl.substring(0, 100)
-      });
-      setHasError(true);
-      setIsLoading(false);
-      setIsPlaying(false);
-    };
-
-    const handlePlay = () => {
-      console.log('[VoicePlayer] Audio play event fired');
-      setIsPlaying(true);
-    };
-
-    const handlePause = () => {
-      console.log('[VoicePlayer] Audio pause event fired');
-      setIsPlaying(false);
-    };
-
-    // Add all event listeners
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-
-    // Set source after listeners are attached
-    audio.src = voiceUrl;
-    
-    // Start loading
-    audio.load();
-
-    return () => {
-      console.log('[VoicePlayer] Cleaning up audio element');
-      audio.pause();
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.src = '';
-      audioRef.current = null;
-    };
-  }, [voiceUrl, duration]);
+  }, [voiceUrl]);
 
   const togglePlay = async () => {
-    const audio = audioRef.current;
-    if (!audio) {
-      console.error('[VoicePlayer] No audio element available');
+    // Unlock audio on user gesture
+    unlockAudio();
+
+    if (hasError) {
+      // Retry: create fresh player
+      setHasError(false);
+      setIsLoading(true);
+      
+      if (playerRef.current) {
+        playerRef.current.cleanup();
+      }
+
+      const player = createVoicePlayer(voiceUrl, {
+        onCanPlay: () => setIsLoading(false),
+        onTimeUpdate: (time, dur) => {
+          setCurrentTime(time);
+          if (dur > 0) setAudioDuration(dur);
+        },
+        onEnded: () => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+        },
+        onError: () => {
+          setHasError(true);
+          setIsPlaying(false);
+          setIsLoading(false);
+        },
+        onPlay: () => setIsPlaying(true),
+        onPause: () => setIsPlaying(false),
+      });
+
+      playerRef.current = player;
+      
+      try {
+        await player.play();
+      } catch (e) {
+        setHasError(true);
+        setIsLoading(false);
+      }
       return;
     }
 
-    if (hasError) {
-      console.log('[VoicePlayer] Retrying after error...');
-      setHasError(false);
-      setIsLoading(true);
-      audio.load();
+    const player = playerRef.current;
+    if (!player) {
+      console.error('[VoicePlayer] No player available');
       return;
     }
 
     try {
       if (isPlaying) {
-        console.log('[VoicePlayer] Pausing audio');
-        audio.pause();
+        console.log('[VoicePlayer] Pausing');
+        player.pause();
       } else {
-        console.log('[VoicePlayer] Attempting to play audio...');
+        console.log('[VoicePlayer] Playing...');
+        setIsLoading(true);
         
-        // Ensure audio is ready
-        if (audio.readyState < 2) {
-          console.log('[VoicePlayer] Audio not ready, waiting for canplay...');
-          setIsLoading(true);
-          
-          await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Load timeout')), 10000);
-            const onCanPlay = () => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              audio.removeEventListener('error', onError);
-              resolve();
-            };
-            const onError = () => {
-              clearTimeout(timeout);
-              audio.removeEventListener('canplay', onCanPlay);
-              audio.removeEventListener('error', onError);
-              reject(new Error('Failed to load audio'));
-            };
-            audio.addEventListener('canplay', onCanPlay);
-            audio.addEventListener('error', onError);
-          });
-          
-          setIsLoading(false);
-        }
-
-        // Play with proper Promise handling for Android WebView
-        const playPromise = audio.play();
+        // Stop any other playing audio first
+        stopCurrentAudio();
         
-        if (playPromise !== undefined) {
-          await playPromise;
-          console.log('[VoicePlayer] Audio playback started successfully');
+        // Create a fresh player for each play to avoid stale state
+        if (playerRef.current) {
+          playerRef.current.cleanup();
         }
+        
+        const freshPlayer = createVoicePlayer(voiceUrl, {
+          onCanPlay: () => setIsLoading(false),
+          onTimeUpdate: (time, dur) => {
+            setCurrentTime(time);
+            if (dur > 0) setAudioDuration(dur);
+          },
+          onEnded: () => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          },
+          onError: (err) => {
+            console.error('[VoicePlayer] Playback error:', err);
+            setHasError(true);
+            setIsPlaying(false);
+            setIsLoading(false);
+          },
+          onPlay: () => setIsPlaying(true),
+          onPause: () => setIsPlaying(false),
+        });
+        
+        playerRef.current = freshPlayer;
+        
+        await freshPlayer.play();
+        setIsLoading(false);
       }
     } catch (error: any) {
-      console.error('[VoicePlayer] Playback error:', error.message || error);
+      console.error('[VoicePlayer] Playback error:', error?.name, error?.message);
       
-      // Handle specific errors
-      if (error.name === 'NotAllowedError') {
+      if (error?.name === 'NotAllowedError') {
         toast.error('Tap again to play audio');
-      } else if (error.name === 'NotSupportedError') {
+      } else if (error?.name === 'NotSupportedError') {
         toast.error('Audio format not supported');
         setHasError(true);
       } else {
