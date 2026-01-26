@@ -6,100 +6,139 @@
 
 @layer base {
   :root {
-    /* Fast Haazir Brand Colors */
-    --background: 210 20% 98%;
-    --foreground: 192 10% 18%;
+    /* ============================================
+       FAST HAAZIR BRAND SYSTEM v2.0
+       Primary: Deep Green (Pakistan Identity)
+       Accent: Lightning Orange (Speed & Energy)
+       ============================================ */
+    
+    --background: 150 20% 98%;
+    --foreground: 160 25% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 192 10% 18%;
+    --card-foreground: 160 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 192 10% 18%;
+    --popover-foreground: 160 25% 12%;
 
-    /* Primary: Deep Orange (WCAG AA compliant) */
-    --primary: 24 100% 40%;
+    /* Primary: Deep Pakistan Green (WCAG AA compliant) */
+    --primary: 152 77% 26%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Dark Navy */
-    --secondary: 210 21% 15%;
+    /* Secondary: Dark Charcoal */
+    --secondary: 160 20% 15%;
     --secondary-foreground: 0 0% 100%;
 
     /* Muted */
-    --muted: 210 20% 96%;
-    --muted-foreground: 195 8% 41%;
+    --muted: 150 15% 95%;
+    --muted-foreground: 160 10% 40%;
 
-    /* Accent: Fresh Green */
-    --accent: 168 100% 36%;
+    /* Accent: Lightning Orange (Speed indicator) */
+    --accent: 28 100% 50%;
     --accent-foreground: 0 0% 100%;
+
+    /* Success: Bright Green */
+    --success: 152 77% 35%;
+    --success-foreground: 0 0% 100%;
 
     /* Destructive: Danger Red */
     --destructive: 7 80% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 90%;
-    --input: 210 20% 90%;
-    --ring: 24 100% 40%;
+    --border: 150 15% 88%;
+    --input: 150 15% 88%;
+    --ring: 152 77% 26%;
 
     --radius: 1rem;
 
-    /* Custom Fast Haazir Variables */
-    --gradient-primary: linear-gradient(135deg, #ff6a00 0%, #ff3d00 100%);
-    --gradient-hero: linear-gradient(180deg, #ff6a00 0%, #ff3d00 50%, #e84118 100%);
-    --gradient-card: linear-gradient(145deg, rgba(255, 106, 0, 0.1) 0%, rgba(255, 61, 0, 0.05) 100%);
-    --gradient-success: linear-gradient(135deg, #00b894 0%, #00a884 100%);
+    /* Fast Haazir Brand Gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(152, 77%, 26%) 0%, hsl(152, 77%, 35%) 100%);
+    --gradient-speed: linear-gradient(135deg, hsl(28, 100%, 50%) 0%, hsl(38, 100%, 55%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(152, 77%, 26%) 0%, hsl(152, 77%, 22%) 50%, hsl(152, 77%, 18%) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(152, 77%, 26%, 0.08) 0%, hsla(28, 100%, 50%, 0.04) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(152, 77%, 35%) 0%, hsl(152, 77%, 30%) 100%);
+    --gradient-lightning: linear-gradient(135deg, hsl(38, 100%, 55%) 0%, hsl(28, 100%, 50%) 50%, hsl(18, 100%, 48%) 100%);
     
-    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
-    --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.12);
-    --shadow-elevated: 0 12px 40px rgba(255, 106, 0, 0.2);
-    --shadow-glow: 0 0 30px rgba(255, 106, 0, 0.3);
+    /* Brand Shadows */
+    --shadow-soft: 0 4px 20px hsla(152, 77%, 26%, 0.08);
+    --shadow-card: 0 8px 30px hsla(0, 0%, 0%, 0.1);
+    --shadow-elevated: 0 12px 40px hsla(152, 77%, 26%, 0.15);
+    --shadow-glow: 0 0 30px hsla(28, 100%, 50%, 0.25);
+    --shadow-brand: 0 8px 24px hsla(152, 77%, 26%, 0.2);
 
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 24 100% 50%;
+    --sidebar-foreground: 160 25% 20%;
+    --sidebar-primary: 152 77% 26%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 15% 95%;
+    --sidebar-accent-foreground: 160 25% 15%;
+    --sidebar-border: 150 15% 90%;
+    --sidebar-ring: 152 77% 30%;
   }
 
   .dark {
-    --background: 210 21% 11%;
-    --foreground: 210 20% 98%;
+    /* ============================================
+       FAST HAAZIR DARK MODE (Premium AMOLED)
+       ============================================ */
+    --background: 160 25% 6%;
+    --foreground: 150 15% 95%;
 
-    --card: 210 21% 15%;
-    --card-foreground: 210 20% 98%;
+    --card: 160 20% 10%;
+    --card-foreground: 150 15% 95%;
 
-    --popover: 210 21% 15%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 160 20% 10%;
+    --popover-foreground: 150 15% 95%;
 
-    --primary: 24 100% 55%;
+    /* Primary: Brighter Green for Dark Mode */
+    --primary: 152 77% 40%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 20%;
-    --secondary-foreground: 210 20% 98%;
+    /* Secondary */
+    --secondary: 160 15% 18%;
+    --secondary-foreground: 150 15% 95%;
 
-    --muted: 210 20% 20%;
-    --muted-foreground: 210 15% 60%;
+    /* Muted */
+    --muted: 160 15% 15%;
+    --muted-foreground: 150 10% 55%;
 
-    --accent: 168 100% 40%;
+    /* Accent: Vibrant Orange */
+    --accent: 28 100% 55%;
     --accent-foreground: 0 0% 100%;
 
+    /* Success */
+    --success: 152 77% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Destructive */
     --destructive: 7 80% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 25%;
-    --input: 210 20% 25%;
-    --ring: 24 100% 55%;
+    --border: 160 15% 20%;
+    --input: 160 15% 20%;
+    --ring: 152 77% 45%;
 
-    --sidebar-background: 210 21% 11%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 24 100% 55%;
+    /* Dark Mode Gradients */
+    --gradient-brand: linear-gradient(135deg, hsl(152, 77%, 35%) 0%, hsl(152, 77%, 45%) 100%);
+    --gradient-speed: linear-gradient(135deg, hsl(28, 100%, 55%) 0%, hsl(38, 100%, 60%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(160, 25%, 8%) 0%, hsl(160, 25%, 6%) 50%, hsl(160, 25%, 4%) 100%);
+    
+    /* Dark Mode Shadows */
+    --shadow-soft: 0 4px 20px hsla(0, 0%, 0%, 0.3);
+    --shadow-card: 0 8px 30px hsla(0, 0%, 0%, 0.4);
+    --shadow-elevated: 0 12px 40px hsla(152, 77%, 40%, 0.15);
+    --shadow-glow: 0 0 30px hsla(28, 100%, 55%, 0.3);
+    --shadow-brand: 0 8px 24px hsla(152, 77%, 40%, 0.2);
+
+    /* Sidebar Dark */
+    --sidebar-background: 160 25% 6%;
+    --sidebar-foreground: 150 15% 95%;
+    --sidebar-primary: 152 77% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 20% 20%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 210 20% 25%;
-    --sidebar-ring: 24 100% 55%;
+    --sidebar-accent: 160 15% 12%;
+    --sidebar-accent-foreground: 150 15% 95%;
+    --sidebar-border: 160 15% 18%;
+    --sidebar-ring: 152 77% 45%;
   }
 }
 
@@ -115,8 +154,18 @@
 }
 
 @layer utilities {
+  /* Fast Haazir Brand Gradients */
+  .gradient-brand {
+    background: var(--gradient-brand);
+  }
+
+  /* Legacy alias - keep for backwards compatibility */
   .gradient-primary {
-    background: var(--gradient-primary);
+    background: var(--gradient-brand);
+  }
+
+  .gradient-speed {
+    background: var(--gradient-speed);
   }
 
   .gradient-hero {
@@ -131,6 +180,11 @@
     background: var(--gradient-card);
   }
 
+  .gradient-lightning {
+    background: var(--gradient-lightning);
+  }
+
+  /* Brand Shadows */
   .shadow-soft {
     box-shadow: var(--shadow-soft);
   }
@@ -147,8 +201,20 @@
     box-shadow: var(--shadow-glow);
   }
 
-  .text-gradient {
-    background: var(--gradient-primary);
+  .shadow-brand {
+    box-shadow: var(--shadow-brand);
+  }
+
+  /* Brand Text Effects */
+  .text-gradient-brand {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-speed {
+    background: var(--gradient-speed);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
