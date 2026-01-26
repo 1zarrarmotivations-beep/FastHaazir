@@ -14,7 +14,9 @@ import {
   Trash2,
   Percent,
   Menu,
-  Award
+  Award,
+  MapPin,
+  AlertTriangle
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +58,8 @@ import {
 } from "@/hooks/useAdmin";
 import { MenuItemsManager } from "./MenuItemsManager";
 import { ImageUpload } from "./ImageUpload";
+import { BusinessLocationPicker } from "./BusinessLocationPicker";
+import { toast } from "sonner";
 
 const businessTypeIcons = {
   restaurant: UtensilsCrossed,
@@ -77,7 +81,7 @@ export function BusinessesManager() {
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop">("all");
-  // Business role removed - Admin controls all, no owner phone/email needed
+  // Business data with location fields
   const [newBusiness, setNewBusiness] = useState({
     name: "",
     type: "restaurant" as 'restaurant' | 'grocery' | 'bakery' | 'shop',
@@ -85,6 +89,9 @@ export function BusinessesManager() {
     category: "",
     image: "",
     commission_rate: 15,
+    location_lat: null as number | null,
+    location_lng: null as number | null,
+    location_address: "",
   });
 
   const { data: businesses, isLoading } = useAdminBusinesses();
@@ -104,7 +111,14 @@ export function BusinessesManager() {
   });
 
   const handleCreateBusiness = () => {
-    if (!newBusiness.name || !newBusiness.type) return;
+    if (!newBusiness.name || !newBusiness.type) {
+      toast.error("Business name is required");
+      return;
+    }
+    if (!newBusiness.location_lat || !newBusiness.location_lng || !newBusiness.location_address) {
+      toast.error("Business location is required for rider pickup");
+      return;
+    }
     createBusiness.mutate(newBusiness, {
       onSuccess: () => {
         setDialogOpen(false);
@@ -114,7 +128,10 @@ export function BusinessesManager() {
           description: "", 
           category: "", 
           image: "", 
-          commission_rate: 15 
+          commission_rate: 15,
+          location_lat: null,
+          location_lng: null,
+          location_address: "",
         });
       },
     });
@@ -311,10 +328,27 @@ export function BusinessesManager() {
                   maxSizeMB={5}
                 />
               </div>
+              
+              {/* Business Location Picker - REQUIRED */}
+              <BusinessLocationPicker
+                value={{
+                  lat: newBusiness.location_lat,
+                  lng: newBusiness.location_lng,
+                  address: newBusiness.location_address,
+                }}
+                onChange={(location) => setNewBusiness({ 
+                  ...newBusiness, 
+                  location_lat: location.lat,
+                  location_lng: location.lng,
+                  location_address: location.address,
+                })}
+                required
+              />
+
               <Button 
                 onClick={handleCreateBusiness} 
                 className="w-full gradient-primary text-primary-foreground"
-                disabled={createBusiness.isPending || !newBusiness.name}
+                disabled={createBusiness.isPending || !newBusiness.name || !newBusiness.location_lat}
               >
                 {createBusiness.isPending ? "Creating..." : "Create Business"}
               </Button>
