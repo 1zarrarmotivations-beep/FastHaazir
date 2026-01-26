@@ -249,8 +249,7 @@ const RiderDashboard = () => {
           }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          <span className="text-emerald-400 text-xs">🔥</span>
-          <span className="text-emerald-400 text-xs font-bold tracking-wide">RIDER PREMIUM BUILD – PRODUCTION</span>
+          <span className="text-emerald-400 text-xs font-bold tracking-wide">🔥 RIDER PROD v4.0 – LIVE 🔥</span>
         </motion.div>
 
         {/* Version Badge */}
