@@ -47,12 +47,13 @@ import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 
 /* ================= BUILD MARKER ================= */
-const BUILD_VERSION = 'UI-v3-Glass';
+const BUILD_VERSION = 'PREMIUM-v4.0';
 const BUILD_TIMESTAMP = new Date().toISOString();
-console.log('🔥 RIDER DASHBOARD PRODUCTION FILE LOADED');
-console.log('🔥 BUILD_VERSION:', BUILD_VERSION, 'TIMESTAMP:', BUILD_TIMESTAMP);
-console.log('🔥 FILE PATH: src/pages/RiderDashboard.tsx');
-console.log('🔥 CURRENT TIME:', new Date().toLocaleString());
+const BUILD_VERIFIED = true;
+console.log('🟢 RIDER UI – PREMIUM BUILD VERIFIED');
+console.log('🟢 BUILD_VERSION:', BUILD_VERSION, 'TIMESTAMP:', BUILD_TIMESTAMP);
+console.log('🟢 FILE PATH: src/pages/RiderDashboard.tsx');
+console.log('🟢 PREMIUM DARK MODE ACTIVE');
 /* ================================================ */
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -183,60 +184,106 @@ const RiderDashboard = () => {
   /* ================= MAIN UI ================= */
   return (
     <div className="min-h-screen rider-bg pb-24 overflow-x-hidden">
-      {/* Animated Background Gradient */}
+      {/* Premium Animated Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Purple/Blue gradient orb - top right */}
         <motion.div
-          className="absolute -top-1/2 -right-1/2 w-full h-full opacity-30"
+          className="absolute -top-1/3 -right-1/4 w-[600px] h-[600px] opacity-40"
           style={{
-            background: 'radial-gradient(circle, rgba(255,106,0,0.15) 0%, transparent 60%)',
+            background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(99,102,241,0.08) 40%, transparent 70%)',
+            filter: 'blur(60px)',
+          }}
+          animate={{
+            scale: [1, 1.1, 1],
+            x: [0, 30, 0],
+            y: [0, -20, 0],
+          }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        {/* Emerald gradient orb - bottom left */}
+        <motion.div
+          className="absolute -bottom-1/3 -left-1/4 w-[500px] h-[500px] opacity-30"
+          style={{
+            background: 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.06) 40%, transparent 70%)',
+            filter: 'blur(60px)',
+          }}
+          animate={{
+            scale: [1.1, 1, 1.1],
+            x: [0, -20, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        {/* Subtle orange accent - center */}
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] opacity-20"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,106,0,0.1) 0%, transparent 60%)',
+            filter: 'blur(80px)',
           }}
           animate={{
             scale: [1, 1.2, 1],
-            x: [0, 50, 0],
-            y: [0, -30, 0],
+            opacity: [0.15, 0.25, 0.15],
           }}
           transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
-        <motion.div
-          className="absolute -bottom-1/2 -left-1/2 w-full h-full opacity-20"
-          style={{
-            background: 'radial-gradient(circle, rgba(0,255,136,0.15) 0%, transparent 60%)',
-          }}
-          animate={{
-            scale: [1.2, 1, 1.2],
-            x: [0, -30, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-        />
       </div>
 
-      {/* Version Badge */}
-      <motion.button
-        onClick={() => setShowVersionInfo(!showVersionInfo)}
-        className="fixed top-4 right-4 z-50"
-        whileTap={{ scale: 0.95 }}
+      {/* Premium Verified Badge - VISIBLE */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center"
       >
-        <Badge className="glass-card text-white/80 border-white/10 text-xs font-mono">
-          <Sparkles className="w-3 h-3 mr-1" />
-          {BUILD_VERSION}
-        </Badge>
-      </motion.button>
+        {/* Verification Badge */}
+        <motion.div 
+          className="badge-verified px-3 py-1.5 rounded-full flex items-center gap-2"
+          animate={{ 
+            boxShadow: [
+              '0 0 16px rgba(16, 185, 129, 0.2)',
+              '0 0 24px rgba(16, 185, 129, 0.4)',
+              '0 0 16px rgba(16, 185, 129, 0.2)'
+            ]
+          }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <span className="text-emerald-400 text-xs">🟢</span>
+          <span className="text-emerald-400 text-xs font-bold tracking-wide">RIDER UI – PREMIUM BUILD VERIFIED</span>
+        </motion.div>
+
+        {/* Version Badge */}
+        <motion.button
+          onClick={() => setShowVersionInfo(!showVersionInfo)}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Badge className="glass-card-premium text-white/70 border-purple-500/20 text-xs font-mono px-3 py-1.5">
+            <Sparkles className="w-3 h-3 mr-1 text-purple-400" />
+            {BUILD_VERSION}
+          </Badge>
+        </motion.button>
+      </motion.div>
 
       <AnimatePresence>
         {showVersionInfo && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed top-14 right-4 z-50 glass-card-dark p-4 rounded-2xl text-xs text-white/70"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="fixed top-16 right-4 z-50 glass-card-premium p-5 rounded-3xl text-xs text-white/70 min-w-[200px]"
           >
-            <p className="font-mono">Version: {BUILD_VERSION}</p>
-            <p className="font-mono">Rider: {riderProfile?.id?.slice(0, 8)}</p>
+            <div className="flex items-center gap-2 mb-3 text-emerald-400">
+              <span>🟢</span>
+              <span className="font-bold">Build Verified</span>
+            </div>
+            <div className="space-y-2 text-white/60">
+              <p className="font-mono">Version: <span className="text-purple-400">{BUILD_VERSION}</span></p>
+              <p className="font-mono">Rider: <span className="text-cyan-400">{riderProfile?.id?.slice(0, 8)}</span></p>
+              <p className="font-mono">Source: <span className="text-orange-400">/src</span></p>
+            </div>
             <Button
               size="sm"
               variant="ghost"
-              className="mt-2 text-white/60 hover:text-white"
+              className="mt-3 w-full text-white/50 hover:text-white hover:bg-white/5"
               onClick={() => setShowVersionInfo(false)}
             >
               Close
@@ -245,8 +292,8 @@ const RiderDashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <div className="relative z-10">
+      {/* Main Content - Extra top padding for badge */}
+      <div className="relative z-10 pt-12">
         <RiderStatusHeader
           riderProfile={riderProfile}
           isOnline={riderProfile?.is_online || false}
