@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Trash2, Plus, Minus, MapPin, CreditCard, Loader2, Phone } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Minus, MapPin, CreditCard, Loader2, Phone, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
@@ -19,6 +20,7 @@ interface DeliveryLocation {
 }
 
 const Cart: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { items, updateQuantity, removeItem, clearCart, totalPrice, deliveryFee } = useCart();
   const { user } = useAuth();
@@ -133,7 +135,7 @@ const Cart: React.FC = () => {
             <Button variant="icon" size="icon-sm" onClick={() => navigate(-1)}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="font-bold text-foreground">Your Cart</h1>
+            <h1 className="font-bold text-foreground">{t('cart.yourCart', 'آپ کا کارٹ')}</h1>
           </div>
         </header>
         
@@ -145,12 +147,12 @@ const Cart: React.FC = () => {
           >
             <span className="text-4xl">🛒</span>
           </motion.div>
-          <h2 className="font-bold text-lg mb-2">Your cart is empty</h2>
+          <h2 className="font-bold text-lg mb-2">{t('cart.emptyCart', 'آپ کا کارٹ خالی ہے')}</h2>
           <p className="text-muted-foreground text-sm text-center mb-6">
-            Add items from restaurants to start your order
+            {t('cart.addItems', 'شروع کرنے کے لیے اشیاء شامل کریں')}
           </p>
           <Button onClick={() => navigate('/')}>
-            Browse Restaurants
+            {t('cart.browseRestaurants', 'ریستوران دیکھیں')}
           </Button>
         </div>
       </div>
