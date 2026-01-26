@@ -14,8 +14,7 @@ import {
   Trash2,
   Percent,
   Menu,
-  Award,
-  Edit
+  Award
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,8 +49,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { 
   useAdminBusinesses, 
-  useCreateBusiness,
-  useUpdateBusiness,
+  useCreateBusiness, 
   useToggleBusinessStatus, 
   useDeleteBusiness,
   useToggleBusinessFeatured 
@@ -76,11 +74,10 @@ const businessTypeColors = {
 export function BusinessesManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
-  const [editingBusiness, setEditingBusiness] = useState<any | null>(null);
   const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop">("all");
+  // Business role removed - Admin controls all, no owner phone/email needed
   const [newBusiness, setNewBusiness] = useState({
     name: "",
     type: "restaurant" as 'restaurant' | 'grocery' | 'bakery' | 'shop',
@@ -92,7 +89,6 @@ export function BusinessesManager() {
 
   const { data: businesses, isLoading } = useAdminBusinesses();
   const createBusiness = useCreateBusiness();
-  const updateBusiness = useUpdateBusiness();
   const toggleStatus = useToggleBusinessStatus();
   const deleteBusiness = useDeleteBusiness();
   const toggleFeatured = useToggleBusinessFeatured();
@@ -122,6 +118,12 @@ export function BusinessesManager() {
         });
       },
     });
+  };
+
+  const formatPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length <= 4) return digits;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 11)}`;
   };
 
   // Stats
@@ -267,7 +269,7 @@ export function BusinessesManager() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* Admin-controlled system - no business owner login */}
+              {/* Owner phone/email removed - Admin controls all businesses */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Input
@@ -304,8 +306,8 @@ export function BusinessesManager() {
                   value={newBusiness.image}
                   onChange={(url) => setNewBusiness({ ...newBusiness, image: url })}
                   bucket="business-images"
-                  folder="logos"
-                  label="Upload Business Logo"
+                  folder="businesses"
+                  label="Upload Business Image"
                   maxSizeMB={5}
                 />
               </div>
@@ -404,6 +406,8 @@ export function BusinessesManager() {
                       </Badge>
                     </div>
 
+                    {/* Owner phone removed - Admin controls all businesses */}
+
                     <div className="flex items-center gap-4 mt-3">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-amber-500" />
@@ -457,20 +461,6 @@ export function BusinessesManager() {
                             <ToggleLeft className="w-4 h-4" />
                           )}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setEditingBusiness({
-                              ...business,
-                              commission_rate: business.commission_rate || 15
-                            });
-                            setEditDialogOpen(true);
-                          }}
-                          className="text-primary"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="ghost" className="text-destructive">
@@ -512,117 +502,6 @@ export function BusinessesManager() {
           <p className="text-muted-foreground">Add your first business to get started</p>
         </div>
       )}
-
-      {/* Edit Business Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Business</DialogTitle>
-          </DialogHeader>
-          {editingBusiness && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-name">Business Name</Label>
-                <Input
-                  id="edit-name"
-                  value={editingBusiness.name}
-                  onChange={(e) => setEditingBusiness({ ...editingBusiness, name: e.target.value })}
-                  placeholder="Business name"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-type">Business Type</Label>
-                <Select
-                  value={editingBusiness.type}
-                  onValueChange={(value) => setEditingBusiness({ ...editingBusiness, type: value })}
-                >
-                  <SelectTrigger id="edit-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="restaurant">Restaurant</SelectItem>
-                    <SelectItem value="grocery">Grocery</SelectItem>
-                    <SelectItem value="bakery">Bakery</SelectItem>
-                    <SelectItem value="shop">Shop</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={editingBusiness.description || ''}
-                  onChange={(e) => setEditingBusiness({ ...editingBusiness, description: e.target.value })}
-                  placeholder="Brief description"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-category">Category</Label>
-                <Input
-                  id="edit-category"
-                  value={editingBusiness.category || ''}
-                  onChange={(e) => setEditingBusiness({ ...editingBusiness, category: e.target.value })}
-                  placeholder="e.g., Fast Food, Italian, Organic"
-                />
-              </div>
-
-              <div>
-                <Label>Business Image</Label>
-                <ImageUpload
-                  value={editingBusiness.image}
-                  onChange={(url) => setEditingBusiness({ ...editingBusiness, image: url })}
-                  bucket="business-images"
-                  folder="logos"
-                  label="Upload Business Logo"
-                  maxSizeMB={5}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-commission">Commission Rate (%)</Label>
-                <Input
-                  id="edit-commission"
-                  type="number"
-                  value={editingBusiness.commission_rate}
-                  onChange={(e) => setEditingBusiness({ ...editingBusiness, commission_rate: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  max="100"
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => {
-                    updateBusiness.mutate({
-                      businessId: editingBusiness.id,
-                      updates: {
-                        name: editingBusiness.name,
-                        type: editingBusiness.type,
-                        description: editingBusiness.description,
-                        category: editingBusiness.category,
-                        image: editingBusiness.image,
-                        commission_rate: editingBusiness.commission_rate,
-                      },
-                    });
-                    setEditDialogOpen(false);
-                    setEditingBusiness(null);
-                  }}
-                  disabled={!editingBusiness.name || updateBusiness.isPending}
-                >
-                  {updateBusiness.isPending ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

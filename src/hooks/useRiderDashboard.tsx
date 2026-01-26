@@ -728,3 +728,37 @@ export const useRegisterAsRider = () => {
     },
   });
 };
+
+// Hook to update rider profile (including image)
+export const useUpdateRiderProfile = () => {
+  const queryClient = useQueryClient();
+  const { data: riderProfile } = useRiderProfile();
+
+  return useMutation({
+    mutationFn: async (updates: { 
+      name?: string; 
+      phone?: string; 
+      vehicle_type?: string;
+      image?: string | null;
+    }) => {
+      if (!riderProfile) throw new Error('Rider profile not found');
+
+      const { data, error } = await supabase
+        .from('riders')
+        .update(updates)
+        .eq('id', riderProfile.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating rider profile:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rider-profile'] });
+    },
+  });
+};

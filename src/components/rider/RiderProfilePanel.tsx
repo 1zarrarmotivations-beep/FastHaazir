@@ -1,18 +1,13 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { 
   User, 
   Phone, 
-  Mail,
   Car,
   CreditCard,
   Star,
-  Route,
   Settings,
   Bell,
-  Moon,
-  Sun,
   Volume2,
   VolumeX,
   Globe,
@@ -20,26 +15,28 @@ import {
   Shield,
   HelpCircle,
   LogOut,
-  Camera,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { RiderProfile } from '@/hooks/useRiderDashboard';
+import { RiderProfile, useUpdateRiderProfile } from '@/hooks/useRiderDashboard';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ImageUploadField } from '@/components/common/ImageUploadField';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface RiderProfilePanelProps {
   riderProfile: RiderProfile;
   isOpen: boolean;
   onClose: () => void;
   totalDistance: number;
-  onLogout?: () => void; // Keep for backwards compatibility but prefer internal logout
+  onLogout?: () => void;
 }
 
 const RiderProfilePanel = ({ 
@@ -51,10 +48,12 @@ const RiderProfilePanel = ({
 }: RiderProfilePanelProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const queryClient = useQueryClient();
+  const updateProfile = useUpdateRiderProfile();
+  
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!isOpen) return null;
@@ -71,6 +70,17 @@ const RiderProfilePanel = ({
       toast.error("Logout failed");
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  // Handle image change
+  const handleImageChange = async (url: string | null) => {
+    try {
+      await updateProfile.mutateAsync({ image: url });
+      toast.success('پروفائل تصویر اپڈیٹ ہو گئی!');
+    } catch (error) {
+      console.error('[RiderProfilePanel] Image update error:', error);
+      toast.error('تصویر اپڈیٹ نہیں ہو سکی');
     }
   };
 
@@ -123,15 +133,24 @@ const RiderProfilePanel = ({
         <Card className="p-5 rounded-2xl shadow-card">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <Avatar className="w-20 h-20 border-4 border-primary/20">
-                <AvatarImage src={riderProfile.image || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
-                  {riderProfile.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg">
-                <Camera className="w-4 h-4" />
-              </button>
+              {user?.id ? (
+                <ImageUploadField
+                  value={riderProfile.image}
+                  onChange={handleImageChange}
+                  userId={user.id}
+                  bucket="profile-images"
+                  folder="riders"
+                  maxSizeMB={2}
+                  variant="avatar"
+                  size="lg"
+                  placeholder="user"
+                  disabled={updateProfile.isPending}
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-10 h-10 text-primary/50" />
+                </div>
+              )}
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-foreground">{riderProfile.name}</h3>
@@ -186,7 +205,7 @@ const RiderProfilePanel = ({
         </Card>
 
         {/* Menu Sections */}
-        {menuItems.map((section, sectionIndex) => (
+        {menuItems.map((section) => (
           <div key={section.section}>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
               {section.section}

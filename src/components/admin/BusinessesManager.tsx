@@ -55,6 +55,7 @@ import {
   useToggleBusinessFeatured 
 } from "@/hooks/useAdmin";
 import { MenuItemsManager } from "./MenuItemsManager";
+import { ImageUpload } from "./ImageUpload";
 
 const businessTypeIcons = {
   restaurant: UtensilsCrossed,
@@ -300,12 +301,14 @@ export function BusinessesManager() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="image">Image URL</Label>
-                <Input
-                  id="image"
-                  placeholder="https://..."
+                <Label>Business Image</Label>
+                <ImageUpload
                   value={newBusiness.image}
-                  onChange={(e) => setNewBusiness({ ...newBusiness, image: e.target.value })}
+                  onChange={(url) => setNewBusiness({ ...newBusiness, image: url })}
+                  bucket="business-images"
+                  folder="businesses"
+                  label="Upload Business Image"
+                  maxSizeMB={5}
                 />
               </div>
               <Button 

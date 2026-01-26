@@ -21,6 +21,7 @@ import {
   useDeleteMenuItem,
   useToggleMenuItemAvailability 
 } from "@/hooks/useAdmin";
+import { ImageUpload } from "./ImageUpload";
 
 interface MenuItemsManagerProps {
   businessId: string;
@@ -54,6 +55,10 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
         setShowForm(false);
       },
     });
+  };
+
+  const handleImageChange = (url: string) => {
+    setNewItem(prev => ({ ...prev, image: url }));
   };
 
   // Group items by category
@@ -120,12 +125,14 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="item-image">Image URL</Label>
-              <Input
-                id="item-image"
-                placeholder="https://..."
+              <Label>Item Image</Label>
+              <ImageUpload
                 value={newItem.image}
-                onChange={(e) => setNewItem({ ...newItem, image: e.target.value })}
+                onChange={handleImageChange}
+                bucket="menu-images"
+                folder="items"
+                label="Upload Item Image"
+                maxSizeMB={5}
               />
             </div>
             <div className="flex items-center gap-2">
