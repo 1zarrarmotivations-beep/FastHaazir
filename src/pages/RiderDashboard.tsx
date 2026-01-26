@@ -46,10 +46,12 @@ import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 
 /* ================= BUILD MARKER ================= */
-const BUILD_VERSION = 'RIDER-v2.6.0-PROD';
-const BUILD_TIMESTAMP = '2025-01-26T04:50:00Z';
+const BUILD_VERSION = 'RIDER-v2.7.0-VERIFIED';
+const BUILD_TIMESTAMP = new Date().toISOString();
 console.log('🔥 RIDER DASHBOARD PRODUCTION FILE LOADED');
 console.log('🔥 BUILD_VERSION:', BUILD_VERSION, 'TIMESTAMP:', BUILD_TIMESTAMP);
+console.log('🔥 FILE PATH: src/pages/RiderDashboard.tsx');
+console.log('🔥 CURRENT TIME:', new Date().toLocaleString());
 /* ================================================ */
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -176,10 +178,14 @@ const RiderDashboard = () => {
   /* ================= MAIN UI ================= */
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* 🔥 PRODUCTION VISUAL MARKER 🔥 */}
-      <div className="bg-red-600 text-white text-center py-2 text-lg font-bold">
-        🔥 RIDER DASHBOARD – PRODUCTION ACTIVE 🔥
+      {/* 🔥🔥🔥 UNMISSABLE PRODUCTION MARKER 🔥🔥🔥 */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-red-600 text-white text-center py-4 text-2xl font-bold shadow-2xl animate-pulse">
+        🔥 RIDER DASHBOARD – SOURCE VERIFIED – BUILD OK 🔥
+        <div className="text-sm mt-1 font-normal">
+          {BUILD_VERSION} | Updated: {new Date().toLocaleTimeString()}
+        </div>
       </div>
+      <div className="h-24" /> {/* Spacer */}
 
       {/* BUILD CONFIRM BADGE */}
       <button
