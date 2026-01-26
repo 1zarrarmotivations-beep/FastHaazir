@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, Loader2, Save, User, Upload, X } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { useCustomerProfile, useUpsertCustomerProfile, CustomerProfile } from '@/hooks/useCustomerProfile';
+import { useCustomerProfile, useUpsertCustomerProfile } from '@/hooks/useCustomerProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { ImageUploadField } from '@/components/common/ImageUploadField';
 
 interface EditProfileSheetProps {
   open: boolean;
@@ -18,18 +20,18 @@ interface EditProfileSheetProps {
 const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { data: profile } = useCustomerProfile();
+  const { data: profile, refetch: refetchProfile } = useCustomerProfile();
   const upsertProfile = useUpsertCustomerProfile();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     profile_image: '',
   });
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
+  // Sync form data when profile loads
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -37,100 +39,50 @@ const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
         email: profile.email || '',
         profile_image: profile.profile_image || '',
       });
-      setPreviewUrl(profile.profile_image || null);
     }
   }, [profile]);
 
-  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error(t('profile.invalidFileType', 'صرف تصاویر اپ لوڈ کریں'));
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(t('profile.fileTooLarge', 'فائل کا سائز 5MB سے کم ہونا چاہیے'));
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      // Create local preview
-      const localPreview = URL.createObjectURL(file);
-      setPreviewUrl(localPreview);
-
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-images/${fileName}`;
-
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('fasthaazirmanu')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast.error(t('profile.uploadFailed', 'تصویر اپ لوڈ نہیں ہو سکی'));
-        setPreviewUrl(formData.profile_image || null);
-        return;
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('fasthaazirmanu')
-        .getPublicUrl(filePath);
-
-      const publicUrl = urlData.publicUrl;
-      
-      setFormData(prev => ({ ...prev, profile_image: publicUrl }));
-      setPreviewUrl(publicUrl);
-      toast.success(t('profile.photoUploaded', 'تصویر اپ لوڈ ہو گئی!'));
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(t('profile.uploadFailed', 'تصویر اپ لوڈ نہیں ہو سکی'));
-      setPreviewUrl(formData.profile_image || null);
-    } finally {
-      setIsUploading(false);
-    }
+  // Handle profile image change from upload component
+  const handleImageChange = (url: string | null) => {
+    setFormData(prev => ({ ...prev, profile_image: url || '' }));
   };
 
-  const handleRemoveImage = () => {
-    setPreviewUrl(null);
-    setFormData(prev => ({ ...prev, profile_image: '' }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
+  // Save all profile changes
   const handleSave = async () => {
-    try {
-      await upsertProfile.mutateAsync({
-        name: formData.name.trim() || undefined,
-        email: formData.email.trim() || undefined,
-      });
+    if (!user?.id) {
+      toast.error(t('common.notAuthenticated', 'براہ کرم لاگ ان کریں'));
+      return;
+    }
 
-      // If profile image changed, update it separately
-      if (formData.profile_image !== profile?.profile_image) {
-        await supabase
-          .from('customer_profiles')
-          .update({ profile_image: formData.profile_image || null })
-          .eq('user_id', user?.id);
+    setIsSaving(true);
+
+    try {
+      // Update profile including image
+      const { error } = await supabase
+        .from('customer_profiles')
+        .upsert({
+          user_id: user.id,
+          name: formData.name.trim() || null,
+          email: formData.email.trim() || null,
+          profile_image: formData.profile_image || null,
+        }, { onConflict: 'user_id' });
+
+      if (error) {
+        console.error('[EditProfileSheet] Save error:', error);
+        throw error;
       }
+
+      // Invalidate and refetch profile data
+      await queryClient.invalidateQueries({ queryKey: ['customer-profile'] });
+      await refetchProfile();
 
       toast.success(t('profile.profileUpdated', 'پروفائل اپڈیٹ ہو گیا!'));
       onOpenChange(false);
     } catch (error) {
-      console.error('Save error:', error);
+      console.error('[EditProfileSheet] Save error:', error);
       toast.error(t('profile.updateFailed', 'پروفائل اپڈیٹ نہیں ہو سکی'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -144,54 +96,19 @@ const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
         <div className="space-y-6 py-6">
           {/* Profile Photo */}
           <div className="flex flex-col items-center gap-4">
-            <div className="relative group">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden border-4 border-primary/20 shadow-lg">
-                {isUploading ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span className="text-xs text-muted-foreground">
-                      {t('common.loading', 'لوڈ ہو رہا ہے...')}
-                    </span>
-                  </div>
-                ) : previewUrl ? (
-                  <img 
-                    src={previewUrl} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="w-14 h-14 text-primary/50" />
-                )}
-              </div>
-
-              {/* Upload Button */}
-              <button 
-                className="absolute bottom-0 right-0 w-10 h-10 rounded-full gradient-primary flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                <Camera className="w-5 h-5 text-primary-foreground" />
-              </button>
-
-              {/* Remove Button */}
-              {previewUrl && !isUploading && (
-                <button
-                  className="absolute top-0 right-0 w-7 h-7 rounded-full bg-destructive flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-                  onClick={handleRemoveImage}
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-              )}
-
-              {/* Hidden File Input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageSelect}
+            {user?.id && (
+              <ImageUploadField
+                value={formData.profile_image}
+                onChange={handleImageChange}
+                userId={user.id}
+                bucket="profile-images"
+                folder="customers"
+                maxSizeMB={2}
+                variant="avatar"
+                size="lg"
+                placeholder="user"
               />
-            </div>
+            )}
             <p className="text-sm text-muted-foreground text-center">
               {t('profile.changePhoto', 'تصویر بدلنے کے لیے ٹیپ کریں')}
             </p>
@@ -211,7 +128,9 @@ const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">{t('profile.email', 'ای میل')} ({t('common.optional', 'اختیاری')})</Label>
+              <Label htmlFor="email">
+                {t('profile.email', 'ای میل')} ({t('common.optional', 'اختیاری')})
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -239,9 +158,9 @@ const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
           <Button 
             onClick={handleSave} 
             className="w-full h-12 rounded-xl gap-2"
-            disabled={upsertProfile.isPending || isUploading}
+            disabled={isSaving}
           >
-            {upsertProfile.isPending ? (
+            {isSaving ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
