@@ -191,6 +191,7 @@ export const useFirebaseAuth = () => {
     try {
       recaptchaRenderingRef.current = true;
       console.log(`[useFirebaseAuth] Creating invisible reCAPTCHA (${isNative ? 'Android' : 'Web'})...`);
+      console.log(`[useFirebaseAuth] Container ID: ${containerId}, DOM ready: ${!!document.getElementById(containerId)}`);
 
       const verifier = new RecaptchaVerifier(auth, containerId, {
         size: "invisible",
@@ -198,24 +199,26 @@ export const useFirebaseAuth = () => {
           console.log("[useFirebaseAuth] reCAPTCHA verified ✓");
         },
         "expired-callback": () => {
-          console.log("[useFirebaseAuth] reCAPTCHA expired - clearing for retry");
+          console.log("[useFirebaseAuth] reCAPTCHA expired - will recreate on next attempt");
           window.__fasthaazirRecaptchaVerifier = undefined;
+          window.__fasthaazirRecaptchaWidgetId = undefined;
         },
         "error-callback": (err: any) => {
           console.error("[useFirebaseAuth] reCAPTCHA error:", err);
-          // On Android, reCAPTCHA errors are common - we'll handle gracefully
+          // On Android WebView, reCAPTCHA errors are common but often recoverable
           if (isNative) {
-            console.log("[useFirebaseAuth] Android reCAPTCHA error - user can retry");
+            console.log("[useFirebaseAuth] Android reCAPTCHA error - proceeding with lenient mode");
           }
         },
       });
 
       window.__fasthaazirRecaptchaVerifier = verifier;
       
-      // Render with timeout for Android (WebView can be slow)
+      // Render with extended timeout for Android (WebView can be slow)
       const renderPromise = verifier.render();
+      const timeoutMs = isNative ? 15000 : 8000; // More time for Android
       const timeoutPromise = new Promise<number>((_, reject) => 
-        setTimeout(() => reject(new Error('reCAPTCHA render timeout')), isNative ? 10000 : 5000)
+        setTimeout(() => reject(new Error('reCAPTCHA render timeout')), timeoutMs)
       );
       
       try {
@@ -223,23 +226,30 @@ export const useFirebaseAuth = () => {
         console.log("[useFirebaseAuth] reCAPTCHA rendered ✓ widgetId:", window.__fasthaazirRecaptchaWidgetId);
         return true;
       } catch (timeoutErr) {
-        console.warn("[useFirebaseAuth] reCAPTCHA render timeout - proceeding anyway (may work on interaction)");
-        // On Android, sometimes render times out but still works
-        return isNative;
+        console.warn("[useFirebaseAuth] reCAPTCHA render timeout after", timeoutMs, "ms");
+        // On Android, timeout is common but OTP often still works
+        if (isNative) {
+          console.log("[useFirebaseAuth] Android: Proceeding despite timeout (may work on user interaction)");
+          return true;
+        }
+        return false;
       }
     } catch (error: any) {
       console.error("[useFirebaseAuth] reCAPTCHA init error:", error);
       window.__fasthaazirRecaptchaVerifier = undefined;
       window.__fasthaazirRecaptchaWidgetId = undefined;
 
-      // Don't show error to user on Android - let them try anyway
-      if (!isNative) {
-        setOtpState((prev) => ({
-          ...prev,
-          error: error?.message || "reCAPTCHA failed to initialize.",
-        }));
+      // On Android, be lenient - let user try anyway
+      if (isNative) {
+        console.log("[useFirebaseAuth] Android: Allowing OTP attempt despite reCAPTCHA error");
+        return true;
       }
-      return isNative; // Return true on Android to allow attempt anyway
+      
+      setOtpState((prev) => ({
+        ...prev,
+        error: error?.message || "reCAPTCHA failed to initialize. Please refresh.",
+      }));
+      return false;
     } finally {
       recaptchaRenderingRef.current = false;
     }

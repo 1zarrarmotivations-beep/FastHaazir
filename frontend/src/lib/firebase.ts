@@ -1,5 +1,6 @@
 // Firebase SDK - Multi-auth support (Phone OTP, Email/Password, Google)
 // Optimized for both Web and Android APK (Capacitor)
+// CRITICAL: This file MUST be identical between frontend/src and src directories
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
@@ -30,22 +31,47 @@ let configValid = false;
 let configFetchAttempts = 0;
 const MAX_CONFIG_FETCH_ATTEMPTS = 3;
 
-// Detect if running in Capacitor (native app) - more robust detection
-const isNativeApp = (() => {
+/**
+ * Detect if running in Capacitor (native app) - robust detection
+ * This function is CRITICAL for APK to work correctly
+ */
+const detectNativeApp = (): boolean => {
   try {
-    // Check multiple indicators for Capacitor native app
-    const hasCapacitor = typeof (window as any)?.Capacitor !== 'undefined';
-    const hasPlatform = (window as any)?.Capacitor?.getPlatform?.() !== 'web';
-    const isAndroid = (window as any)?.Capacitor?.getPlatform?.() === 'android';
-    const hasNativeBridge = !!(window as any)?.AndroidBridge || !!(window as any)?.webkit?.messageHandlers?.bridge;
+    if (typeof window === 'undefined') return false;
     
-    const result = hasCapacitor && (hasPlatform || isAndroid || hasNativeBridge);
-    console.log('[Firebase] Native detection:', { hasCapacitor, hasPlatform, isAndroid, hasNativeBridge, result });
+    // Primary check: Capacitor object exists
+    const cap = (window as any)?.Capacitor;
+    if (!cap) return false;
+    
+    // Check if getPlatform is available and returns a native platform
+    const platform = cap?.getPlatform?.();
+    const isNativePlatform = platform === 'android' || platform === 'ios';
+    
+    // Additional checks for native bridge
+    const hasNativeBridge = !!(window as any)?.AndroidBridge || 
+                            !!(window as any)?.webkit?.messageHandlers?.bridge;
+    
+    // Check if isNativePlatform is explicitly true
+    const isNativeExplicit = cap?.isNativePlatform?.() === true;
+    
+    const result = isNativePlatform || isNativeExplicit || hasNativeBridge;
+    
+    console.log('[Firebase] Platform detection:', {
+      platform,
+      isNativePlatform,
+      hasNativeBridge,
+      isNativeExplicit,
+      result
+    });
+    
     return result;
-  } catch {
+  } catch (e) {
+    console.log('[Firebase] Platform detection error:', e);
     return false;
   }
-})();
+};
+
+const isNativeApp = detectNativeApp();
 
 interface FirebaseConfig {
   apiKey: string;
