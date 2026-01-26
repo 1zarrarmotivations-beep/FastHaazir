@@ -33,6 +33,10 @@ export interface Order {
   pickup_lng: number | null;
   eta: string | null;
   created_at: string;
+  // OTP fields for secure delivery
+  delivery_otp?: string | null;
+  otp_verified?: boolean | null;
+  otp_verified_at?: string | null;
   businesses?: {
     name: string;
     image: string | null;
@@ -181,11 +185,13 @@ export const useActiveOrders = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      // Fetch regular orders
+      // Fetch regular orders including OTP fields
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select(`
           *,
+          delivery_otp,
+          otp_verified,
           businesses(name, image, owner_phone),
           riders(name, phone, image, rating, vehicle_type, total_trips)
         `)
@@ -198,11 +204,13 @@ export const useActiveOrders = () => {
         throw ordersError;
       }
 
-      // Fetch rider requests
+      // Fetch rider requests including OTP fields
       const { data: riderRequests, error: riderRequestsError } = await supabase
         .from('rider_requests')
         .select(`
           *,
+          delivery_otp,
+          otp_verified,
           riders(name, phone, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
@@ -241,6 +249,9 @@ export const useActiveOrders = () => {
         pickup_lng: request.pickup_lng,
         eta: '20-30 min',
         created_at: request.created_at,
+        // OTP fields for secure delivery
+        delivery_otp: request.delivery_otp,
+        otp_verified: request.otp_verified,
         businesses: null,
         riders: request.riders,
         type: 'rider_request' as const,

@@ -33,12 +33,18 @@ export interface Order {
   pickup_lng: number | null;
   eta: string | null;
   created_at: string;
+  // OTP fields for secure delivery
+  delivery_otp?: string | null;
+  otp_verified?: boolean | null;
+  otp_verified_at?: string | null;
   businesses?: {
     name: string;
     image: string | null;
+    owner_phone: string | null;
   } | null;
   riders?: {
     name: string;
+    phone: string;
     image?: string | null;
     rating?: number | null;
     vehicle_type?: string | null;
@@ -179,13 +185,15 @@ export const useActiveOrders = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      // Fetch regular orders - PRIVACY: No phone numbers
+      // Fetch regular orders including OTP fields
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select(`
           *,
-          businesses(name, image),
-          riders(name, image, rating, vehicle_type, total_trips)
+          delivery_otp,
+          otp_verified,
+          businesses(name, image, owner_phone),
+          riders(name, phone, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
         .in('status', ['placed', 'preparing', 'on_way'])
@@ -196,12 +204,14 @@ export const useActiveOrders = () => {
         throw ordersError;
       }
 
-      // Fetch rider requests - PRIVACY: No phone numbers
+      // Fetch rider requests including OTP fields
       const { data: riderRequests, error: riderRequestsError } = await supabase
         .from('rider_requests')
         .select(`
           *,
-          riders(name, image, rating, vehicle_type, total_trips)
+          delivery_otp,
+          otp_verified,
+          riders(name, phone, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
         .in('status', ['placed', 'preparing', 'on_way'])
@@ -239,6 +249,9 @@ export const useActiveOrders = () => {
         pickup_lng: request.pickup_lng,
         eta: '20-30 min',
         created_at: request.created_at,
+        // OTP fields for secure delivery
+        delivery_otp: request.delivery_otp,
+        otp_verified: request.otp_verified,
         businesses: null,
         riders: request.riders,
         type: 'rider_request' as const,
