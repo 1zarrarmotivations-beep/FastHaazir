@@ -1,10 +1,10 @@
-name: Build Android APK
+name: Build Android APK (Manual Trigger)
 
 on:
   workflow_dispatch:
 
+# Production Supabase Configuration - CORRECT VALUES (hardcoded for reliability)
 env:
-  # Production Supabase Configuration - CORRECT VALUES
   VITE_SUPABASE_URL: "https://pmqkclhqvjfmcxzuoypa.supabase.co"
   VITE_SUPABASE_PUBLISHABLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64"
   VITE_SUPABASE_PROJECT_ID: "pmqkclhqvjfmcxzuoypa"
@@ -30,9 +30,24 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Validate google-services.json
+        run: |
+          if [ ! -f frontend/android/app/google-services.json ]; then
+            echo "❌ google-services.json missing!"
+            exit 1
+          fi
+          
+          PACKAGE=$(cat frontend/android/app/google-services.json | grep -o '"package_name": *"[^"]*"' | head -1 | cut -d'"' -f4)
+          if [ "$PACKAGE" != "com.fasthaazir.app" ]; then
+            echo "❌ Package name mismatch: $PACKAGE"
+            exit 1
+          fi
+          
+          echo "✅ google-services.json validated"
+
       - name: Install frontend deps
         working-directory: frontend
-        run: npm ci --legacy-peer-deps
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Create production .env
         working-directory: frontend
@@ -41,6 +56,7 @@ jobs:
           VITE_SUPABASE_URL=${{ env.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY=${{ env.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID=${{ env.VITE_SUPABASE_PROJECT_ID }}
+          NODE_ENV=production
           EOF
           echo "✅ .env created with production Supabase values"
 
@@ -57,11 +73,6 @@ jobs:
       - name: Sync Capacitor Android
         working-directory: frontend
         run: npx cap sync android
-
-      - name: Verify google-services.json
-        working-directory: frontend/android/app
-        run: |
-          test -f google-services.json && echo "✅ google-services.json exists" || exit 1
 
       - name: Make gradlew executable
         working-directory: frontend/android

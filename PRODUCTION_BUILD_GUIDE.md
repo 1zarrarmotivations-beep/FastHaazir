@@ -2,96 +2,87 @@
 
 ## 🎯 Overview
 
-This guide explains how to build a **production-ready, signed APK** for Fast Haazir using GitHub Actions.
+This guide explains how to build a **production-ready APK** for Fast Haazir that works **identically to the web app**.
 
 ---
 
-## 📋 Prerequisites
+## ⚠️ CRITICAL: SHA Keys for Firebase Phone OTP
 
-### 1. Firebase Setup (CRITICAL for OTP)
+For Firebase Phone Authentication (OTP) to work in the APK, you **MUST** add SHA fingerprints to Firebase Console.
 
-#### Add SHA Fingerprints to Firebase Console
+### Step 1: Generate SHA Keys
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project → Project Settings → Your Apps → Android app
-3. Add **SHA-1** and **SHA-256** fingerprints
-
-**For Debug builds (testing):**
+**For Debug APK (testing):**
 ```bash
-# Get debug keystore fingerprints
+# Linux/Mac
 keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+
+# Windows
+keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android -keypass android
 ```
 
-**For Release builds (production):**
+**For Release APK (production):**
 ```bash
-# Get release keystore fingerprints
-keytool -list -v -keystore your-release-key.jks -alias your-alias
+keytool -list -v -keystore /path/to/your-release.keystore -alias your-alias
 ```
 
-#### Download google-services.json
+### Step 2: Add SHA Keys to Firebase
 
-1. Firebase Console → Project Settings → Your Apps
-2. Download `google-services.json`
-3. Place it in: `frontend/android/app/google-services.json`
-4. Commit to repository
+1. Go to [Firebase Console](https://console.firebase.google.com/project/fast-haazir-786/settings/general/android:com.fasthaazir.app)
+2. Select **Project Settings** → **General** tab
+3. Scroll to **Your apps** → **Android apps** → `com.fasthaazir.app`
+4. Click **Add fingerprint**
+5. Add both **SHA-1** and **SHA-256** for:
+   - Debug keystore (for testing)
+   - Release keystore (for production)
 
-### 2. Enable Firebase Phone Authentication
+### SHA Keys Checklist
 
-1. Firebase Console → Authentication → Sign-in method
-2. Enable **Phone** provider
-3. ✅ Enable **SafetyNet** (for Android)
-4. ✅ Add test phone numbers ONLY for development
+| Keystore | SHA-1 | SHA-256 | Status |
+|----------|-------|---------|--------|
+| Debug    | ⚠️    | ⚠️      | Add to Firebase |
+| Release  | ⚠️    | ⚠️      | Add to Firebase |
 
 ---
 
-## 🔐 GitHub Secrets Setup
+## 🚀 Building the APK
 
-Go to: **GitHub Repository → Settings → Secrets and variables → Actions**
+### Method 1: GitHub Actions (Recommended)
 
-Add these secrets:
+1. Go to **GitHub Repository** → **Actions** tab
+2. Select **"Build Android APK (Production Ready)"** workflow
+3. Click **"Run workflow"**
+4. Wait for build (~5-10 minutes)
+5. Download APK from **Artifacts** section
 
-| Secret Name | Description | How to Get |
-|-------------|-------------|------------|
-| `KEYSTORE_BASE64` | Base64-encoded release keystore | See below |
-| `KEYSTORE_PASSWORD` | Keystore password | Your password |
-| `KEY_ALIAS` | Key alias name | Usually `upload` or `release` |
-| `KEY_PASSWORD` | Key password | Your key password |
-
-### Generate Keystore (First Time Only)
+### Method 2: Local Build
 
 ```bash
-# Create a new release keystore
-keytool -genkey -v -keystore fast-haazir-release.jks \
-  -alias upload \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000
+# 1. Clone and navigate
+cd frontend
 
-# Convert to base64 for GitHub Secrets
-base64 -i fast-haazir-release.jks -o keystore-base64.txt
+# 2. Install dependencies
+npm install
+
+# 3. Create .env file
+cat > .env << EOF
+VITE_SUPABASE_URL=https://pmqkclhqvjfmcxzuoypa.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtcWtjbGhxdmpmbWN4enVveXBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0ODY2MTEsImV4cCI6MjA4MjA2MjYxMX0.EObJ4bGppAue12-eXk-CjWTCvSaqEKRpVeObJ7O7r64
+VITE_SUPABASE_PROJECT_ID=pmqkclhqvjfmcxzuoypa
+EOF
+
+# 4. Build frontend
+npm run build
+
+# 5. Sync Capacitor
+npx cap sync android
+
+# 6. Build APK
+cd android
+./gradlew assembleDebug
+
+# APK location: app/build/outputs/apk/debug/app-debug.apk
 ```
-
-Copy the contents of `keystore-base64.txt` to `KEYSTORE_BASE64` secret.
-
----
-
-## 🚀 Build the APK
-
-### Option 1: Manual Trigger (Recommended)
-
-1. Go to **GitHub → Actions → Build Signed Android APK (Production)**
-2. Click **Run workflow**
-3. Set version name/code (optional)
-4. Click **Run workflow**
-5. Wait for build to complete (~5-10 minutes)
-6. Download APK from **Artifacts**
-
-### Option 2: Create a Release
-
-1. Go to **GitHub → Releases → Create new release**
-2. Create a tag (e.g., `v1.0.0`)
-3. Publish release
-4. APK will be automatically built and attached
 
 ---
 
@@ -100,99 +91,97 @@ Copy the contents of `keystore-base64.txt` to `KEYSTORE_BASE64` secret.
 After building, verify these features work:
 
 ### Authentication
-- [ ] Phone OTP works with REAL Pakistani numbers (+92)
-- [ ] Email/Password login works
-- [ ] Google Sign-In works (if enabled)
-- [ ] No test OTP codes exist
+- [ ] Customer Phone OTP login works with **REAL numbers** (+92...)
+- [ ] Admin email/password login works
+- [ ] Rider login works
+- [ ] No test/bypass OTP logic
 
-### Core Features
-- [ ] Customer can browse restaurants
-- [ ] Customer can add items to cart
-- [ ] Customer can place orders
-- [ ] Location picker works (GPS)
-- [ ] Chat between customer & rider works
-- [ ] Voice notes in chat work
+### Data Loading
+- [ ] Restaurants load correctly
+- [ ] Menu items display
+- [ ] Orders load in history
+- [ ] Chat messages work
+- [ ] Real-time updates function
 
-### Roles
-- [ ] Admin can login and access dashboard
-- [ ] Rider can login and see deliveries
-- [ ] Customer can login and place orders
-- [ ] Business role is NOT accessible (removed)
+### Firebase Configuration
+- [ ] Same Firebase project as web (`fast-haazir-786`)
+- [ ] `google-services.json` is in `android/app/`
+- [ ] Package name is `com.fasthaazir.app`
+- [ ] SHA keys added to Firebase Console
 
-### Real-time
-- [ ] Order status updates live
-- [ ] Chat messages appear instantly
-- [ ] Admin can monitor chats silently
-
-### Security
-- [ ] No phone numbers visible in chat
-- [ ] No hardcoded admin credentials
-- [ ] RLS policies enforced
+### Supabase Configuration
+- [ ] Same Supabase URL as web
+- [ ] Same anon key as web
+- [ ] No "connection error" messages
+- [ ] RLS policies work correctly
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Configuration Details
+
+### Firebase Project
+- **Project ID:** `fast-haazir-786`
+- **Package Name:** `com.fasthaazir.app`
+- **Auth Methods:** Phone OTP, Email/Password, Google
+
+### Supabase Project
+- **Project ID:** `pmqkclhqvjfmcxzuoypa`
+- **URL:** `https://pmqkclhqvjfmcxzuoypa.supabase.co`
+
+### Android Configuration
+- **Min SDK:** 22
+- **Target SDK:** 34
+- **Scheme:** HTTPS
+
+---
+
+## 🐛 Troubleshooting
 
 ### OTP Not Working
+1. ✅ Verify SHA keys are added to Firebase Console
+2. ✅ Check `google-services.json` has correct package name
+3. ✅ Ensure Firebase Phone Auth is enabled
+4. ✅ Clear app data and reinstall
 
-1. **Check SHA fingerprints** are added to Firebase
-2. **Check google-services.json** is in `android/app/`
-3. **Check Firebase Phone Auth** is enabled
-4. Try clearing app data and reinstalling
+### "Internet / Connection Error"
+1. ✅ Check `network_security_config.xml` includes `supabase.co`
+2. ✅ Verify `AndroidManifest.xml` has INTERNET permission
+3. ✅ Ensure Supabase URL is correct
+4. ✅ Check device has internet connection
 
-### Build Fails
+### Restaurants Not Loading
+1. ✅ Verify Supabase URL is correct in build
+2. ✅ Check RLS policies in Supabase
+3. ✅ Verify user is authenticated
+4. ✅ Check console logs for errors
 
-1. Check GitHub Actions logs for specific error
-2. Ensure all secrets are set correctly
-3. Verify `google-services.json` exists
-
-### Chat Not Working
-
-1. Check Supabase RLS policies
-2. Verify user is authenticated
-3. Check network logs for errors
-
----
-
-## 📱 App Permissions
-
-The APK requires these permissions:
-
-- `INTERNET` - Network access
-- `ACCESS_FINE_LOCATION` - GPS for delivery
-- `ACCESS_COARSE_LOCATION` - Approximate location
-- `CAMERA` - Profile photos
-- `POST_NOTIFICATIONS` - Push notifications
-- `VIBRATE` - Haptic feedback
-- `ACCESS_NETWORK_STATE` - Connectivity checks
-- `WAKE_LOCK` - Background location updates
+### Slow Performance
+1. ✅ Enable ProGuard/R8 for release builds
+2. ✅ Check for large images
+3. ✅ Verify network requests are efficient
 
 ---
 
-## 🌐 Supabase Configuration
+## 📋 Files Overview
 
-The app connects to Supabase at:
-- **Project ID**: `pmqkclhqvjfmcxzuoypa`
-- **URL**: `https://pmqkclhqvjfmcxzuoypa.supabase.co`
-
-### Edge Functions Available:
-- `calculate-distance` - Road-based distance calculation
-- `get-firebase-config` - Firebase config delivery
-- `create-order-api` - Order creation
-- `assign-rider-api` - Rider assignment
-- `notify-rider` - Push notifications
-- `send-push-notification` - Broadcast notifications
+| File | Purpose |
+|------|---------|
+| `frontend/android/app/google-services.json` | Firebase Android config |
+| `frontend/android/app/src/main/AndroidManifest.xml` | Android permissions |
+| `frontend/android/app/src/main/res/xml/network_security_config.xml` | Network security |
+| `frontend/capacitor.config.ts` | Capacitor configuration |
+| `.github/workflows/Build-APK.yml` | GitHub Actions workflow |
 
 ---
 
-## 📞 Support
+## 🔐 Security Notes
 
-For issues:
-1. Check GitHub Actions logs
-2. Check Supabase Edge Function logs
-3. Check Firebase Console for auth errors
+- **Supabase anon key** is a publishable key (safe to include in code)
+- **Firebase config** is fetched from edge function (secrets are server-side)
+- **SHA keys** must match between APK signing and Firebase Console
+- **RLS policies** protect data at database level
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: January 2026
+**Version:** 1.0.0  
+**Last Updated:** January 2026
