@@ -54,6 +54,17 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // Force service worker update for production builds
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          registrations.forEach(function(registration) {
+            registration.update();
+          });
+        });
+      }
+      console.log('🔥 RIDER PROD BUILD v4.0 ACTIVE 🔥');
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
