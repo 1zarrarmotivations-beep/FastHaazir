@@ -110,11 +110,15 @@
   },
   "home": {
     "greeting": "السلام علیکم",
-    "whatWouldYouLike": "آج آپ کیا پسند کریں گے؟",
+    "greeting_morning": "صبح بخیر",
+    "greeting_afternoon": "دوپہر بخیر",
+    "greeting_evening": "شام بخیر",
+    "greeting_night": "شب بخیر",
+    "whatWouldYouLike": "آج کیا منگوانا ہے؟",
     "deliverTo": "ڈیلیوری کا پتہ",
     "currentLocation": "موجودہ مقام",
-    "searchPlaceholder": "ریستوران، گروسری تلاش کریں...",
-    "featuredRestaurants": "مشہور ریستوران",
+    "searchPlaceholder": "پیزا، برگر، بریانی تلاش کریں...",
+    "featuredRestaurants": "بہترین ریستوران",
     "popularNearYou": "آپ کے قریب مقبول",
     "categories": "اقسام",
     "restaurants": "ریستوران",
@@ -122,11 +126,11 @@
     "bakery": "بیکری",
     "pharmacy": "فارمیسی",
     "riderService": "رائیڈر سروس",
-    "orderNow": "آرڈر کریں",
-    "orderFood": "کھانا آرڈر کریں",
+    "orderNow": "ابھی آرڈر کریں",
+    "orderFood": "کھانا منگوائیں",
     "orderGrocery": "گروسری منگوائیں",
     "assignRider": "رائیڈر بلائیں",
-    "restaurantsDining": "ریستوران اور کھانا",
+    "restaurantsDining": "کھانا اور ڈائننگ",
     "dailyEssentials": "روزمرہ ضروریات",
     "onDemandDelivery": "فوری ڈیلیوری",
     "available": "دستیاب",
@@ -144,7 +148,30 @@
     "topRated": "بہترین درجہ بندی",
     "newArrivals": "نئی آمد",
     "allCategories": "تمام اقسام",
-    "exploreMore": "مزید دریافت کریں"
+    "exploreMore": "مزید دریافت کریں",
+    "recentOrders": "حالیہ آرڈرز"
+  },
+  "categories": {
+    "pizza": "پیزا",
+    "biryani": "بریانی",
+    "burger": "برگر",
+    "chinese": "چائنیز",
+    "karahi": "کڑاہی",
+    "bbq": "بی بی کیو",
+    "chai": "چائے",
+    "sweets": "مٹھائی"
+  },
+  "search": {
+    "trending": "مقبول تلاش",
+    "restaurants": "ریستوران",
+    "menuItems": "کھانے کی اشیاء",
+    "noResults": "کچھ نہیں ملا",
+    "tryDifferent": "کوئی اور لفظ آزمائیں"
+  },
+  "promo": {
+    "special": "خصوصی پیشکش",
+    "freeDelivery": "پہلے آرڈر پر مفت ڈیلیوری!",
+    "orderNow": "ابھی آرڈر کریں اور بچت کریں"
   },
   "restaurants": {
     "title": "ریستوران",
