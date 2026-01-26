@@ -3,10 +3,6 @@ name: Build Debug APK
 on:
   workflow_dispatch:
 
-env:
-  JAVA_VERSION: '17'
-  NODE_VERSION: '20'
-
 jobs:
   build-debug-apk:
     runs-on: ubuntu-latest
@@ -15,10 +11,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -26,17 +22,18 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
 
-      - name: Build web
+      - name: Build Web App
         working-directory: frontend
         run: npm run build
         env:
           CI: false
+          NODE_ENV: production
 
-      - name: Capacitor sync
+      - name: Sync Capacitor Android
         working-directory: frontend
         run: npx cap sync android
 
@@ -44,12 +41,13 @@ jobs:
         working-directory: frontend/android
         run: chmod +x gradlew
 
-      - name: Build Debug APK
+      - name: Build DEBUG APK
         working-directory: frontend/android
         run: ./gradlew assembleDebug
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apk
+          name: fast-haazir-debug-apk
           path: frontend/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
