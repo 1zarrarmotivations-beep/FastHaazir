@@ -190,6 +190,128 @@
     -webkit-backdrop-filter: blur(10px);
   }
 
+  /* ========================================
+     RIDER GLASSMORPHISM DESIGN SYSTEM
+     ======================================== */
+
+  /* Rider Dark Theme Background */
+  .rider-bg {
+    background: linear-gradient(180deg, hsl(220 25% 10%) 0%, hsl(220 30% 6%) 100%);
+  }
+
+  /* Glass Card - Frosted effect */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-card-dark {
+    background: rgba(20, 25, 35, 0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Neon Glow Effects */
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), 0 0 40px rgba(0, 255, 136, 0.2);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.4), 0 0 40px rgba(255, 106, 0, 0.2);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
+  }
+
+  /* Neon Text Effects */
+  .text-glow-green {
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.6), 0 0 20px rgba(0, 255, 136, 0.4);
+  }
+
+  .text-glow-orange {
+    text-shadow: 0 0 10px rgba(255, 106, 0, 0.6), 0 0 20px rgba(255, 106, 0, 0.4);
+  }
+
+  /* Rider Gradients */
+  .gradient-rider-primary {
+    background: linear-gradient(135deg, hsl(24 100% 50%) 0%, hsl(10 100% 55%) 100%);
+  }
+
+  .gradient-rider-success {
+    background: linear-gradient(135deg, hsl(160 100% 40%) 0%, hsl(140 80% 45%) 100%);
+  }
+
+  .gradient-rider-accent {
+    background: linear-gradient(135deg, hsl(260 80% 60%) 0%, hsl(280 70% 50%) 100%);
+  }
+
+  .gradient-rider-dark {
+    background: linear-gradient(180deg, rgba(30, 35, 50, 0.95) 0%, rgba(15, 20, 30, 0.98) 100%);
+  }
+
+  /* Pulse Glow Animation for new orders */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(255, 106, 0, 0.4), 0 0 10px rgba(255, 106, 0, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(255, 106, 0, 0.6), 0 0 40px rgba(255, 106, 0, 0.4);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s infinite;
+  }
+
+  /* Shimmer animation for loading states */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Online status glow */
+  @keyframes online-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(0, 255, 136, 0);
+    }
+  }
+
+  .animate-online-pulse {
+    animation: online-pulse 2s infinite;
+  }
+
+  /* Glass Bottom Nav */
+  .glass-nav {
+    background: rgba(20, 25, 35, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Rider Safe Area Bottom */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
   /* Pulse animation for live indicators */
   @keyframes pulse-live {
     0%, 100% {
@@ -267,222 +389,195 @@
   color: hsl(var(--foreground)) !important;
 }
 
+/* ============================================
+   HYBRID RTL SUPPORT - Urdu Language
+   Layout stays LTR, only text changes for Urdu
+   ============================================ */
 
-
-/* ==================== RTL Support for Urdu ==================== */
-
-/* Urdu font */
-.font-urdu {
-  font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Nafees Nastaleeq', serif;
+/* Noori Nastaleeq font for Urdu */
+@font-face {
+  font-family: 'Noori Nastaleeq';
+  src: url('https://cdn.jsdelivr.net/npm/@aspect-community-urdu/noori-nastaleeq@1.0.0/fonts/NoorehudaRegular.woff2') format('woff2'),
+       url('https://fonts.mufeedazam.com/font-files/noori-nastaleeq.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* RTL base styles */
-html[dir="rtl"] {
+/* English language - Default LTR */
+.lang-en {
+  direction: ltr;
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+}
+
+/* Urdu language - HYBRID: Layout LTR, Text RTL */
+.lang-ur {
+  /* DO NOT set direction: rtl here - it breaks layouts */
+  direction: ltr; /* Keep layouts stable */
+}
+
+/* Urdu font utility class - apply to text elements only */
+.font-urdu,
+.lang-ur .urdu-text {
+  font-family: 'Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+  line-height: 2;
+  letter-spacing: 0;
+}
+
+/* Text-only RTL for Urdu (NOT layout) */
+.lang-ur p,
+.lang-ur span:not(.ltr-keep):not([class*="lucide"]),
+.lang-ur h1, .lang-ur h2, .lang-ur h3, .lang-ur h4, .lang-ur h5, .lang-ur h6,
+.lang-ur label,
+.lang-ur .text-content {
+  font-family: 'Noori Nastaleeq', 'Noto Nastaliq Urdu', serif;
   direction: rtl;
   text-align: right;
+  unicode-bidi: plaintext;
+  line-height: 2;
+  word-break: break-word;
 }
 
-html[dir="rtl"] body {
+/* PRESERVE LTR for layouts, icons, and structural elements */
+.lang-ur .ltr-keep,
+.lang-ur [class*="flex"],
+.lang-ur [class*="grid"],
+.lang-ur [class*="gap-"],
+.lang-ur button,
+.lang-ur .btn,
+.lang-ur nav,
+.lang-ur header,
+.lang-ur footer,
+.lang-ur aside,
+.lang-ur [role="navigation"],
+.lang-ur [role="button"] {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+/* Icons must ALWAYS stay LTR */
+.lang-ur svg,
+.lang-ur [class*="lucide"],
+.lang-ur .icon,
+.lang-ur img {
+  direction: ltr !important;
+  transform: none !important; /* Prevent icon flipping */
+}
+
+/* Cards, containers stay LTR */
+.lang-ur [class*="card"],
+.lang-ur [class*="Card"],
+.lang-ur .rounded,
+.lang-ur [class*="rounded-"] {
+  direction: ltr;
+}
+
+/* But text INSIDE cards can be RTL */
+.lang-ur [class*="card"] p,
+.lang-ur [class*="card"] span:not(.ltr-keep),
+.lang-ur [class*="Card"] p,
+.lang-ur [class*="Card"] span:not(.ltr-keep) {
   direction: rtl;
+  text-align: right;
+  unicode-bidi: plaintext;
+  font-family: 'Noori Nastaleeq', serif;
 }
 
-/* RTL flex direction adjustments */
-html.rtl .flex-row {
-  flex-direction: row-reverse;
+/* Buttons - Layout LTR, but text can be Urdu styled */
+.lang-ur button,
+.lang-ur [role="button"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  direction: ltr !important;
 }
 
-html.rtl .flex:not(.flex-col):not(.flex-col-reverse) {
-  /* Most flex containers should reverse in RTL */
+.lang-ur button span,
+.lang-ur [role="button"] span {
+  font-family: 'Noori Nastaleeq', serif;
 }
 
-/* Keep certain elements LTR (like icons, numbers) */
-html.rtl .ltr-keep {
+/* Input fields stay LTR for typing */
+.lang-ur input,
+.lang-ur textarea,
+.lang-ur select {
   direction: ltr;
   text-align: left;
 }
 
-/* RTL spacing fixes */
-html.rtl .space-x-2 > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
+/* Numbers always LTR */
+.lang-ur .number,
+.lang-ur [class*="price"],
+.lang-ur [class*="amount"],
+.lang-ur time,
+.lang-ur [class*="stat"] {
+  direction: ltr !important;
+  font-family: 'Poppins', sans-serif !important;
 }
 
-html.rtl .space-x-3 > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
-}
-
-html.rtl .space-x-4 > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-x-reverse: 1;
-}
-
-/* RTL margin fixes */
-html.rtl .ml-auto {
-  margin-left: 0;
-  margin-right: auto;
-}
-
-html.rtl .mr-auto {
-  margin-right: 0;
-  margin-left: auto;
-}
-
-html.rtl .ml-2 {
-  margin-left: 0;
-  margin-right: 0.5rem;
-}
-
-html.rtl .mr-2 {
-  margin-right: 0;
-  margin-left: 0.5rem;
-}
-
-html.rtl .ml-4 {
-  margin-left: 0;
-  margin-right: 1rem;
-}
-
-html.rtl .mr-4 {
-  margin-right: 0;
-  margin-left: 1rem;
-}
-
-/* RTL padding fixes */
-html.rtl .pl-2 {
-  padding-left: 0;
-  padding-right: 0.5rem;
-}
-
-html.rtl .pr-2 {
-  padding-right: 0;
-  padding-left: 0.5rem;
-}
-
-html.rtl .pl-4 {
-  padding-left: 0;
-  padding-right: 1rem;
-}
-
-html.rtl .pr-4 {
-  padding-right: 0;
-  padding-left: 1rem;
-}
-
-/* RTL text alignment */
-html.rtl .text-left {
-  text-align: right;
-}
-
-html.rtl .text-right {
-  text-align: left;
-}
-
-/* RTL border radius */
-html.rtl .rounded-l-lg {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-top-right-radius: 0.5rem;
-  border-bottom-right-radius: 0.5rem;
-}
-
-html.rtl .rounded-r-lg {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-top-left-radius: 0.5rem;
-  border-bottom-left-radius: 0.5rem;
-}
-
-/* RTL icon positioning - keep icons LTR */
-html.rtl .lucide,
-html.rtl [class*="lucide-"] {
-  direction: ltr;
-}
-
-/* RTL input fields */
-html.rtl input,
-html.rtl textarea {
-  text-align: right;
-}
-
-html.rtl input[type="tel"],
-html.rtl input[type="number"],
-html.rtl input[type="email"] {
+/* Tables stay LTR */
+.lang-ur table,
+.lang-ur thead,
+.lang-ur tbody,
+.lang-ur tr,
+.lang-ur th,
+.lang-ur td {
   direction: ltr;
   text-align: left;
 }
 
-/* RTL for chat bubbles */
-html.rtl .chat-bubble-sent {
-  border-radius: 18px 18px 18px 4px;
+/* Maps always LTR */
+.lang-ur .leaflet-container,
+.lang-ur [class*="map"] {
+  direction: ltr !important;
 }
 
-html.rtl .chat-bubble-received {
-  border-radius: 18px 18px 4px 18px;
+/* Sidebar navigation stays LTR */
+.lang-ur [class*="sidebar"],
+.lang-ur [class*="Sidebar"],
+.lang-ur nav[class*="side"] {
+  direction: ltr !important;
 }
 
-/* RTL dropdown positioning */
-html.rtl [data-side="left"] {
-  --radix-popper-available-width: var(--radix-popper-available-width);
-  --radix-popper-available-height: var(--radix-popper-available-height);
+/* Bottom navigation stays LTR */
+.lang-ur .bottom-nav,
+.lang-ur [class*="BottomNav"],
+.lang-ur nav[class*="bottom"] {
+  direction: ltr !important;
 }
 
-/* RTL sidebar */
-html.rtl .sidebar-left {
-  left: auto;
-  right: 0;
+/* Chat messages - special handling */
+.lang-ur .chat-message,
+.lang-ur [class*="message"] {
+  direction: ltr; /* Bubble layout LTR */
 }
 
-/* RTL scrollbar (optional, for consistent appearance) */
-html.rtl ::-webkit-scrollbar-track {
-  direction: ltr;
-}
-
-/* RTL transitions */
-html.rtl .translate-x-full {
-  --tw-translate-x: -100%;
-}
-
-html.rtl .-translate-x-full {
-  --tw-translate-x: 100%;
-}
-
-/* RTL grid gap adjustments handled by Tailwind */
-
-/* RTL order card styling */
-html.rtl .order-card .status-badge {
+.lang-ur .chat-message p,
+.lang-ur [class*="message"] p {
+  direction: rtl; /* But text content RTL */
   text-align: right;
+  font-family: 'Noori Nastaleeq', serif;
 }
 
-/* Prevent double-mirroring of emojis */
-html.rtl .emoji {
-  direction: ltr;
-  display: inline-block;
+/* Dropdowns need background and z-index */
+.lang-ur [role="menu"],
+.lang-ur [class*="dropdown"],
+.lang-ur [class*="Dropdown"] {
+  direction: ltr !important;
+  background: hsl(var(--popover));
+  z-index: 50;
 }
 
-/* Fix navigation in RTL */
-html.rtl nav .nav-item {
-  direction: rtl;
+/* Admin panel stays completely LTR */
+.lang-ur [class*="admin"],
+.lang-ur [class*="Admin"],
+.lang-ur .admin-panel {
+  direction: ltr !important;
 }
 
-/* RTL message bubbles */
-html.rtl .message-sent {
-  margin-left: 0;
-  margin-right: auto;
-}
-
-html.rtl .message-received {
-  margin-right: 0;
-  margin-left: auto;
-}
-
-/* Numbers should stay LTR */
-html.rtl .num,
-html.rtl .price,
-html.rtl .phone-number,
-html.rtl [data-numeric="true"] {
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-
-/* Maps stay LTR */
-html.rtl .leaflet-container {
-  direction: ltr;
+/* Emoji and special characters stay LTR */
+.lang-ur .emoji,
+.lang-ur [class*="emoji"] {
+  direction: ltr !important;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif !important;
 }

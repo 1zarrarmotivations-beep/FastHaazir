@@ -190,6 +190,128 @@
     -webkit-backdrop-filter: blur(10px);
   }
 
+  /* ========================================
+     RIDER GLASSMORPHISM DESIGN SYSTEM
+     ======================================== */
+
+  /* Rider Dark Theme Background */
+  .rider-bg {
+    background: linear-gradient(180deg, hsl(220 25% 10%) 0%, hsl(220 30% 6%) 100%);
+  }
+
+  /* Glass Card - Frosted effect */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-card-dark {
+    background: rgba(20, 25, 35, 0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Neon Glow Effects */
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), 0 0 40px rgba(0, 255, 136, 0.2);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 20px rgba(255, 106, 0, 0.4), 0 0 40px rgba(255, 106, 0, 0.2);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2);
+  }
+
+  /* Neon Text Effects */
+  .text-glow-green {
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.6), 0 0 20px rgba(0, 255, 136, 0.4);
+  }
+
+  .text-glow-orange {
+    text-shadow: 0 0 10px rgba(255, 106, 0, 0.6), 0 0 20px rgba(255, 106, 0, 0.4);
+  }
+
+  /* Rider Gradients */
+  .gradient-rider-primary {
+    background: linear-gradient(135deg, hsl(24 100% 50%) 0%, hsl(10 100% 55%) 100%);
+  }
+
+  .gradient-rider-success {
+    background: linear-gradient(135deg, hsl(160 100% 40%) 0%, hsl(140 80% 45%) 100%);
+  }
+
+  .gradient-rider-accent {
+    background: linear-gradient(135deg, hsl(260 80% 60%) 0%, hsl(280 70% 50%) 100%);
+  }
+
+  .gradient-rider-dark {
+    background: linear-gradient(180deg, rgba(30, 35, 50, 0.95) 0%, rgba(15, 20, 30, 0.98) 100%);
+  }
+
+  /* Pulse Glow Animation for new orders */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(255, 106, 0, 0.4), 0 0 10px rgba(255, 106, 0, 0.2);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(255, 106, 0, 0.6), 0 0 40px rgba(255, 106, 0, 0.4);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s infinite;
+  }
+
+  /* Shimmer animation for loading states */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Online status glow */
+  @keyframes online-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(0, 255, 136, 0);
+    }
+  }
+
+  .animate-online-pulse {
+    animation: online-pulse 2s infinite;
+  }
+
+  /* Glass Bottom Nav */
+  .glass-nav {
+    background: rgba(20, 25, 35, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Rider Safe Area Bottom */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
   /* Pulse animation for live indicators */
   @keyframes pulse-live {
     0%, 100% {
