@@ -46,15 +46,17 @@ import RiderHeatmap from '@/components/rider/RiderHeatmap';
 import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 
-/* ================= BUILD MARKER ================= */
-const BUILD_VERSION = 'PREMIUM-v4.0';
-const BUILD_TIMESTAMP = new Date().toISOString();
+/* ================= PRODUCTION BUILD MARKER ================= */
+const BUILD_VERSION = 'PROD-v5.0';
+const BUILD_HASH = 'b5f3a7c2e9d1' + Date.now().toString(36);
+const BUILD_TIMESTAMP = '2026-01-26T14:00:00Z';
 const BUILD_VERIFIED = true;
-console.log('🟢 RIDER UI – PREMIUM BUILD VERIFIED');
-console.log('🟢 BUILD_VERSION:', BUILD_VERSION, 'TIMESTAMP:', BUILD_TIMESTAMP);
-console.log('🟢 FILE PATH: src/pages/RiderDashboard.tsx');
-console.log('🟢 PREMIUM DARK MODE ACTIVE');
-/* ================================================ */
+console.log('🔥 RIDER PROD BUILD v4.0 ACTIVE 🔥');
+console.log('🔥 PRODUCTION BUILD MARKER:', BUILD_VERSION, BUILD_HASH);
+console.log('🔥 TIMESTAMP:', BUILD_TIMESTAMP);
+console.log('🔥 SOURCE: src/pages/RiderDashboard.tsx');
+console.log('🔥 PREMIUM DARK MODE ACTIVE - PRODUCTION');
+/* ============================================================ */
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -247,8 +249,8 @@ const RiderDashboard = () => {
           }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          <span className="text-emerald-400 text-xs">🟢</span>
-          <span className="text-emerald-400 text-xs font-bold tracking-wide">RIDER UI – PREMIUM BUILD VERIFIED</span>
+          <span className="text-emerald-400 text-xs">🔥</span>
+          <span className="text-emerald-400 text-xs font-bold tracking-wide">RIDER PREMIUM BUILD – PRODUCTION</span>
         </motion.div>
 
         {/* Version Badge */}
