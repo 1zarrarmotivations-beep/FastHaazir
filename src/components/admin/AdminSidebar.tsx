@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -41,12 +42,23 @@ const menuItems = [
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/");
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    
+    try {
+      await signOut(navigate);
+      toast.success("لاگ آؤٹ ہو گیا");
+    } catch (error) {
+      console.error("[AdminSidebar] Logout error:", error);
+      toast.error("Logout failed");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -117,10 +129,11 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
           <Button
             variant="ghost"
             onClick={handleLogout}
+            disabled={isLoggingOut}
             className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
           >
             <LogOut className="w-5 h-5" />
-            <span>Logout</span>
+            <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
           </Button>
         </div>
       </aside>

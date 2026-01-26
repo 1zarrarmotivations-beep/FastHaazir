@@ -1,40 +1,72 @@
 import { useEffect, useState, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 /**
- * Clear all auth-related storage
+ * Clear ALL storage completely - no ghost sessions
  */
-const clearAuthStorage = () => {
-  // Clear localStorage items related to auth
-  const keysToRemove = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && (
-      key.includes('supabase') || 
-      key.includes('firebase') || 
-      key.includes('auth') ||
-      key.includes('sb-')
-    )) {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach(key => localStorage.removeItem(key));
+const clearAllStorage = () => {
+  console.log("[useAuth] Clearing all storage...");
   
-  // Clear sessionStorage
+  // Clear entire localStorage
+  localStorage.clear();
+  
+  // Clear entire sessionStorage
   sessionStorage.clear();
+  
+  // Clear IndexedDB entries for Firebase/Supabase (async, fire-and-forget)
+  try {
+    if (typeof indexedDB !== 'undefined') {
+      indexedDB.databases?.()?.then(dbs => {
+        dbs?.forEach(db => {
+          if (db.name && (
+            db.name.includes('firebase') || 
+            db.name.includes('supabase') ||
+            db.name.includes('auth')
+          )) {
+            indexedDB.deleteDatabase(db.name);
+          }
+        });
+      });
+    }
+  } catch (e) {
+    // IndexedDB not available or error, continue
+  }
+  
+  console.log("[useAuth] All storage cleared");
+};
+
+/**
+ * Clear all React Query cache
+ */
+const clearQueryCache = (queryClient: ReturnType<typeof useQueryClient>) => {
+  console.log("[useAuth] Clearing React Query cache...");
+  queryClient.clear();
+  console.log("[useAuth] React Query cache cleared");
 };
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("[useAuth] Auth state changed:", event);
+        
+        // On SIGNED_OUT event, ensure state is cleared
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -51,8 +83,8 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = useCallback(async () => {
-    console.log("[useAuth] Signing out...");
+  const signOut = useCallback(async (navigate?: ReturnType<typeof useNavigate>) => {
+    console.log("[useAuth] Starting global sign out...");
     
     // Try to set rider offline before signing out
     if (user) {
@@ -67,18 +99,34 @@ export const useAuth = () => {
       }
     }
     
-    // Sign out from Supabase first
-    await supabase.auth.signOut();
+    // Sign out from Supabase with GLOBAL scope - terminates all sessions
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+      console.log("[useAuth] Supabase global sign out complete");
+    } catch (error) {
+      console.error("[useAuth] Supabase sign out error:", error);
+      // Continue with cleanup even if sign out fails
+    }
     
-    // Clear all auth storage
-    clearAuthStorage();
+    // Clear React Query cache
+    clearQueryCache(queryClient);
     
-    // Reset state
+    // Clear all storage
+    clearAllStorage();
+    
+    // Reset state immediately
     setUser(null);
     setSession(null);
     
-    console.log("[useAuth] Signed out and cleared storage");
-  }, [user]);
+    console.log("[useAuth] Sign out complete - all state cleared");
+    
+    // Navigate to auth if navigate function provided
+    if (navigate) {
+      navigate('/auth', { replace: true });
+    }
+    
+    return true;
+  }, [user, queryClient]);
 
   return { user, session, loading, signOut };
 };

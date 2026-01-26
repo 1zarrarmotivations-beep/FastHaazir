@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { useTranslation } from "react-i18next";
 import { 
   Phone, Mail, ArrowLeft, Shield, Loader2, AlertCircle, 
   RefreshCw, LogOut, User, CheckCircle, Home, Eye, EyeOff 
@@ -15,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalizePhoneNumber, normalizePhoneDigits, isValidPakistaniMobile } from "@/lib/phoneUtils";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import LanguageToggle from "@/components/LanguageToggle";
 import fastHaazirLogo from "@/assets/fast-haazir-logo.png";
 
 type AuthMethod = "select" | "phone" | "email" | "otp";
@@ -27,10 +25,10 @@ const clearRoleCache = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.removeQueries({ queryKey: ["user-role"] });
   queryClient.removeQueries({ queryKey: ["is-admin"] });
   queryClient.removeQueries({ queryKey: ["customer-profile"] });
+  queryClient.removeQueries({ queryKey: ["my-business"] });
   queryClient.removeQueries({ queryKey: ["rider-profile"] });
   queryClient.removeQueries({ queryKey: ["orders"] });
   queryClient.removeQueries({ queryKey: ["customer-addresses"] });
-  // Removed: my-business query (business role removed)
 };
 
 /**
@@ -267,7 +265,7 @@ const checkRoleByEmail = async (
 };
 
 /**
- * Redirect based on role (admin | rider | customer only)
+ * Redirect based on role
  */
 const redirectByRole = (
   role: string,
@@ -281,8 +279,8 @@ const redirectByRole = (
     switch (role) {
       case "admin": return "/admin";
       case "rider": return "/rider";
-      // Removed: business role (now admin-controlled)
-      default: return "/"; // customer
+      case "business": return "/business";
+      default: return "/";
     }
   })();
   
@@ -290,7 +288,7 @@ const redirectByRole = (
     switch (role) {
       case "admin": return "Welcome Admin!";
       case "rider": return "Welcome Rider!";
-      // Removed: business welcome message
+      case "business": return "Welcome Business Owner!";
       default: return "Welcome to Fast Haazir!";
     }
   })();
@@ -304,7 +302,6 @@ const redirectByRole = (
 // ==================== MAIN COMPONENT ====================
 
 const Auth = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -351,11 +348,20 @@ const Auth = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      clearRoleCache(queryClient);
+      // Clear React Query cache first
+      queryClient.clear();
+      
+      // Sign out from Firebase
       await firebaseSignOut();
-      await supabase.auth.signOut();
-      clearAuthStorage();
-      toast.success("Logged out successfully");
+      
+      // Sign out from Supabase with global scope
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Clear all storage completely
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      toast.success("لاگ آؤٹ ہو گیا");
       setStep("select");
       setPhone("");
       setOtp("");
@@ -363,7 +369,7 @@ const Auth = () => {
       setPassword("");
     } catch (error) {
       console.error("[Auth] Logout error:", error);
-      toast.error("Failed to logout");
+      toast.error("لاگ آؤٹ میں خرابی");
     } finally {
       setIsLoggingOut(false);
     }
@@ -394,10 +400,11 @@ const Auth = () => {
         
         const timeoutId = setTimeout(async () => {
           console.error("[Auth] Sync timeout - cleaning up");
-          toast.error("Account setup timed out. Please try again.");
+          toast.error("سیشن ختم ہو گیا۔ دوبارہ لاگ ان کریں۔");
           await firebaseSignOut();
-          await supabase.auth.signOut();
-          clearAuthStorage();
+          await supabase.auth.signOut({ scope: 'global' });
+          localStorage.clear();
+          sessionStorage.clear();
           setIsSyncing(false);
         }, 15000);
         
@@ -523,7 +530,7 @@ const Auth = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        {isSyncing && <p className="text-sm text-muted-foreground">{t('auth.settingUpAccount')}</p>}
+        {isSyncing && <p className="text-sm text-muted-foreground">Setting up your account...</p>}
       </div>
     );
   }
@@ -533,9 +540,9 @@ const Auth = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
         <AlertCircle className="h-16 w-16 text-destructive mb-4" />
-        <h2 className="text-xl font-semibold mb-2">{t('errors.configError')}</h2>
+        <h2 className="text-xl font-semibold mb-2">Configuration Error</h2>
         <p className="text-muted-foreground text-center">
-          {t('errors.firebaseNotConfigured')}
+          Firebase is not properly configured. Please contact support.
         </p>
       </div>
     );
@@ -553,8 +560,8 @@ const Auth = () => {
             <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white">{t('auth.welcomeBack')}</h1>
-            <p className="text-white/80 text-sm mt-1">{t('auth.youAreLoggedIn')}</p>
+            <h1 className="text-2xl font-bold text-white">Welcome Back!</h1>
+            <p className="text-white/80 text-sm mt-1">You're logged in</p>
           </motion.div>
         </div>
 
@@ -562,12 +569,12 @@ const Auth = () => {
           <div className="bg-card rounded-t-3xl min-h-full p-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               <div className="bg-muted rounded-xl p-4">
-                <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">{t('auth.loggedInAs')}</p>
+                <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide">Logged in as</p>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                     {firebaseUser.phoneNumber ? <Phone className="w-6 h-6 text-primary" /> : <Mail className="w-6 h-6 text-primary" />}
                   </div>
-                  <span className="text-lg font-semibold text-foreground ltr-keep">
+                  <span className="text-lg font-semibold text-foreground">
                     {firebaseUser.phoneNumber ? formatPhoneForDisplay(firebaseUser.phoneNumber) : firebaseUser.email}
                   </span>
                 </div>
@@ -576,11 +583,11 @@ const Auth = () => {
               <div className="space-y-3">
                 <Button onClick={() => navigate("/")} className="w-full h-14 text-base font-medium">
                   <Home className="w-5 h-5 mr-2" />
-                  {t('auth.goToHome')}
+                  Go to Home
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/profile")} className="w-full h-14 text-base font-medium">
                   <User className="w-5 h-5 mr-2" />
-                  {t('profile.profile')}
+                  View Profile
                 </Button>
                 <Button
                   variant="ghost"
@@ -589,7 +596,7 @@ const Auth = () => {
                   className="w-full h-14 text-base font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   {isLoggingOut ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <LogOut className="w-5 h-5 mr-2" />}
-                  {isLoggingOut ? t('auth.loggingOut') : t('auth.logout')}
+                  {isLoggingOut ? "Logging out..." : "Logout"}
                 </Button>
               </div>
             </motion.div>
@@ -613,19 +620,16 @@ const Auth = () => {
         </div>
         
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            {step !== "select" ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="text-white hover:bg-white/20"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            ) : <div />}
-            <LanguageToggle variant="compact" className="bg-white/20" />
-          </div>
+          {step !== "select" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBack}
+              className="text-white hover:bg-white/20 mb-4"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             {step === "select" ? (
@@ -647,16 +651,16 @@ const Auth = () => {
             )}
             
             <h1 className="text-2xl font-bold text-white">
-              {step === "select" && t('auth.welcomeToApp')}
-              {step === "phone" && t('auth.enterPhone')}
-              {step === "otp" && t('auth.verifyOTP')}
-              {step === "email" && (isSignUp ? t('auth.createAccount') : t('auth.emailLogin'))}
+              {step === "select" && "Welcome to Fast Haazir"}
+              {step === "phone" && "Enter Phone Number"}
+              {step === "otp" && "Verify OTP"}
+              {step === "email" && (isSignUp ? "Create Account" : "Email Login")}
             </h1>
             <p className="text-white/80 text-sm mt-1">
-              {step === "select" && t('auth.chooseMethod')}
-              {step === "phone" && t('auth.sendOTPMessage')}
-              {step === "otp" && `${t('auth.enterOTPCode')} ${formatPhoneForDisplay(getFullPhoneNumber())}`}
-              {step === "email" && (isSignUp ? t('auth.createAccountEmail') : t('auth.signInEmail'))}
+              {step === "select" && "Choose how you want to continue"}
+              {step === "phone" && "We'll send you a one-time code"}
+              {step === "otp" && `Enter the 6-digit code sent to ${formatPhoneForDisplay(getFullPhoneNumber())}`}
+              {step === "email" && (isSignUp ? "Create a new account with email" : "Sign in with your email")}
             </p>
           </motion.div>
         </div>
@@ -682,7 +686,7 @@ const Auth = () => {
                   className="w-full h-14 text-base font-medium"
                 >
                   <Phone className="w-5 h-5 mr-3" />
-                  {t('auth.continueWithPhone')}
+                  Continue with Phone
                 </Button>
 
                 <div className="relative my-6">
@@ -690,7 +694,7 @@ const Auth = () => {
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">{t('common.or')}</span>
+                    <span className="bg-card px-2 text-muted-foreground">or</span>
                   </div>
                 </div>
 

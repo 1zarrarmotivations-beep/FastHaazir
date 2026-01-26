@@ -348,11 +348,20 @@ const Auth = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      clearRoleCache(queryClient);
+      // Clear React Query cache first
+      queryClient.clear();
+      
+      // Sign out from Firebase
       await firebaseSignOut();
-      await supabase.auth.signOut();
-      clearAuthStorage();
-      toast.success("Logged out successfully");
+      
+      // Sign out from Supabase with global scope
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Clear all storage completely
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      toast.success("لاگ آؤٹ ہو گیا");
       setStep("select");
       setPhone("");
       setOtp("");
@@ -360,7 +369,7 @@ const Auth = () => {
       setPassword("");
     } catch (error) {
       console.error("[Auth] Logout error:", error);
-      toast.error("Failed to logout");
+      toast.error("لاگ آؤٹ میں خرابی");
     } finally {
       setIsLoggingOut(false);
     }
@@ -391,10 +400,11 @@ const Auth = () => {
         
         const timeoutId = setTimeout(async () => {
           console.error("[Auth] Sync timeout - cleaning up");
-          toast.error("Account setup timed out. Please try again.");
+          toast.error("سیشن ختم ہو گیا۔ دوبارہ لاگ ان کریں۔");
           await firebaseSignOut();
-          await supabase.auth.signOut();
-          clearAuthStorage();
+          await supabase.auth.signOut({ scope: 'global' });
+          localStorage.clear();
+          sessionStorage.clear();
           setIsSyncing(false);
         }, 15000);
         

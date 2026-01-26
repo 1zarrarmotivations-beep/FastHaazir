@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, 
   Phone, 
@@ -30,13 +31,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RiderProfile } from '@/hooks/useRiderDashboard';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface RiderProfilePanelProps {
   riderProfile: RiderProfile;
   isOpen: boolean;
   onClose: () => void;
   totalDistance: number;
-  onLogout: () => void;
+  onLogout?: () => void; // Keep for backwards compatibility but prefer internal logout
 }
 
 const RiderProfilePanel = ({ 
@@ -47,11 +50,29 @@ const RiderProfilePanel = ({
   onLogout 
 }: RiderProfilePanelProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    
+    try {
+      await signOut(navigate);
+      toast.success("لاگ آؤٹ ہو گیا");
+    } catch (error) {
+      console.error("[RiderProfilePanel] Logout error:", error);
+      toast.error("Logout failed");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   // Type assertion to access cnic which exists in DB but not typed
   const riderData = riderProfile as RiderProfile & { cnic?: string };
@@ -216,10 +237,11 @@ const RiderProfilePanel = ({
         <Button
           variant="outline"
           className="w-full h-14 text-destructive border-destructive/30 hover:bg-destructive/10"
-          onClick={onLogout}
+          onClick={handleLogout}
+          disabled={isLoggingOut}
         >
           <LogOut className="w-5 h-5 mr-2" />
-          Logout
+          {isLoggingOut ? "لاگ آؤٹ ہو رہا ہے..." : "لاگ آؤٹ"}
         </Button>
 
         {/* Spacer for bottom nav */}
