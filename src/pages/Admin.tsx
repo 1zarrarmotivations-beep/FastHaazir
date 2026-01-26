@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,11 +15,25 @@ import { SystemNotifications } from "@/components/admin/SystemNotifications";
 import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
-import AdminChatViewer from "@/components/admin/AdminChatViewer";
+import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LanguageToggle from "@/components/LanguageToggle";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Loading fallback for lazy components
+const AdminLoader = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-8 w-48" />
+    <Skeleton className="h-4 w-64" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+      <Skeleton className="h-32" />
+    </div>
+  </div>
+);
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -70,6 +84,16 @@ export default function Admin() {
               <p className="text-muted-foreground">Overview of Fast Haazir operations</p>
             </div>
             <StatsCards stats={stats} isLoading={statsLoading} />
+          </div>
+        );
+      case "chats":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Chat Monitoring</h2>
+              <p className="text-muted-foreground">View all customer ↔ rider conversations (read-only)</p>
+            </div>
+            <AdminChatsManager />
           </div>
         );
       case "users":

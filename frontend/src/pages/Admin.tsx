@@ -16,6 +16,7 @@ import { SystemNotifications } from "@/components/admin/SystemNotifications";
 import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
+import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
@@ -71,6 +72,16 @@ export default function Admin() {
               <p className="text-muted-foreground">{t('admin.overview')}</p>
             </div>
             <EnhancedStatsCards stats={stats} isLoading={statsLoading} />
+          </div>
+        );
+      case "chats":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Chat Monitoring</h2>
+              <p className="text-muted-foreground">View all customer ↔ rider conversations (read-only)</p>
+            </div>
+            <AdminChatsManager />
           </div>
         );
       case "users":

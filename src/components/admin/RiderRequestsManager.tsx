@@ -8,7 +8,9 @@ import {
   Phone,
   User,
   ChevronDown,
-  ArrowRight
+  ArrowRight,
+  MessageCircle,
+  EyeOff
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAdminRiderRequests, useUpdateRiderRequestStatus, useAdminRiders, useAssignRiderToRequest } from "@/hooks/useAdmin";
 import { format } from "date-fns";
+import AdminChatViewer from "./AdminChatViewer";
 
 const statusColors = {
   placed: "bg-blue-500/10 text-blue-600",
@@ -49,6 +52,12 @@ const statusLabels = {
 export function RiderRequestsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewingChatRequestId, setViewingChatRequestId] = useState<string | null>(null);
+  const [chatRequestInfo, setChatRequestInfo] = useState<{
+    customerLabel?: string;
+    riderName?: string;
+    businessName?: string;
+  } | null>(null);
 
   const { data: requests, isLoading } = useAdminRiderRequests();
   const { data: riders } = useAdminRiders();
@@ -263,6 +272,23 @@ export function RiderRequestsManager() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
+
+                      {/* View Chat */}
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => {
+                          setViewingChatRequestId(request.id);
+                          setChatRequestInfo({
+                            customerLabel: request.customer_phone || 'Customer',
+                            riderName: (request as any).riders?.name,
+                          });
+                        }}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        View Chat
+                        <EyeOff className="w-3 h-3 text-amber-500" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -279,6 +305,17 @@ export function RiderRequestsManager() {
           <p className="text-muted-foreground">Rider requests will appear here</p>
         </div>
       )}
+
+      {/* Admin Chat Viewer (Silent Mode) */}
+      <AdminChatViewer
+        riderRequestId={viewingChatRequestId || undefined}
+        isOpen={!!viewingChatRequestId}
+        onClose={() => {
+          setViewingChatRequestId(null);
+          setChatRequestInfo(null);
+        }}
+        orderInfo={chatRequestInfo || undefined}
+      />
     </div>
   );
 }
