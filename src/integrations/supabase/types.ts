@@ -61,6 +61,9 @@ export type Database = {
           is_active: boolean | null
           is_approved: boolean
           is_blocked: boolean | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
           name: string
           online_since: string | null
           owner_email: string | null
@@ -88,6 +91,9 @@ export type Database = {
           is_active?: boolean | null
           is_approved?: boolean
           is_blocked?: boolean | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           name: string
           online_since?: string | null
           owner_email?: string | null
@@ -115,6 +121,9 @@ export type Database = {
           is_active?: boolean | null
           is_approved?: boolean
           is_blocked?: boolean | null
+          location_address?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
           name?: string
           online_since?: string | null
           owner_email?: string | null
@@ -408,10 +417,13 @@ export type Database = {
           delivery_fee: number
           delivery_lat: number | null
           delivery_lng: number | null
+          delivery_otp: string | null
           eta: string | null
           id: string
           items: Json
           notes: string | null
+          otp_verified: boolean | null
+          otp_verified_at: string | null
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
@@ -430,10 +442,13 @@ export type Database = {
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
+          delivery_otp?: string | null
           eta?: string | null
           id?: string
           items?: Json
           notes?: string | null
+          otp_verified?: boolean | null
+          otp_verified_at?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -452,10 +467,13 @@ export type Database = {
           delivery_fee?: number
           delivery_lat?: number | null
           delivery_lng?: number | null
+          delivery_otp?: string | null
           eta?: string | null
           id?: string
           items?: Json
           notes?: string | null
+          otp_verified?: boolean | null
+          otp_verified_at?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -726,12 +744,15 @@ export type Database = {
           created_at: string
           customer_id: string | null
           customer_phone: string | null
+          delivery_otp: string | null
           dropoff_address: string
           dropoff_lat: number | null
           dropoff_lng: number | null
           id: string
           item_description: string | null
           item_image: string | null
+          otp_verified: boolean | null
+          otp_verified_at: string | null
           pickup_address: string
           pickup_lat: number | null
           pickup_lng: number | null
@@ -744,12 +765,15 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_phone?: string | null
+          delivery_otp?: string | null
           dropoff_address: string
           dropoff_lat?: number | null
           dropoff_lng?: number | null
           id?: string
           item_description?: string | null
           item_image?: string | null
+          otp_verified?: boolean | null
+          otp_verified_at?: string | null
           pickup_address: string
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -762,12 +786,15 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_phone?: string | null
+          delivery_otp?: string | null
           dropoff_address?: string
           dropoff_lat?: number | null
           dropoff_lng?: number | null
           id?: string
           item_description?: string | null
           item_image?: string | null
+          otp_verified?: boolean | null
+          otp_verified_at?: string | null
           pickup_address?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
@@ -949,6 +976,7 @@ export type Database = {
         Args: { _order_id?: string; _rider_request_id?: string }
         Returns: string
       }
+      generate_delivery_otp: { Args: never; Returns: string }
       get_all_riders_for_map: {
         Args: never
         Returns: {
@@ -1021,6 +1049,10 @@ export type Database = {
       send_system_notification: {
         Args: { _message: string; _title: string; _user_ids?: string[] }
         Returns: undefined
+      }
+      verify_delivery_otp: {
+        Args: { _order_id?: string; _otp?: string; _rider_request_id?: string }
+        Returns: boolean
       }
     }
     Enums: {

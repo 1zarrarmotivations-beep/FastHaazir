@@ -521,7 +521,7 @@ export const useToggleRiderStatus = () => {
   });
 };
 
-// Create business - normalize phone to digits only
+// Create business - normalize phone to digits only, with location
 export const useCreateBusiness = () => {
   const queryClient = useQueryClient();
   
@@ -535,6 +535,9 @@ export const useCreateBusiness = () => {
       owner_phone?: string;
       owner_email?: string;
       commission_rate?: number;
+      location_lat?: number | null;
+      location_lng?: number | null;
+      location_address?: string;
     }) => {
       // Normalize phone to digits only format for database
       const normalizedPhone = businessData.owner_phone 
@@ -544,6 +547,7 @@ export const useCreateBusiness = () => {
       console.log("[Admin] Creating business:", {
         phone: normalizedPhone,
         email: businessData.owner_email || null,
+        location: businessData.location_address || 'No location',
       });
       
       const { data, error } = await supabase
@@ -559,6 +563,9 @@ export const useCreateBusiness = () => {
           commission_rate: businessData.commission_rate || 15,
           is_active: true,
           featured: false,
+          location_lat: businessData.location_lat || null,
+          location_lng: businessData.location_lng || null,
+          location_address: businessData.location_address || null,
         }])
         .select()
         .single();
@@ -569,7 +576,7 @@ export const useCreateBusiness = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-businesses"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      toast.success("Business created successfully! Owner can login with Phone OTP or Email/Google.");
+      toast.success("Business created with pickup location!");
     },
     onError: (error: Error) => {
       toast.error("Failed to create business: " + error.message);

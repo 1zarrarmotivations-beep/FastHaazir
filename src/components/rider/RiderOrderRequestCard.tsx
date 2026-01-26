@@ -13,12 +13,14 @@ import {
   Route,
   Banknote,
   Timer,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import ChatButton from '@/components/chat/ChatButton';
 import { RiderRequest, OrderStatus } from '@/hooks/useRiderDashboard';
 import { calculateDistance } from './DeliveryMap';
+import { OTPVerificationDialog } from './OTPVerificationDialog';
 
 interface RiderOrderRequestCardProps {
   request: RiderRequest;
@@ -38,11 +40,11 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor:
   cancelled: { label: 'Cancelled', color: 'text-red-400', bgColor: 'bg-red-500/20' },
 };
 
-const getNextAction = (status: OrderStatus): { label: string; nextStatus: OrderStatus } | null => {
-  const flow: Record<string, { label: string; nextStatus: OrderStatus }> = {
+const getNextAction = (status: OrderStatus): { label: string; nextStatus: OrderStatus; requiresOTP?: boolean } | null => {
+  const flow: Record<string, { label: string; nextStatus: OrderStatus; requiresOTP?: boolean }> = {
     placed: { label: 'Picked Up', nextStatus: 'preparing' },
     preparing: { label: 'Start Delivery', nextStatus: 'on_way' },
-    on_way: { label: 'Mark Delivered', nextStatus: 'delivered' },
+    on_way: { label: 'Verify & Deliver', nextStatus: 'delivered', requiresOTP: true },
   };
   return flow[status] || null;
 };
@@ -58,6 +60,7 @@ const RiderOrderRequestCard = ({
 }: RiderOrderRequestCardProps) => {
   const [timeLeft, setTimeLeft] = useState(autoRejectTime);
   const [isExpanded, setIsExpanded] = useState(variant === 'active');
+  const [showOTPDialog, setShowOTPDialog] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const hasCoordinates = request.pickup_lat && request.pickup_lng && request.dropoff_lat && request.dropoff_lng;
@@ -273,17 +276,43 @@ const RiderOrderRequestCard = ({
                 />
                 {nextAction && onUpdateStatus && (
                   <motion.button
-                    className="flex-1 h-14 rounded-2xl gradient-rider-primary text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all"
+                    className={`flex-1 h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all ${
+                      nextAction.requiresOTP 
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25' 
+                        : 'gradient-rider-primary shadow-orange-500/25'
+                    }`}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => onUpdateStatus(request.id, nextAction.nextStatus, request.type || 'rider_request')}
+                    onClick={() => {
+                      if (nextAction.requiresOTP) {
+                        // Show OTP dialog for delivery verification
+                        setShowOTPDialog(true);
+                      } else {
+                        onUpdateStatus(request.id, nextAction.nextStatus, request.type || 'rider_request');
+                      }
+                    }}
                     disabled={isLoading}
                   >
+                    {nextAction.requiresOTP && <Shield className="w-5 h-5" />}
                     {nextAction.label}
                     <ChevronRight className="w-5 h-5" />
                   </motion.button>
                 )}
               </>
             )}
+
+            {/* OTP Verification Dialog */}
+            <OTPVerificationDialog
+              open={showOTPDialog}
+              onOpenChange={setShowOTPDialog}
+              orderId={request.type === 'order' ? request.id : undefined}
+              riderRequestId={request.type !== 'order' ? request.id : undefined}
+              onVerified={() => {
+                // OTP verified, now mark as delivered
+                if (onUpdateStatus) {
+                  onUpdateStatus(request.id, 'delivered', request.type || 'rider_request');
+                }
+              }}
+            />
 
             {variant === 'completed' && (
               <div className="flex-1 flex items-center justify-between">

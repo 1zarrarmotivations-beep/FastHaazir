@@ -8,6 +8,7 @@ import { Order, OrderStatus } from '@/hooks/useOrders';
 import ChatButton from '@/components/chat/ChatButton';
 import LiveRiderTrackingMap from '@/components/tracking/LiveRiderTrackingMap';
 import { useDeliveryNotifications } from '@/hooks/useDeliveryNotifications';
+import { DeliveryOTPDisplay } from './DeliveryOTPDisplay';
 
 interface OrderCardProps {
   order: Order;
@@ -225,6 +226,16 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
             <ChevronRight className="w-4 h-4" />
           </div>
         </div>
+
+        {/* Delivery OTP - Show when order is on the way */}
+        {order.status === 'on_way' && (order as any).delivery_otp && (
+          <div className="mb-4">
+            <DeliveryOTPDisplay 
+              otp={(order as any).delivery_otp} 
+              isVerified={(order as any).otp_verified}
+            />
+          </div>
+        )}
 
         {/* Chat Actions - No phone numbers exposed */}
         <div className="flex items-center gap-2 pt-2 border-t border-border">
