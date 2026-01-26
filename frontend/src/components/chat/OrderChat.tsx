@@ -72,7 +72,7 @@ const MiniMapPreview = memo(({
 
 MiniMapPreview.displayName = 'MiniMapPreview';
 
-// Voice Note Player Component
+// Voice Note Player Component - Fixed for Android WebView compatibility
 const VoiceNotePlayer = memo(({ 
   voiceUrl, 
   duration,
@@ -83,45 +83,195 @@ const VoiceNotePlayer = memo(({
   isOwnMessage: boolean;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const waveformHeightsRef = useRef<number[]>([]);
+
+  // Generate stable waveform heights once
+  if (waveformHeightsRef.current.length === 0) {
+    waveformHeightsRef.current = Array.from({ length: 25 }, () => Math.random() * 100);
+  }
 
   useEffect(() => {
-    const audio = new Audio(voiceUrl);
+    if (!voiceUrl) {
+      console.error('[VoicePlayer] No voice URL provided');
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    console.log('[VoicePlayer] Initializing audio with URL:', voiceUrl.substring(0, 100) + '...');
+    
+    const audio = new Audio();
     audioRef.current = audio;
+    
+    // Enable cross-origin for signed URLs
+    audio.crossOrigin = 'anonymous';
+    
+    // Preload metadata
+    audio.preload = 'metadata';
 
-    audio.addEventListener('loadedmetadata', () => {
-      setAudioDuration(audio.duration);
-    });
+    const handleLoadStart = () => {
+      console.log('[VoicePlayer] Audio load started');
+      setIsLoading(true);
+      setHasError(false);
+    };
 
-    audio.addEventListener('timeupdate', () => {
+    const handleLoadedMetadata = () => {
+      console.log('[VoicePlayer] Audio metadata loaded, duration:', audio.duration);
+      setAudioDuration(audio.duration || duration || 0);
+      setIsLoading(false);
+    };
+
+    const handleCanPlay = () => {
+      console.log('[VoicePlayer] Audio can play');
+      setIsLoading(false);
+    };
+
+    const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-    });
+    };
 
-    audio.addEventListener('ended', () => {
+    const handleEnded = () => {
+      console.log('[VoicePlayer] Audio playback ended');
       setIsPlaying(false);
       setCurrentTime(0);
-    });
+    };
+
+    const handleError = (e: Event) => {
+      const audioError = (e.target as HTMLAudioElement)?.error;
+      console.error('[VoicePlayer] Audio error:', {
+        code: audioError?.code,
+        message: audioError?.message,
+        url: voiceUrl.substring(0, 100)
+      });
+      setHasError(true);
+      setIsLoading(false);
+      setIsPlaying(false);
+    };
+
+    const handlePlay = () => {
+      console.log('[VoicePlayer] Audio play event fired');
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      console.log('[VoicePlayer] Audio pause event fired');
+      setIsPlaying(false);
+    };
+
+    // Add all event listeners
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    // Set source after listeners are attached
+    audio.src = voiceUrl;
+    
+    // Start loading
+    audio.load();
 
     return () => {
+      console.log('[VoicePlayer] Cleaning up audio element');
       audio.pause();
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
       audio.src = '';
+      audioRef.current = null;
     };
-  }, [voiceUrl]);
+  }, [voiceUrl, duration]);
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) {
+      console.error('[VoicePlayer] No audio element available');
+      return;
     }
-    setIsPlaying(!isPlaying);
+
+    if (hasError) {
+      console.log('[VoicePlayer] Retrying after error...');
+      setHasError(false);
+      setIsLoading(true);
+      audio.load();
+      return;
+    }
+
+    try {
+      if (isPlaying) {
+        console.log('[VoicePlayer] Pausing audio');
+        audio.pause();
+      } else {
+        console.log('[VoicePlayer] Attempting to play audio...');
+        
+        // Ensure audio is ready
+        if (audio.readyState < 2) {
+          console.log('[VoicePlayer] Audio not ready, waiting for canplay...');
+          setIsLoading(true);
+          
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Load timeout')), 10000);
+            const onCanPlay = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
+              resolve();
+            };
+            const onError = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', onCanPlay);
+              audio.removeEventListener('error', onError);
+              reject(new Error('Failed to load audio'));
+            };
+            audio.addEventListener('canplay', onCanPlay);
+            audio.addEventListener('error', onError);
+          });
+          
+          setIsLoading(false);
+        }
+
+        // Play with proper Promise handling for Android WebView
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          await playPromise;
+          console.log('[VoicePlayer] Audio playback started successfully');
+        }
+      }
+    } catch (error: any) {
+      console.error('[VoicePlayer] Playback error:', error.message || error);
+      
+      // Handle specific errors
+      if (error.name === 'NotAllowedError') {
+        toast.error('Tap again to play audio');
+      } else if (error.name === 'NotSupportedError') {
+        toast.error('Audio format not supported');
+        setHasError(true);
+      } else {
+        toast.error('Failed to play voice message');
+        setHasError(true);
+      }
+      
+      setIsPlaying(false);
+      setIsLoading(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
+    if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -138,19 +288,27 @@ const VoiceNotePlayer = memo(({
           isOwnMessage 
             ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' 
             : 'bg-primary/10 hover:bg-primary/20 text-primary'
-        }`}
+        } ${hasError ? 'border-2 border-red-500' : ''}`}
         onClick={togglePlay}
+        disabled={isLoading && !hasError}
       >
-        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+        {isLoading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : hasError ? (
+          <Play className="w-5 h-5 ml-0.5 text-red-500" />
+        ) : isPlaying ? (
+          <Pause className="w-5 h-5" />
+        ) : (
+          <Play className="w-5 h-5 ml-0.5" />
+        )}
       </Button>
       
       <div className="flex-1 space-y-1">
-        {/* Waveform / Progress Bar */}
+        {/* Waveform / Progress Bar - now with stable heights */}
         <div className="h-8 flex items-center gap-0.5">
-          {Array.from({ length: 25 }).map((_, i) => {
+          {waveformHeightsRef.current.map((height, i) => {
             const barProgress = (i / 25) * 100;
             const isActive = barProgress <= progress;
-            const height = Math.random() * 100;
             return (
               <div
                 key={i}
@@ -158,19 +316,25 @@ const VoiceNotePlayer = memo(({
                   isOwnMessage
                     ? isActive ? 'bg-primary-foreground' : 'bg-primary-foreground/30'
                     : isActive ? 'bg-primary' : 'bg-primary/30'
-                }`}
+                } ${hasError ? 'opacity-50' : ''}`}
                 style={{ height: `${20 + height * 0.6}%` }}
               />
             );
           })}
         </div>
         
-        {/* Duration */}
+        {/* Duration / Error state */}
         <div className={`flex justify-between text-xs ${
           isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
         }`}>
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(audioDuration)}</span>
+          {hasError ? (
+            <span className="text-red-500">Tap to retry</span>
+          ) : (
+            <>
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(audioDuration)}</span>
+            </>
+          )}
         </div>
       </div>
     </div>
