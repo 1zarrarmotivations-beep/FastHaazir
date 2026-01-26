@@ -87,10 +87,11 @@ export const useBusinesses = (type?: BusinessType) => {
   return useQuery({
     queryKey: ['businesses', type],
     queryFn: async () => {
-      console.log('[useBusinesses] Fetching businesses, requested type:', type);
+      console.log('[useBusinesses] Fetching ALL businesses (no location restriction), type:', type);
       
-      // Customer reads MUST come from the safe public table (no PII) + realtime-friendly.
-      // This avoids direct access to `businesses` (which contains owner_phone/owner_email).
+      // IMPORTANT: Removed location-based filtering
+      // Businesses are visible to ALL users regardless of location
+      // Customer reads from the safe public table (no PII) + realtime-friendly.
       let query = supabase
         .from('public_businesses')
         .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
@@ -136,10 +137,11 @@ export const useBusinesses = (type?: BusinessType) => {
         return (fallbackData || []) as Business[];
       }
 
-      console.log('[useBusinesses] Fetched businesses:', {
+      console.log('[useBusinesses] ✅ Fetched businesses:', {
         count: data?.length,
         type: type,
-        businesses: data?.map(b => ({ id: b.id, name: b.name, type: b.type, is_active: b.is_active }))
+        featured: data?.filter(b => b.featured)?.length,
+        businesses: data?.slice(0, 5)?.map(b => ({ id: b.id.slice(0,8), name: b.name, type: b.type }))
       });
       
       return (data || []) as Business[];

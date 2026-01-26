@@ -87,10 +87,11 @@ export const useBusinesses = (type?: BusinessType) => {
   return useQuery({
     queryKey: ['businesses', type],
     queryFn: async () => {
-      console.log('[useBusinesses] Fetching businesses, requested type:', type);
+      console.log('[useBusinesses] Fetching ALL businesses (no location restriction), type:', type);
       
-      // Customer reads MUST come from the safe public table (no PII) + realtime-friendly.
-      // This avoids direct access to `businesses` (which contains owner_phone/owner_email).
+      // IMPORTANT: Removed location-based filtering
+      // Businesses are visible to ALL users regardless of location
+      // Customer reads from the safe public table (no PII) + realtime-friendly.
       let query = supabase
         .from('public_businesses')
         .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
@@ -101,30 +102,53 @@ export const useBusinesses = (type?: BusinessType) => {
         .order('rating', { ascending: false, nullsFirst: false });
 
       if (type) {
-        // Case-insensitive type matching - normalize to lowercase
-        const normalizedType = type.toLowerCase();
-        console.log('[useBusinesses] Filtering by type:', normalizedType);
-        query = query.eq('type', normalizedType);
+        console.log('[useBusinesses] Filtering by type:', type);
+        query = query.eq('type', type);
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error('[useBusinesses] Error fetching businesses:', error);
-        throw error;
+        console.error('[useBusinesses] Error fetching from public_businesses:', error);
+        
+        // Fallback: try businesses table directly (for admins/owners)
+        console.log('[useBusinesses] Attempting fallback to businesses table...');
+        let fallbackQuery = supabase
+          .from('businesses')
+          .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
+          .eq('is_active', true)
+          .eq('is_approved', true)
+          .is('deleted_at', null)
+          .order('featured', { ascending: false })
+          .order('rating', { ascending: false });
+
+        if (type) {
+          fallbackQuery = fallbackQuery.eq('type', type);
+        }
+
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+        
+        if (fallbackError) {
+          console.error('[useBusinesses] Fallback also failed:', fallbackError);
+          throw fallbackError;
+        }
+        
+        console.log('[useBusinesses] Fallback businesses count:', fallbackData?.length);
+        return (fallbackData || []) as Business[];
       }
 
-      console.log('[useBusinesses] Fetched businesses:', {
+      console.log('[useBusinesses] ✅ Fetched businesses:', {
         count: data?.length,
         type: type,
-        businesses: data?.map(b => ({ id: b.id, name: b.name, type: b.type, is_active: b.is_active }))
+        featured: data?.filter(b => b.featured)?.length,
+        businesses: data?.slice(0, 5)?.map(b => ({ id: b.id.slice(0,8), name: b.name, type: b.type }))
       });
       
       return (data || []) as Business[];
     },
-    // Data stays fresh with realtime, no need for aggressive polling
-    staleTime: 30000, // 30 seconds
+    staleTime: 5000, // Shorter stale time for faster updates
     refetchOnWindowFocus: true,
+    refetchInterval: 10000, // Poll every 10 seconds as backup
   });
 };
 
@@ -198,7 +222,7 @@ export const useBusinessesDebug = (requestedType?: BusinessType) => {
 export const useBusiness = (id: string) => {
   const queryClient = useQueryClient();
 
-  // Set up realtime subscription for single business (public safe table)
+  // Set up realtime subscription for single business
   useEffect(() => {
     if (!id) return;
     
@@ -211,15 +235,32 @@ export const useBusiness = (id: string) => {
         {
           event: '*',
           schema: 'public',
+          table: 'businesses',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log('[useBusiness] businesses table changed:', payload);
+          queryClient.invalidateQueries({ queryKey: ['business', id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
           table: 'public_businesses',
           filter: `id=eq.${id}`,
         },
         (payload) => {
-          console.log('[useBusiness] Business changed:', payload);
+          console.log('[useBusiness] public_businesses table changed:', payload);
           queryClient.invalidateQueries({ queryKey: ['business', id] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('[useBusiness] ✓ Realtime subscription active for business:', id);
+        }
+      });
 
     return () => {
       console.log('[useBusiness] Cleaning up realtime subscription');
@@ -235,7 +276,7 @@ export const useBusiness = (id: string) => {
       // Customer reads MUST come from the safe public table (no PII)
       const { data, error } = await supabase
         .from('public_businesses')
-        .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active, is_approved, deleted_at')
+        .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
         .eq('id', id)
         .eq('is_active', true)
         .eq('is_approved', true)
@@ -243,15 +284,28 @@ export const useBusiness = (id: string) => {
         .maybeSingle();
 
       if (error) {
-        console.error('[useBusiness] Error fetching business:', error);
-        throw error;
+        console.error('[useBusiness] Error fetching from public_businesses:', error);
+        
+        // Fallback to businesses table
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('businesses')
+          .select('id, name, type, image, rating, eta, distance, category, description, featured, is_active')
+          .eq('id', id)
+          .maybeSingle();
+          
+        if (fallbackError) {
+          console.error('[useBusiness] Fallback also failed:', fallbackError);
+          throw fallbackError;
+        }
+        
+        return fallbackData as Business | null;
       }
 
       console.log('[useBusiness] Fetched business:', data?.name);
       return data as Business | null;
     },
     enabled: !!id,
-    staleTime: 30000,
+    staleTime: 5000,
     refetchOnWindowFocus: true,
   });
 };
