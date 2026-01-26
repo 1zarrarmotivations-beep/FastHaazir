@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { BusinessProfile } from "@/hooks/useBusinessDashboard";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import NotificationsSheet from "@/components/notifications/NotificationsSheet";
+import { toast } from "sonner";
 
 interface BusinessSidebarProps {
   activeTab: string;
@@ -40,10 +41,21 @@ export const BusinessSidebar = ({ activeTab, onTabChange, business }: BusinessSi
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/');
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    
+    try {
+      await signOut(navigate);
+      toast.success("لاگ آؤٹ ہو گیا");
+    } catch (error) {
+      console.error("[BusinessSidebar] Logout error:", error);
+      toast.error("Logout failed");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const businessTypeIcons: Record<string, string> = {
@@ -143,9 +155,10 @@ export const BusinessSidebar = ({ activeTab, onTabChange, business }: BusinessSi
               variant="ghost"
               className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={handleLogout}
+              disabled={isLoggingOut}
             >
               <LogOut className="h-5 w-5" />
-              <span>Logout</span>
+              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
             </Button>
           </div>
         </div>

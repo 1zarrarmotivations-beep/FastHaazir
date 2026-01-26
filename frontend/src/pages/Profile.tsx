@@ -107,25 +107,12 @@ const Profile: React.FC = () => {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [notificationsSheetOpen, setNotificationsSheetOpen] = useState(false);
 
-  // Clear storage helper for logout
-  const clearAuthStorage = () => {
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (
-        key.includes('supabase') || 
-        key.includes('firebase') || 
-        key.includes('auth') ||
-        key.includes('sb-')
-      )) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-    sessionStorage.clear();
-  };
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleSignOut = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    
     try {
       // Try to sign out from Firebase if available
       try {
@@ -135,12 +122,13 @@ const Profile: React.FC = () => {
       } catch (e) {
         // Firebase not available, continue with Supabase logout
       }
-      await signOut();
-      clearAuthStorage();
-      toast.success('Logged out successfully');
-      navigate('/auth', { replace: true });
+      await signOut(navigate);
+      toast.success('لاگ آؤٹ ہو گیا');
     } catch (error) {
-      toast.error('Failed to log out');
+      console.error('[Profile] Logout error:', error);
+      toast.error('لاگ آؤٹ میں خرابی');
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -159,7 +147,7 @@ const Profile: React.FC = () => {
   const addressCount = useMemo(() => isCustomer ? addresses.length : 0, [addresses, isCustomer]);
   const defaultAddress = useMemo(() => addresses.find(a => a.is_default), [addresses]);
 
-  // Role-based dashboard config
+  // Role-based dashboard config (Business role removed - Admin controls all)
   const roleConfig = {
     admin: { 
       label: 'Admin Dashboard', 
@@ -174,13 +162,6 @@ const Profile: React.FC = () => {
       icon: Bike, 
       color: 'text-blue-500', 
       bgColor: 'bg-blue-500/10' 
-    },
-    business: { 
-      label: 'Business Dashboard', 
-      path: '/business', 
-      icon: Store, 
-      color: 'text-accent', 
-      bgColor: 'bg-accent/10' 
     },
   };
 

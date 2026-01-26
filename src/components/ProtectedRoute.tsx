@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useAdmin";
@@ -19,7 +19,7 @@ const roleRedirectMap: Record<AllowedRole, string> = {
 };
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, session, loading: authLoading } = useAuth();
   const { data: userRole, isLoading: roleLoading, isFetched } = useUserRole();
   const location = useLocation();
 
@@ -34,9 +34,10 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       roleLoading,
       isFetched,
       userId: user?.id,
+      hasSession: !!session,
       userRole,
     });
-  }, [location.pathname, allowedRoles, authLoading, roleLoading, isFetched, user?.id, userRole]);
+  }, [location.pathname, allowedRoles, authLoading, roleLoading, isFetched, user?.id, session, userRole]);
 
   // Show loading spinner while checking auth/role
   if (isLoading) {
@@ -50,9 +51,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // Redirect to auth if not logged in
-  if (!user) {
-    console.log("[ProtectedRoute] No user, redirecting to /auth");
+  // CRITICAL: Check BOTH user AND session - no ghost sessions
+  if (!user || !session) {
+    console.log("[ProtectedRoute] No user or session, redirecting to /auth");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
