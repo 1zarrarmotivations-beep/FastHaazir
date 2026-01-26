@@ -297,11 +297,19 @@ const RiderDashboard = () => {
         <RiderStatusHeader
           riderProfile={riderProfile}
           isOnline={riderProfile?.is_online || false}
-          onToggleOnline={(v) => toggleOnline.mutate(v)}
+          onToggleOnline={(v) => {
+            // Safety guard: prevent going offline while active deliveries exist
+            if (!v && activeDeliveries.length > 0) {
+              toast.error('Complete your active delivery before going offline');
+              return;
+            }
+            toggleOnline.mutate(v);
+          }}
           isToggling={toggleOnline.isPending}
           todayEarnings={earningsSummary?.totalEarnings || 0}
           walletBalance={earningsSummary?.pendingEarnings || 0}
           completedToday={completedDeliveries.length}
+          activeDeliveriesCount={activeDeliveries.length}
         />
 
         <RiderQuickActions
