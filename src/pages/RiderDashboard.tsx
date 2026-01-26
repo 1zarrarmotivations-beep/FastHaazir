@@ -26,6 +26,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 import NotificationsSheet from '@/components/notifications/NotificationsSheet';
 import { useRiderLocation } from '@/hooks/useRiderLocation';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
 import {
   useRiderProfile,
   usePendingRequests,
@@ -62,6 +63,14 @@ const RiderDashboard = () => {
   const queryClient = useQueryClient();
   const previousRequestsCount = useRef<number>(0);
 
+  // Sound and vibration notifications
+  const { 
+    notifyNewOrder, 
+    notifySuccess, 
+    vibrate,
+    canVibrate 
+  } = useNotificationSound();
+
   const { data: riderProfile, isLoading: profileLoading } = useRiderProfile();
   const { data: pendingRequests = [], isLoading: pendingLoading } = usePendingRequests();
   const { data: activeDeliveries = [], isLoading: activeLoading } = useMyActiveDeliveries();
@@ -82,22 +91,11 @@ const RiderDashboard = () => {
   const toggleOnline = useToggleOnlineStatus();
   const registerRider = useRegisterAsRider();
 
-  // Speech notification function
-  const speakNotification = (message: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(message);
-      utterance.rate = 1.1;
-      utterance.pitch = 1.2;
-      utterance.volume = 1;
-      utterance.lang = 'en-US';
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  // Realtime subscription for new rider requests
+  // Realtime subscription for new rider requests with sound + vibration
   useEffect(() => {
     if (!riderProfile?.is_online) return;
+
+    console.log('[RiderDashboard] Setting up realtime subscription for new orders');
 
     const channel = supabase
       .channel('rider-requests-notifications')
@@ -110,32 +108,67 @@ const RiderDashboard = () => {
           filter: 'status=eq.placed'
         },
         (payload) => {
-          speakNotification('New Order! New delivery request available.');
+          console.log('[RiderDashboard] New order received:', payload);
+          
+          // Trigger sound + vibration + speech notification
+          notifyNewOrder('New Order! New delivery request available.');
+          
           toast.info('🔔 New Order Available!', {
             description: 'A new pickup is waiting for you nearby.',
             duration: 6000,
           });
+          
           queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: 'status=eq.placed'
+        },
+        (payload) => {
+          console.log('[RiderDashboard] New restaurant order received:', payload);
+          
+          // Trigger sound + vibration + speech notification
+          notifyNewOrder('New restaurant order available!');
+          
+          toast.info('🍔 New Restaurant Order!', {
+            description: 'A new food delivery is available.',
+            duration: 6000,
+          });
+          
+          queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('[RiderDashboard] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[RiderDashboard] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [riderProfile?.is_online, queryClient]);
+  }, [riderProfile?.is_online, queryClient, notifyNewOrder]);
 
-  // Track request count changes
+  // Track request count changes for additional notification
   useEffect(() => {
     if (pendingRequests.length > previousRequestsCount.current && previousRequestsCount.current > 0) {
-      speakNotification('New Order!');
+      console.log('[RiderDashboard] Pending requests increased, triggering notification');
+      notifyNewOrder('New Order!');
     }
     previousRequestsCount.current = pendingRequests.length;
-  }, [pendingRequests.length]);
+  }, [pendingRequests.length, notifyNewOrder]);
 
   const handleAcceptRequest = (requestId: string, requestType: 'rider_request' | 'order' = 'rider_request') => {
+    // Haptic feedback on accept
+    vibrate('medium');
+    
     acceptRequest.mutate({ requestId, requestType }, {
       onSuccess: () => {
+        notifySuccess();
         toast.success('Request accepted! Head to pickup location.');
         setActiveTab('orders');
         setOrdersSubTab('active');
@@ -145,11 +178,16 @@ const RiderDashboard = () => {
   };
 
   const handleUpdateStatus = (requestId: string, newStatus: OrderStatus, requestType: 'rider_request' | 'order' = 'rider_request') => {
+    // Haptic feedback on status update
+    vibrate('short');
+    
     updateStatus.mutate({ requestId, status: newStatus, requestType }, {
       onSuccess: () => {
         if (newStatus === 'delivered') {
+          notifySuccess();
           toast.success('Delivery completed! Great job! 🎉');
         } else {
+          vibrate('success');
           toast.success(`Status updated`);
         }
       },
