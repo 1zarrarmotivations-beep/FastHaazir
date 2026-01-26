@@ -11,11 +11,8 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Loader2 } from 'lucide-react';
-import { unlockAudio } from '@/lib/voicePlayback';
+import { installAudioUnlockListeners, isCurrentAudio, playVoice, stopCurrentAudio } from '@/lib/voicePlayback';
 import { toast } from 'sonner';
-
-// Global audio tracker - ensures only one audio plays at a time
-let globalCurrentAudio: HTMLAudioElement | null = null;
 
 interface VoiceNotePlayerProps {
   voiceUrl: string;
@@ -33,7 +30,8 @@ export const VoiceNotePlayer = memo(({
   const [hasError, setHasError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastAudioRef = useRef<HTMLAudioElement | null>(null);
+  const detachRef = useRef<(() => void) | null>(null);
   const waveformHeightsRef = useRef<number[]>([]);
 
   // Generate stable waveform heights once
@@ -41,21 +39,21 @@ export const VoiceNotePlayer = memo(({
     waveformHeightsRef.current = Array.from({ length: 25 }, () => Math.random() * 100);
   }
 
+  // Install one-time audio unlock listeners (first user gesture)
+  useEffect(() => {
+    installAudioUnlockListeners();
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        try {
-          audioRef.current.pause();
-          audioRef.current.src = '';
-          if (globalCurrentAudio === audioRef.current) {
-            globalCurrentAudio = null;
-          }
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-        audioRef.current = null;
+      detachRef.current?.();
+      detachRef.current = null;
+
+      if (isCurrentAudio(lastAudioRef.current)) {
+        stopCurrentAudio();
       }
+      lastAudioRef.current = null;
     };
   }, []);
 
@@ -71,18 +69,15 @@ export const VoiceNotePlayer = memo(({
   }, [voiceUrl, duration]);
 
   const handlePlay = async () => {
-    // CRITICAL: Unlock audio on user gesture (required for mobile)
-    unlockAudio();
-
     if (!voiceUrl) {
       setHasError(true);
       return;
     }
 
-    // If currently playing THIS audio, pause it
-    if (isPlaying && audioRef.current) {
-      audioRef.current.pause();
+    if (isPlaying) {
+      stopCurrentAudio();
       setIsPlaying(false);
+      setCurrentTime(0);
       return;
     }
 
@@ -90,123 +85,59 @@ export const VoiceNotePlayer = memo(({
       setIsLoading(true);
       setHasError(false);
 
-      // Stop any globally playing audio first
-      if (globalCurrentAudio && globalCurrentAudio !== audioRef.current) {
-        try {
-          globalCurrentAudio.pause();
-          globalCurrentAudio.currentTime = 0;
-          globalCurrentAudio.src = '';
-        } catch (e) {
-          // Ignore
-        }
-        globalCurrentAudio = null;
-      }
+      detachRef.current?.();
+      detachRef.current = null;
+      lastAudioRef.current = null;
 
-      // Cleanup previous audio instance completely
-      if (audioRef.current) {
-        try {
-          audioRef.current.pause();
-          audioRef.current.src = '';
-        } catch (e) {
-          // Ignore
-        }
-        audioRef.current = null;
-      }
+      const audio = await playVoice(voiceUrl, 12_000);
+      lastAudioRef.current = audio;
 
-      // Create FRESH Audio instance - CRITICAL: Never reuse
-      const audio = new Audio();
-      audio.crossOrigin = 'anonymous';
-      audio.preload = 'auto';
-      (audio as any).playsInline = true;
-      (audio as any).webkitPlaysInline = true;
-
-      // Store references
-      audioRef.current = audio;
-      globalCurrentAudio = audio;
-
-      // Setup event handlers
-      audio.onloadedmetadata = () => {
+      const onLoadedMetadata = () => {
         if (audio.duration && audio.duration > 0 && isFinite(audio.duration)) {
           setAudioDuration(audio.duration);
         }
       };
 
-      audio.ontimeupdate = () => {
-        if (audioRef.current === audio) {
-          setCurrentTime(audio.currentTime);
-        }
+      const onTimeUpdate = () => {
+        if (lastAudioRef.current !== audio) return;
+        setCurrentTime(audio.currentTime);
       };
 
-      audio.onended = () => {
-        console.log('[VoiceNotePlayer] Playback ended');
+      const onEnded = () => {
+        if (lastAudioRef.current !== audio) return;
         setIsPlaying(false);
         setCurrentTime(0);
-        if (globalCurrentAudio === audio) {
-          globalCurrentAudio = null;
-        }
       };
 
-      audio.onerror = (e) => {
-        console.error('[VoiceNotePlayer] Audio error:', audio.error?.message);
+      const onPause = () => {
+        if (lastAudioRef.current !== audio) return;
+        setIsPlaying(false);
+        setIsLoading(false);
+      };
+
+      const onError = () => {
+        if (lastAudioRef.current !== audio) return;
         setHasError(true);
         setIsPlaying(false);
         setIsLoading(false);
-        if (globalCurrentAudio === audio) {
-          globalCurrentAudio = null;
-        }
       };
 
-      audio.onplay = () => {
-        console.log('[VoiceNotePlayer] Playing');
-        setIsPlaying(true);
-        setIsLoading(false);
+      audio.addEventListener('loadedmetadata', onLoadedMetadata);
+      audio.addEventListener('timeupdate', onTimeUpdate);
+      audio.addEventListener('ended', onEnded);
+      audio.addEventListener('pause', onPause);
+      audio.addEventListener('error', onError);
+
+      detachRef.current = () => {
+        audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+        audio.removeEventListener('timeupdate', onTimeUpdate);
+        audio.removeEventListener('ended', onEnded);
+        audio.removeEventListener('pause', onPause);
+        audio.removeEventListener('error', onError);
       };
 
-      audio.onpause = () => {
-        // Only update if not at end (avoid double state update)
-        if (audio.currentTime < (audio.duration || Infinity) - 0.1) {
-          setIsPlaying(false);
-        }
-      };
-
-      // Set source
-      audio.src = voiceUrl;
-
-      // Wait for audio to be playable before attempting to play
-      await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          audio.removeEventListener('canplaythrough', onReady);
-          audio.removeEventListener('error', onLoadError);
-          reject(new Error('Audio load timeout'));
-        }, 15000);
-
-        const onReady = () => {
-          clearTimeout(timeout);
-          audio.removeEventListener('canplaythrough', onReady);
-          audio.removeEventListener('error', onLoadError);
-          console.log('[VoiceNotePlayer] Audio ready to play');
-          resolve();
-        };
-
-        const onLoadError = () => {
-          clearTimeout(timeout);
-          audio.removeEventListener('canplaythrough', onReady);
-          audio.removeEventListener('error', onLoadError);
-          reject(new Error('Audio load failed'));
-        };
-
-        audio.addEventListener('canplaythrough', onReady, { once: true });
-        audio.addEventListener('error', onLoadError, { once: true });
-
-        // Start loading
-        audio.load();
-      });
-
-      // Reset to beginning and play
-      audio.currentTime = 0;
-      await audio.play();
-      
-      console.log('[VoiceNotePlayer] Play started successfully');
+      setIsPlaying(true);
+      setIsLoading(false);
 
     } catch (error: any) {
       console.error('[VoiceNotePlayer] Play failed:', error?.name, error?.message);
