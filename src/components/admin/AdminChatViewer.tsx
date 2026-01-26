@@ -29,7 +29,7 @@ interface AdminChatViewerProps {
   };
 }
 
-// Voice Note Player Component (Read-only)
+// Voice Note Player Component (Read-only) - Fixed for Android WebView compatibility
 const VoiceNotePlayer = memo(({ 
   voiceUrl, 
   duration,
@@ -40,45 +40,131 @@ const VoiceNotePlayer = memo(({
   isOwnMessage: boolean;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(duration || 0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const waveformHeightsRef = useRef<number[]>([]);
+
+  // Generate stable waveform heights once
+  if (waveformHeightsRef.current.length === 0) {
+    waveformHeightsRef.current = Array.from({ length: 25 }, () => Math.random() * 100);
+  }
 
   useEffect(() => {
-    const audio = new Audio(voiceUrl);
+    if (!voiceUrl) {
+      console.error('[VoicePlayer] No voice URL provided');
+      setHasError(true);
+      setIsLoading(false);
+      return;
+    }
+
+    console.log('[VoicePlayer] Initializing audio with URL:', voiceUrl.substring(0, 100) + '...');
+    
+    const audio = new Audio();
     audioRef.current = audio;
+    
+    audio.crossOrigin = 'anonymous';
+    audio.preload = 'metadata';
 
-    audio.addEventListener('loadedmetadata', () => {
-      setAudioDuration(audio.duration);
-    });
+    const handleLoadedMetadata = () => {
+      console.log('[VoicePlayer] Audio metadata loaded, duration:', audio.duration);
+      setAudioDuration(audio.duration || duration || 0);
+      setIsLoading(false);
+    };
 
-    audio.addEventListener('timeupdate', () => {
+    const handleCanPlay = () => {
+      setIsLoading(false);
+    };
+
+    const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-    });
+    };
 
-    audio.addEventListener('ended', () => {
+    const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
-    });
+    };
+
+    const handleError = (e: Event) => {
+      const audioError = (e.target as HTMLAudioElement)?.error;
+      console.error('[VoicePlayer] Audio error:', {
+        code: audioError?.code,
+        message: audioError?.message,
+      });
+      setHasError(true);
+      setIsLoading(false);
+      setIsPlaying(false);
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    audio.src = voiceUrl;
+    audio.load();
 
     return () => {
       audio.pause();
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
       audio.src = '';
+      audioRef.current = null;
     };
-  }, [voiceUrl]);
+  }, [voiceUrl, duration]);
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+    if (hasError) {
+      setHasError(false);
+      setIsLoading(true);
+      audio.load();
+      return;
     }
-    setIsPlaying(!isPlaying);
+
+    try {
+      if (isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+      } else {
+        if (audio.readyState < 2) {
+          setIsLoading(true);
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Load timeout')), 10000);
+            const onCanPlay = () => {
+              clearTimeout(timeout);
+              audio.removeEventListener('canplay', onCanPlay);
+              resolve();
+            };
+            audio.addEventListener('canplay', onCanPlay);
+          });
+          setIsLoading(false);
+        }
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+        }
+        setIsPlaying(true);
+      }
+    } catch (error: any) {
+      console.error('[VoicePlayer] Playback error:', error.message);
+      setHasError(true);
+      setIsPlaying(false);
+      setIsLoading(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
+    if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -95,19 +181,18 @@ const VoiceNotePlayer = memo(({
           isOwnMessage 
             ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' 
             : 'bg-primary/10 hover:bg-primary/20 text-primary'
-        }`}
+        } ${hasError ? 'border-2 border-destructive' : ''}`}
         onClick={togglePlay}
+        disabled={isLoading && !hasError}
       >
         {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
       </Button>
       
       <div className="flex-1 space-y-1">
-        {/* Waveform / Progress Bar */}
         <div className="h-8 flex items-center gap-0.5">
-          {Array.from({ length: 25 }).map((_, i) => {
+          {waveformHeightsRef.current.map((height, i) => {
             const barProgress = (i / 25) * 100;
             const isActive = barProgress <= progress;
-            const height = Math.random() * 100;
             return (
               <div
                 key={i}
@@ -115,19 +200,24 @@ const VoiceNotePlayer = memo(({
                   isOwnMessage
                     ? isActive ? 'bg-primary-foreground' : 'bg-primary-foreground/30'
                     : isActive ? 'bg-primary' : 'bg-primary/30'
-                }`}
+                } ${hasError ? 'opacity-50' : ''}`}
                 style={{ height: `${20 + height * 0.6}%` }}
               />
             );
           })}
         </div>
         
-        {/* Duration */}
         <div className={`flex justify-between text-xs ${
           isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
         }`}>
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(audioDuration)}</span>
+          {hasError ? (
+            <span className="text-destructive">Tap to retry</span>
+          ) : (
+            <>
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(audioDuration)}</span>
+            </>
+          )}
         </div>
       </div>
     </div>
