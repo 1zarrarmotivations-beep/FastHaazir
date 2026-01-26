@@ -46,8 +46,10 @@ import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 
 /* ================= BUILD MARKER ================= */
-const BUILD_VERSION = 'RIDER-v2.5.0-SRC-ACTIVE';
-console.log('🔥 RIDER DASHBOARD ACTIVE:', BUILD_VERSION);
+const BUILD_VERSION = 'RIDER-v2.6.0-PROD';
+const BUILD_TIMESTAMP = '2025-01-26T04:50:00Z';
+console.log('🔥 RIDER DASHBOARD PRODUCTION FILE LOADED');
+console.log('🔥 BUILD_VERSION:', BUILD_VERSION, 'TIMESTAMP:', BUILD_TIMESTAMP);
 /* ================================================ */
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -174,12 +176,19 @@ const RiderDashboard = () => {
   /* ================= MAIN UI ================= */
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* 🔥 PRODUCTION VISUAL MARKER 🔥 */}
+      <div className="bg-red-600 text-white text-center py-2 text-lg font-bold">
+        🔥 RIDER DASHBOARD – PRODUCTION ACTIVE 🔥
+      </div>
+
       {/* BUILD CONFIRM BADGE */}
       <button
         onClick={() => setShowVersionInfo(!showVersionInfo)}
         className="fixed top-2 right-2 z-50"
       >
-        <Badge variant="outline">{BUILD_VERSION}</Badge>
+        <Badge variant="outline" className="bg-red-100 border-red-500 text-red-700">
+          {BUILD_VERSION}
+        </Badge>
       </button>
 
       <AnimatePresence>
@@ -228,20 +237,28 @@ const RiderDashboard = () => {
 
       <RiderBottomNav
         activeTab={activeTab}
-        onChange={setActiveTab}
+        onTabChange={setActiveTab}
+        pendingCount={pendingRequests.length}
+        activeCount={activeDeliveries.length}
       />
 
       <RiderHeatmap
-        open={heatmapOpen}
+        isOpen={heatmapOpen}
         onClose={() => setHeatmapOpen(false)}
+        riderLat={riderProfile?.current_location_lat ?? undefined}
+        riderLng={riderProfile?.current_location_lng ?? undefined}
       />
       <RiderWalletPanel
-        open={walletOpen}
+        riderId={riderProfile?.id || ''}
+        isOpen={walletOpen}
         onClose={() => setWalletOpen(false)}
       />
       <RiderProfilePanel
-        open={profileOpen}
+        riderProfile={riderProfile!}
+        isOpen={profileOpen}
         onClose={() => setProfileOpen(false)}
+        totalDistance={0}
+        onLogout={signOut}
       />
     </div>
   );
