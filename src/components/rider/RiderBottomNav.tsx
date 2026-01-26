@@ -4,8 +4,6 @@ import {
   Package, 
   Wallet, 
   User,
-  Map,
-  History
 } from 'lucide-react';
 
 export type RiderTab = 'home' | 'orders' | 'earnings' | 'profile';
@@ -29,9 +27,10 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
     <motion.nav
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-lg border-t border-border safe-area-bottom"
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="fixed bottom-0 left-0 right-0 z-40 glass-nav safe-area-bottom"
     >
-      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
+      <div className="flex justify-around items-center h-20 max-w-md mx-auto px-4">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -40,38 +39,52 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
             <motion.button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-colors ${
-                isActive 
-                  ? 'text-primary' 
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className="relative flex flex-col items-center justify-center w-16 h-16 rounded-2xl"
               whileTap={{ scale: 0.9 }}
             >
-              {/* Active Indicator */}
+              {/* Active Background Glow */}
               {isActive && (
                 <motion.div
-                  layoutId="activeTab"
-                  className="absolute -top-1 w-8 h-1 bg-primary rounded-full"
+                  layoutId="activeTabBg"
+                  className="absolute inset-0 rounded-2xl bg-orange-500/20"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
 
-              <div className="relative">
-                <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : ''}`} />
+              {/* Active Top Indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute -top-1 w-10 h-1 rounded-full bg-gradient-to-r from-orange-400 to-red-400 shadow-lg shadow-orange-500/50"
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+
+              <div className="relative z-10">
+                <Icon 
+                  className={`w-6 h-6 transition-colors ${
+                    isActive 
+                      ? 'text-orange-400 drop-shadow-[0_0_8px_rgba(255,106,0,0.6)]' 
+                      : 'text-white/40'
+                  }`}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
                 
                 {/* Badge */}
                 {tab.badge && tab.badge > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center px-1"
+                    className="absolute -top-1 -right-2 min-w-[18px] h-[18px] bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-lg shadow-orange-500/50"
                   >
                     {tab.badge > 9 ? '9+' : tab.badge}
                   </motion.div>
                 )}
               </div>
 
-              <span className={`text-[10px] mt-1 font-medium ${isActive ? 'text-primary' : ''}`}>
+              <span className={`text-[10px] mt-1 font-medium transition-colors z-10 ${
+                isActive ? 'text-orange-400' : 'text-white/40'
+              }`}>
                 {tab.label}
               </span>
             </motion.button>
