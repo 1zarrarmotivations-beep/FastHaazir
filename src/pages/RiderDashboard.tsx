@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,12 +12,14 @@ import {
   AlertCircle,
   Bell,
   Settings,
-  History
+  History,
+  Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -49,6 +51,16 @@ import RiderHeatmap from '@/components/rider/RiderHeatmap';
 import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 
+// ============ BUILD VERSION MARKER ============
+// This helps verify which build is deployed to production
+const BUILD_VERSION = 'v2.5.0-2024-01-26';
+const BUILD_TIMESTAMP = new Date().toISOString();
+console.log(`[RiderDashboard] Build: ${BUILD_VERSION} | Loaded at: ${BUILD_TIMESTAMP}`);
+// =============================================
+
+// Auto-offline inactivity timeout (5 minutes)
+const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+
 const RiderDashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
@@ -59,9 +71,12 @@ const RiderDashboard = () => {
   const [heatmapOpen, setHeatmapOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showVersionInfo, setShowVersionInfo] = useState(false);
 
   const queryClient = useQueryClient();
   const previousRequestsCount = useRef<number>(0);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
 
   // Sound and vibration notifications
   const { 
@@ -90,6 +105,47 @@ const RiderDashboard = () => {
   const updateStatus = useUpdateDeliveryStatus();
   const toggleOnline = useToggleOnlineStatus();
   const registerRider = useRegisterAsRider();
+
+  // Reset inactivity timer on user activity
+  const resetInactivityTimer = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+
+    // Only set timer if rider is online and not on active delivery
+    if (riderProfile?.is_online && activeDeliveries.length === 0) {
+      inactivityTimerRef.current = setTimeout(() => {
+        console.log('[RiderDashboard] Auto-offline due to inactivity');
+        toast.warning('You were set offline due to inactivity', {
+          description: 'Tap the switch to go back online',
+        });
+        toggleOnline.mutate(false);
+      }, INACTIVITY_TIMEOUT_MS);
+    }
+  }, [riderProfile?.is_online, activeDeliveries.length, toggleOnline]);
+
+  // Track user activity for auto-offline
+  useEffect(() => {
+    const handleActivity = () => resetInactivityTimer();
+    
+    window.addEventListener('touchstart', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+    
+    // Initial timer setup
+    resetInactivityTimer();
+
+    return () => {
+      window.removeEventListener('touchstart', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [resetInactivityTimer]);
 
   // Realtime subscription for new rider requests with sound + vibration
   useEffect(() => {
@@ -325,6 +381,41 @@ const RiderDashboard = () => {
   // Main Dashboard
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Version Indicator - tap to show build info */}
+      <button
+        onClick={() => setShowVersionInfo(!showVersionInfo)}
+        className="fixed top-2 right-2 z-50 opacity-30 hover:opacity-100 transition-opacity"
+      >
+        <Badge variant="outline" className="text-[10px] bg-background/80 backdrop-blur-sm">
+          {BUILD_VERSION}
+        </Badge>
+      </button>
+
+      {/* Version Info Panel */}
+      <AnimatePresence>
+        {showVersionInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-10 right-2 z-50 bg-card border border-border rounded-lg p-3 shadow-lg text-xs space-y-1"
+          >
+            <div className="flex items-center gap-2">
+              <Info className="w-4 h-4 text-primary" />
+              <span className="font-semibold">Build Info</span>
+            </div>
+            <p><span className="text-muted-foreground">Version:</span> {BUILD_VERSION}</p>
+            <p><span className="text-muted-foreground">Rider ID:</span> {riderProfile?.id?.slice(0, 8)}...</p>
+            <p><span className="text-muted-foreground">Online:</span> {riderProfile?.is_online ? '✅ Yes' : '❌ No'}</p>
+            <p><span className="text-muted-foreground">Pending:</span> {pendingRequests.length}</p>
+            <p><span className="text-muted-foreground">Active:</span> {activeDeliveries.length}</p>
+            <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => setShowVersionInfo(false)}>
+              Close
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Status Header */}
       <RiderStatusHeader
         riderProfile={riderProfile}

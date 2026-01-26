@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Power, 
   PowerOff, 
@@ -7,7 +7,9 @@ import {
   Wallet,
   TrendingUp,
   Bike,
-  User
+  User,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
