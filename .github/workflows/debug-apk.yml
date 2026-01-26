@@ -59,6 +59,84 @@ jobs:
           EOF
 
       # ===============================
+      # 5.5. Validate Firebase Config
+      # ===============================
+      - name: Validate google-services.json
+        working-directory: frontend/android/app
+        run: |
+          echo "======================================"
+          echo "🔍 Validating Firebase Configuration"
+          echo "======================================"
+          
+          # Check if google-services.json exists
+          if [ ! -f "google-services.json" ]; then
+            echo "❌ ERROR: google-services.json not found!"
+            exit 1
+          fi
+          
+          echo "✅ google-services.json found"
+          
+          # Validate project ID
+          PROJECT_ID=$(grep -o '"project_id": "[^"]*' google-services.json | cut -d'"' -f4)
+          if [ "$PROJECT_ID" != "fast-haazir-786" ]; then
+            echo "❌ ERROR: Invalid project_id: $PROJECT_ID (expected: fast-haazir-786)"
+            exit 1
+          fi
+          echo "✅ Firebase project_id verified: $PROJECT_ID"
+          
+          # Validate package name
+          PACKAGE_NAME=$(grep -o '"package_name": "[^"]*' google-services.json | cut -d'"' -f4 | head -1)
+          if [ "$PACKAGE_NAME" != "com.fasthaazir.app" ]; then
+            echo "❌ ERROR: Invalid package_name: $PACKAGE_NAME (expected: com.fasthaazir.app)"
+            exit 1
+          fi
+          echo "✅ Package name verified: $PACKAGE_NAME"
+          
+          # Check OAuth clients
+          OAUTH_COUNT=$(grep -c '"client_type": 1' google-services.json || true)
+          echo "✅ OAuth clients found: $OAUTH_COUNT"
+          
+          if [ $OAUTH_COUNT -lt 1 ]; then
+            echo "⚠️  WARNING: No Android OAuth clients found - Google Sign-In will fail!"
+            echo "⚠️  Make sure SHA-1 and SHA-256 are added to Firebase Console"
+          fi
+          
+          echo "======================================"
+          echo "✅ Firebase configuration valid"
+          echo "======================================"
+
+      - name: Validate AndroidManifest.xml
+        working-directory: frontend/android/app/src/main
+        run: |
+          echo "======================================"
+          echo "🔍 Validating Android Permissions"
+          echo "======================================"
+          
+          # Check for required permissions
+          if ! grep -q 'android.permission.INTERNET' AndroidManifest.xml; then
+            echo "❌ ERROR: INTERNET permission missing!"
+            exit 1
+          fi
+          echo "✅ INTERNET permission found"
+          
+          if ! grep -q 'android.permission.ACCESS_NETWORK_STATE' AndroidManifest.xml; then
+            echo "❌ ERROR: ACCESS_NETWORK_STATE permission missing!"
+            exit 1
+          fi
+          echo "✅ ACCESS_NETWORK_STATE permission found"
+          
+          # Check package in manifest
+          if ! grep -q 'com.fasthaazir.app' AndroidManifest.xml; then
+            echo "⚠️  WARNING: Package name not found in manifest"
+          else
+            echo "✅ Package name verified in manifest"
+          fi
+          
+          echo "======================================"
+          echo "✅ Android manifest valid"
+          echo "======================================"
+
+      # ===============================
       # 6. Build Web App (Vite)
       # ===============================
       - name: Build web app
@@ -109,4 +187,10 @@ jobs:
           echo "📱 Package: com.fasthaazir.app"
           echo "🔥 Firebase: fast-haazir-786"
           echo "🗄 Supabase: pmqkclhqvjfmcxzuoypa"
+          echo ""
+          echo "🔐 IMPORTANT NOTES:"
+          echo "   1. SHA keys MUST be added to Firebase Console"
+          echo "   2. Phone OTP works with real numbers only"
+          echo "   3. Google Sign-In uses redirect (not popup)"
+          echo "   4. Test on real device, not just emulator"
           echo "======================================"
