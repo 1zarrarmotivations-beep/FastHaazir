@@ -20,6 +20,7 @@ interface RiderStatusHeaderProps {
   todayEarnings: number;
   walletBalance: number;
   completedToday: number;
+  activeDeliveriesCount?: number;
 }
 
 const RiderStatusHeader = ({
@@ -29,8 +30,11 @@ const RiderStatusHeader = ({
   isToggling,
   todayEarnings,
   walletBalance,
-  completedToday
+  completedToday,
+  activeDeliveriesCount = 0
 }: RiderStatusHeaderProps) => {
+  // Determine if offline toggle should be disabled
+  const cannotGoOffline = isOnline && activeDeliveriesCount > 0;
   // Guard against undefined riderProfile - Premium Loading State
   if (!riderProfile) {
     return (
@@ -148,38 +152,57 @@ const RiderStatusHeader = ({
           </div>
 
           {/* Premium Online/Offline Toggle Button */}
-          <motion.button
-            onClick={() => !isToggling && onToggleOnline(!isOnline)}
-            disabled={isToggling}
-            className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl transition-all duration-500 min-w-[80px] ${
-              isOnline 
-                ? 'bg-emerald-500/15 glow-green' 
-                : 'bg-white/3 hover:bg-white/5 border border-white/5'
-            }`}
-            whileTap={{ scale: 0.95 }}
-          >
-            <motion.div
-              animate={{ 
-                rotate: isToggling ? 360 : 0,
-                scale: isOnline ? [1, 1.1, 1] : 1
-              }}
-              transition={{ 
-                rotate: { duration: 1, repeat: isToggling ? Infinity : 0 },
-                scale: { duration: 2.5, repeat: Infinity }
-              }}
+          <div className="flex flex-col items-center">
+            <motion.button
+              onClick={() => !isToggling && !cannotGoOffline && onToggleOnline(!isOnline)}
+              disabled={isToggling || cannotGoOffline}
+              className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl transition-all duration-500 min-w-[80px] ${
+                cannotGoOffline 
+                  ? 'bg-orange-500/10 cursor-not-allowed opacity-70'
+                  : isOnline 
+                    ? 'bg-emerald-500/15 glow-green' 
+                    : 'bg-white/3 hover:bg-white/5 border border-white/5'
+              }`}
+              whileTap={cannotGoOffline ? {} : { scale: 0.95 }}
             >
-              {isOnline ? (
-                <Zap className="w-7 h-7 text-emerald-400 fill-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              ) : (
-                <PowerOff className="w-7 h-7 text-white/30" />
-              )}
-            </motion.div>
-            <span className={`text-[10px] font-black tracking-widest ${
-              isOnline ? 'text-emerald-400 text-glow-green' : 'text-white/30'
-            }`}>
-              {isOnline ? 'ONLINE' : 'OFFLINE'}
-            </span>
-          </motion.button>
+              <motion.div
+                animate={{ 
+                  rotate: isToggling ? 360 : 0,
+                  scale: isOnline && !cannotGoOffline ? [1, 1.1, 1] : 1
+                }}
+                transition={{ 
+                  rotate: { duration: 1, repeat: isToggling ? Infinity : 0 },
+                  scale: { duration: 2.5, repeat: Infinity }
+                }}
+              >
+                {isOnline ? (
+                  <Zap className={`w-7 h-7 ${cannotGoOffline ? 'text-orange-400' : 'text-emerald-400'} fill-current drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]`} />
+                ) : (
+                  <PowerOff className="w-7 h-7 text-white/30" />
+                )}
+              </motion.div>
+              <span className={`text-[10px] font-black tracking-widest ${
+                cannotGoOffline 
+                  ? 'text-orange-400' 
+                  : isOnline 
+                    ? 'text-emerald-400 text-glow-green' 
+                    : 'text-white/30'
+              }`}>
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              </span>
+            </motion.button>
+            
+            {/* Helper text when cannot go offline */}
+            {cannotGoOffline && (
+              <motion.p 
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-[9px] text-orange-400/80 mt-1.5 text-center max-w-[90px] leading-tight"
+              >
+                Complete delivery to go offline
+              </motion.p>
+            )}
+          </div>
         </div>
 
         {/* Premium Stats Grid */}
