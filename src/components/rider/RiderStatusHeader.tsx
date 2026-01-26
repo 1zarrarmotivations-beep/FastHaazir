@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { RiderProfile } from '@/hooks/useRiderDashboard';
 
 interface RiderStatusHeaderProps {
-  riderProfile: RiderProfile;
+  riderProfile: RiderProfile | null | undefined;
   isOnline: boolean;
   onToggleOnline: (checked: boolean) => void;
   isToggling: boolean;
@@ -31,6 +31,27 @@ const RiderStatusHeader = ({
   walletBalance,
   completedToday
 }: RiderStatusHeaderProps) => {
+  // Guard against undefined riderProfile
+  if (!riderProfile) {
+    return (
+      <div className="relative px-4 pt-6 pb-4">
+        <div className="glass-card-dark rounded-3xl p-5 animate-pulse">
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-16 h-16 rounded-2xl bg-white/10" />
+            <div className="flex-1">
+              <div className="h-5 bg-white/10 rounded w-32 mb-2" />
+              <div className="h-4 bg-white/10 rounded w-24" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="glass-card rounded-2xl p-3 h-20" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="relative px-4 pt-6 pb-4">
       {/* Glass Header Card */}
