@@ -440,6 +440,24 @@ export function BusinessesManager() {
                       </Badge>
                     </div>
 
+                    {/* Location Warning - Show if business has no pickup location */}
+                    {(!(business as any).location_lat || !(business as any).location_lng) && (
+                      <div className="flex items-center gap-2 mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                          Missing pickup location - Riders won't know where to go
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Location Address - Show if business has location */}
+                    {(business as any).location_address && (
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{(business as any).location_address}</span>
+                      </div>
+                    )}
+
                     {/* Owner phone removed - Admin controls all businesses */}
 
                     <div className="flex items-center gap-4 mt-3">
