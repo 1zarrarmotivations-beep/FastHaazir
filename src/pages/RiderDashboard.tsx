@@ -1,3 +1,6 @@
+export default function RiderDashboard() {
+  return <h1 style={{color:'red'}}>🔥 RIDER SRC ACTIVE 🔥</h1>
+}
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
