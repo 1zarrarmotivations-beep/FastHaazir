@@ -1,0 +1,55 @@
+name: Build Debug APK
+
+on:
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build web
+        working-directory: frontend
+        run: npm run build
+        env:
+          CI: false
+
+      - name: Capacitor sync
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        working-directory: frontend/android
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/*.apk
