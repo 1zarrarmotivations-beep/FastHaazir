@@ -1,18 +1,21 @@
-import { useRealtimeOrders, useRealtimeNotifications, useRealtimeUserRoles, useRealtimePublicData } from '@/hooks/useRealtimeOrders';
-import { useAuth } from '@/hooks/useAuth';
+import { 
+  useRealtimeOrders, 
+  useRealtimeNotifications, 
+  useRealtimeUserRoles, 
+  useRealtimePublicData 
+} from '@/hooks/useRealtimeOrders';
 
 interface RealtimeProviderProps {
   children: React.ReactNode;
 }
 
 const RealtimeProvider = ({ children }: RealtimeProviderProps) => {
-  const { user } = useAuth();
-  
-  // CRITICAL: Initialize public data realtime subscriptions for ALL users
-  // This ensures businesses and menu items update live on customer-facing pages
+  // CRITICAL: All hooks must be called unconditionally in the same order every render
+  // Initialize public data realtime subscriptions for ALL users
   useRealtimePublicData();
   
   // Initialize authenticated user realtime listeners
+  // These hooks internally check for user and return early if not authenticated
   useRealtimeOrders();
   useRealtimeNotifications();
   useRealtimeUserRoles();
