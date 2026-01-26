@@ -12,7 +12,8 @@ import {
   UserCog,
   Bell,
   Settings,
-  Send
+  Send,
+  MessageCircle
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ interface AdminSidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "chats", label: "All Chats", icon: MessageCircle },
   { id: "users", label: "Users & Roles", icon: UserCog },
   { id: "riders", label: "Riders", icon: Bike },
   { id: "earnings", label: "Rider Earnings", icon: DollarSign },

@@ -7,7 +7,9 @@ import {
   MapPin,
   Phone,
   User,
-  ChevronDown
+  ChevronDown,
+  MessageCircle,
+  EyeOff
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAdminOrders, useUpdateOrderStatus, useAdminRiders, useAssignRiderToOrder } from "@/hooks/useAdmin";
 import { format } from "date-fns";
+import AdminChatViewer from "./AdminChatViewer";
 
 const statusColors = {
   placed: "bg-blue-500/10 text-blue-600",
@@ -48,6 +51,12 @@ const statusLabels = {
 export function OrdersManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewingChatOrderId, setViewingChatOrderId] = useState<string | null>(null);
+  const [chatOrderInfo, setChatOrderInfo] = useState<{
+    customerLabel?: string;
+    riderName?: string;
+    businessName?: string;
+  } | null>(null);
 
   const { data: orders, isLoading } = useAdminOrders();
   const { data: riders } = useAdminRiders();
@@ -240,6 +249,24 @@ export function OrdersManager() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
+
+                      {/* View Chat */}
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => {
+                          setViewingChatOrderId(order.id);
+                          setChatOrderInfo({
+                            customerLabel: order.customer_phone || 'Customer',
+                            riderName: (order as any).rider?.name,
+                            businessName: (order as any).business?.name,
+                          });
+                        }}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        View Chat
+                        <EyeOff className="w-3 h-3 text-amber-500" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -256,6 +283,17 @@ export function OrdersManager() {
           <p className="text-muted-foreground">Orders will appear here when customers place them</p>
         </div>
       )}
+
+      {/* Admin Chat Viewer (Silent Mode) */}
+      <AdminChatViewer
+        orderId={viewingChatOrderId || undefined}
+        isOpen={!!viewingChatOrderId}
+        onClose={() => {
+          setViewingChatOrderId(null);
+          setChatOrderInfo(null);
+        }}
+        orderInfo={chatOrderInfo || undefined}
+      />
     </div>
   );
 }
