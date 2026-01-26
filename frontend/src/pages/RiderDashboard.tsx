@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { 
@@ -10,28 +9,21 @@ import {
   Star,
   Bike,
   Car,
-  Power,
-  PowerOff,
-  User,
   AlertCircle,
-  DollarSign,
-  MapPin
+  Bell,
+  Settings,
+  History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { RequestCard } from '@/components/rider/RequestCard';
-import RiderEarningsCard from '@/components/rider/RiderEarningsCard';
 import { useRiderEarningsSummary } from '@/hooks/useRiderPayments';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import NotificationsSheet from '@/components/notifications/NotificationsSheet';
-import LanguageToggle from '@/components/LanguageToggle';
 import { useRiderLocation } from '@/hooks/useRiderLocation';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
@@ -48,15 +40,25 @@ import {
   OrderStatus
 } from '@/hooks/useRiderDashboard';
 
-type TabType = 'available' | 'active' | 'completed' | 'earnings';
+// Import new components
+import RiderStatusHeader from '@/components/rider/RiderStatusHeader';
+import RiderQuickActions from '@/components/rider/RiderQuickActions';
+import RiderOrderRequestCard from '@/components/rider/RiderOrderRequestCard';
+import RiderBottomNav, { RiderTab } from '@/components/rider/RiderBottomNav';
+import RiderHeatmap from '@/components/rider/RiderHeatmap';
+import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
+import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 
 const RiderDashboard = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('available');
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState<RiderTab>('home');
+  const [ordersSubTab, setOrdersSubTab] = useState<'available' | 'active' | 'completed'>('available');
   const [registerForm, setRegisterForm] = useState({ name: '', phone: '', vehicle_type: 'Bike' });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [heatmapOpen, setHeatmapOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const queryClient = useQueryClient();
   const previousRequestsCount = useRef<number>(0);
@@ -65,7 +67,8 @@ const RiderDashboard = () => {
   const { 
     notifyNewOrder, 
     notifySuccess, 
-    vibrate 
+    vibrate,
+    canVibrate 
   } = useNotificationSound();
 
   const { data: riderProfile, isLoading: profileLoading } = useRiderProfile();
@@ -74,13 +77,13 @@ const RiderDashboard = () => {
   const { data: completedDeliveries = [], isLoading: completedLoading } = useMyCompletedDeliveries();
   const { data: earningsSummary } = useRiderEarningsSummary(riderProfile?.id);
 
-  // Enable real-time sync for all orders and payments
+  // Enable real-time sync
   useRealtimeOrders();
 
   // Auto-set rider online when dashboard mounts
   useAutoSetRiderOnline(riderProfile?.id, riderProfile?.is_online ?? null);
 
-  // Live location tracking - automatically starts when rider goes online
+  // Live location tracking
   useRiderLocation(riderProfile?.id, riderProfile?.is_online || false);
 
   const acceptRequest = useAcceptRequest();
@@ -167,7 +170,8 @@ const RiderDashboard = () => {
       onSuccess: () => {
         notifySuccess();
         toast.success('Request accepted! Head to pickup location.');
-        setActiveTab('active');
+        setActiveTab('orders');
+        setOrdersSubTab('active');
       },
       onError: (error) => toast.error(error.message),
     });
@@ -198,14 +202,33 @@ const RiderDashboard = () => {
     });
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const getCurrentStatus = (): 'idle' | 'on_delivery' | 'returning' => {
+    if (activeDeliveries.length > 0) return 'on_delivery';
+    return 'idle';
+  };
+
+  // Calculate today's earnings
+  const todayEarnings = earningsSummary?.totalEarnings || 0;
+
+  // Loading state
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full"
+        />
       </div>
     );
   }
 
+  // Not logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -217,6 +240,7 @@ const RiderDashboard = () => {
     );
   }
 
+  // Registration form for new riders
   if (!riderProfile) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -226,15 +250,15 @@ const RiderDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-8"
           >
-            <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Bike className="w-10 h-10 text-primary" />
+            <div className="w-24 h-24 gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-elevated">
+              <Bike className="w-12 h-12 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Become a Rider</h1>
-            <p className="text-muted-foreground">Register to start accepting delivery requests</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Become a Rider</h1>
+            <p className="text-muted-foreground">Join Fast Haazir and start earning today</p>
           </motion.div>
 
-          <Card className="bg-card border-border">
-            <CardContent className="p-6 space-y-4">
+          <Card className="shadow-card">
+            <CardContent className="p-6 space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input
@@ -242,6 +266,7 @@ const RiderDashboard = () => {
                   placeholder="Enter your full name"
                   value={registerForm.name}
                   onChange={(e) => setRegisterForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
@@ -251,29 +276,35 @@ const RiderDashboard = () => {
                   placeholder="+92 300 1234567"
                   value={registerForm.phone}
                   onChange={(e) => setRegisterForm(prev => ({ ...prev, phone: e.target.value }))}
+                  className="h-12"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Vehicle Type</Label>
-                <div className="flex gap-3">
-                  {['Bike', 'Car', 'Rickshaw'].map((vehicle) => (
-                    <Button
-                      key={vehicle}
-                      variant={registerForm.vehicle_type === vehicle ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setRegisterForm(prev => ({ ...prev, vehicle_type: vehicle }))}
-                      className="flex-1"
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { type: 'Bike', icon: Bike },
+                    { type: 'Car', icon: Car },
+                    { type: 'Rickshaw', icon: Navigation }
+                  ].map(({ type, icon: Icon }) => (
+                    <motion.button
+                      key={type}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setRegisterForm(prev => ({ ...prev, vehicle_type: type }))}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                        registerForm.vehicle_type === type 
+                          ? 'border-primary bg-primary/10 text-primary' 
+                          : 'border-border bg-card text-muted-foreground'
+                      }`}
                     >
-                      {vehicle === 'Bike' && <Bike className="w-4 h-4 mr-2" />}
-                      {vehicle === 'Car' && <Car className="w-4 h-4 mr-2" />}
-                      {vehicle === 'Rickshaw' && <Navigation className="w-4 h-4 mr-2" />}
-                      {vehicle}
-                    </Button>
+                      <Icon className="w-6 h-6" />
+                      <span className="text-sm font-medium">{type}</span>
+                    </motion.button>
                   ))}
                 </div>
               </div>
               <Button
-                className="w-full mt-4"
+                className="w-full h-14 text-lg gradient-primary"
                 disabled={!registerForm.name || !registerForm.phone || registerRider.isPending}
                 onClick={() => {
                   registerRider.mutate(registerForm, {
@@ -282,7 +313,7 @@ const RiderDashboard = () => {
                   });
                 }}
               >
-                {registerRider.isPending ? 'Registering...' : 'Register as Rider'}
+                {registerRider.isPending ? 'Registering...' : 'Start Earning'}
               </Button>
             </CardContent>
           </Card>
@@ -291,213 +322,293 @@ const RiderDashboard = () => {
     );
   }
 
-  const tabs: { id: TabType; label: string; count: number }[] = [
-    { id: 'available', label: t('riderApp.availableRequests'), count: pendingRequests.length },
-    { id: 'active', label: t('riderApp.activeDeliveries'), count: activeDeliveries.length },
-    { id: 'completed', label: t('riderApp.completedToday'), count: completedDeliveries.length },
-    { id: 'earnings', label: t('riderApp.earnings'), count: 0 },
-  ];
-
+  // Main Dashboard
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
-              {riderProfile.image ? (
-                <img src={riderProfile.image} alt="" className="w-12 h-12 rounded-full object-cover" />
-              ) : (
-                <User className="w-6 h-6 text-primary" />
-              )}
-            </div>
-            <div>
-              <h1 className="font-bold text-foreground">{riderProfile.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <span>{riderProfile.rating?.toFixed(1) || '4.5'}</span>
-                <span>•</span>
-                <span>{riderProfile.total_trips || 0} {t('rider.trips')}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <LanguageToggle variant="icon-only" />
-            <NotificationBell onClick={() => setNotificationsOpen(true)} />
-            <div className="flex items-center gap-2">
-              {riderProfile.is_online ? (
-                <Power className="w-5 h-5 text-green-500" />
-              ) : (
-                <PowerOff className="w-5 h-5 text-muted-foreground" />
-              )}
-              <Switch
-                checked={riderProfile.is_online || false}
-                onCheckedChange={handleToggleOnline}
-                disabled={toggleOnline.isPending}
-              />
-            </div>
-          </div>
-        </div>
+      {/* Status Header */}
+      <RiderStatusHeader
+        riderProfile={riderProfile}
+        isOnline={riderProfile.is_online || false}
+        onToggleOnline={handleToggleOnline}
+        isToggling={toggleOnline.isPending}
+        todayEarnings={todayEarnings}
+        walletBalance={earningsSummary?.pendingEarnings || 0}
+        completedToday={completedDeliveries.length}
+      />
 
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-background rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-foreground">{activeDeliveries.length}</p>
-            <p className="text-xs text-muted-foreground">Active</p>
-          </div>
-          <div className="bg-background rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-foreground">{completedDeliveries.length}</p>
-            <p className="text-xs text-muted-foreground">Completed</p>
-          </div>
-          <div className="bg-background rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-primary">
-              Rs {earningsSummary?.totalEarnings || 0}
-            </p>
-            <p className="text-xs text-muted-foreground">Total</p>
-          </div>
-          <div className="bg-background rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-green-500">
-              Rs {earningsSummary?.paidEarnings || 0}
-            </p>
-            <p className="text-xs text-muted-foreground">Paid</p>
-          </div>
-        </div>
-      </div>
+      {/* Tab Content */}
+      <AnimatePresence mode="wait">
+        {activeTab === 'home' && (
+          <motion.div
+            key="home"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Quick Actions */}
+            <RiderQuickActions
+              onOpenHeatmap={() => setHeatmapOpen(true)}
+              onOpenNavigation={() => {
+                // Open Google Maps with current location
+                if (riderProfile.current_location_lat && riderProfile.current_location_lng) {
+                  window.open(`https://www.google.com/maps/@${riderProfile.current_location_lat},${riderProfile.current_location_lng},15z`, '_blank');
+                } else {
+                  window.open('https://www.google.com/maps', '_blank');
+                }
+              }}
+              activeOrdersCount={activeDeliveries.length}
+              pendingOrdersCount={pendingRequests.length}
+              currentStatus={getCurrentStatus()}
+            />
 
-      {/* Tabs */}
-      <div className="px-4 py-3 bg-card border-b border-border">
-        <div className="flex gap-2">
-          {tabs.map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab(tab.id)}
-              className="flex-1"
-            >
-              {tab.label}
-              {tab.count > 0 && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {tab.count}
-                </Badge>
-              )}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="px-4 py-4">
-        <AnimatePresence mode="wait">
-          {activeTab === 'available' && (
-            <motion.div
-              key="available"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {!riderProfile.is_online ? (
-                <div className="text-center py-12">
-                  <PowerOff className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Go online to see available requests</p>
-                </div>
-              ) : pendingLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
-                </div>
-              ) : pendingRequests.length === 0 ? (
-                <div className="text-center py-12">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No available requests right now</p>
-                  <p className="text-xs text-muted-foreground mt-1">New requests will appear here</p>
-                </div>
-              ) : (
-                pendingRequests.map((request) => (
-                  <RequestCard 
-                    key={request.id} 
-                    request={request} 
-                    showActions 
-                    activeTab="available"
-                    onAccept={handleAcceptRequest}
-                    isAccepting={acceptRequest.isPending}
-                  />
-                ))
-              )}
-            </motion.div>
-          )}
-
-          {activeTab === 'active' && (
-            <motion.div
-              key="active"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {activeLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
-                </div>
-              ) : activeDeliveries.length === 0 ? (
-                <div className="text-center py-12">
-                  <Navigation className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No active deliveries</p>
-                  <p className="text-xs text-muted-foreground mt-1">Accept a request to get started</p>
-                </div>
-              ) : (
-                activeDeliveries.map((request) => (
-                  <RequestCard 
-                    key={request.id} 
-                    request={request} 
-                    showActions 
-                    activeTab="active"
+            {/* Active Deliveries Preview */}
+            {activeDeliveries.length > 0 && (
+              <div className="px-4 mb-4">
+                <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-primary" />
+                  Current Delivery
+                </h3>
+                {activeDeliveries.slice(0, 1).map(request => (
+                  <RiderOrderRequestCard
+                    key={request.id}
+                    request={request}
+                    variant="active"
                     onUpdateStatus={handleUpdateStatus}
-                    isUpdating={updateStatus.isPending}
+                    isLoading={updateStatus.isPending}
                   />
-                ))
-              )}
-            </motion.div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {activeTab === 'completed' && (
-            <motion.div
-              key="completed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {completedLoading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
-                </div>
-              ) : completedDeliveries.length === 0 ? (
-                <div className="text-center py-12">
-                  <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No completed deliveries yet</p>
-                </div>
-              ) : (
-                completedDeliveries.map((request) => (
-                  <RequestCard key={request.id} request={request} activeTab="completed" />
-                ))
-              )}
-            </motion.div>
-          )}
+            {/* New Requests Preview */}
+            {riderProfile.is_online && pendingRequests.length > 0 && (
+              <div className="px-4">
+                <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-primary" />
+                  New Requests ({pendingRequests.length})
+                </h3>
+                {pendingRequests.slice(0, 2).map(request => (
+                  <RiderOrderRequestCard
+                    key={request.id}
+                    request={request}
+                    variant="new"
+                    onAccept={handleAcceptRequest}
+                    isLoading={acceptRequest.isPending}
+                  />
+                ))}
+                {pendingRequests.length > 2 && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setOrdersSubTab('available');
+                    }}
+                  >
+                    View All ({pendingRequests.length}) Requests
+                  </Button>
+                )}
+              </div>
+            )}
 
-          {activeTab === 'earnings' && (
-            <motion.div
-              key="earnings"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {riderProfile && <RiderEarningsCard riderId={riderProfile.id} />}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      
+            {/* Empty State */}
+            {!riderProfile.is_online && (
+              <div className="px-4 py-12 text-center">
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Bike className="w-10 h-10 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">You're Offline</h3>
+                <p className="text-muted-foreground mb-4">Go online to start receiving orders</p>
+              </div>
+            )}
+
+            {riderProfile.is_online && pendingRequests.length === 0 && activeDeliveries.length === 0 && (
+              <div className="px-4 py-12 text-center">
+                <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-10 h-10 text-accent" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Ready for Orders</h3>
+                <p className="text-muted-foreground mb-4">New requests will appear here</p>
+                <Button variant="outline" onClick={() => setHeatmapOpen(true)}>
+                  Find Busy Zones
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === 'orders' && (
+          <motion.div
+            key="orders"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="px-4 pt-4"
+          >
+            {/* Sub-tabs */}
+            <div className="flex gap-2 mb-4">
+              {[
+                { id: 'available', label: 'Available', count: pendingRequests.length },
+                { id: 'active', label: 'Active', count: activeDeliveries.length },
+                { id: 'completed', label: 'History', count: completedDeliveries.length }
+              ].map(tab => (
+                <Button
+                  key={tab.id}
+                  variant={ordersSubTab === tab.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrdersSubTab(tab.id as typeof ordersSubTab)}
+                  className="flex-1"
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span className="ml-2 bg-primary-foreground/20 px-1.5 py-0.5 rounded text-xs">
+                      {tab.count}
+                    </span>
+                  )}
+                </Button>
+              ))}
+            </div>
+
+            {/* Available Requests */}
+            {ordersSubTab === 'available' && (
+              <>
+                {!riderProfile.is_online ? (
+                  <div className="text-center py-12">
+                    <Bike className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Go online to see available requests</p>
+                  </div>
+                ) : pendingLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : pendingRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No available requests right now</p>
+                  </div>
+                ) : (
+                  pendingRequests.map(request => (
+                    <RiderOrderRequestCard
+                      key={request.id}
+                      request={request}
+                      variant="new"
+                      onAccept={handleAcceptRequest}
+                      isLoading={acceptRequest.isPending}
+                    />
+                  ))
+                )}
+              </>
+            )}
+
+            {/* Active Deliveries */}
+            {ordersSubTab === 'active' && (
+              <>
+                {activeLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : activeDeliveries.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Navigation className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No active deliveries</p>
+                  </div>
+                ) : (
+                  activeDeliveries.map(request => (
+                    <RiderOrderRequestCard
+                      key={request.id}
+                      request={request}
+                      variant="active"
+                      onUpdateStatus={handleUpdateStatus}
+                      isLoading={updateStatus.isPending}
+                    />
+                  ))
+                )}
+              </>
+            )}
+
+            {/* Completed Deliveries */}
+            {ordersSubTab === 'completed' && (
+              <>
+                {completedLoading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : completedDeliveries.length === 0 ? (
+                  <div className="text-center py-12">
+                    <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No completed deliveries yet</p>
+                  </div>
+                ) : (
+                  completedDeliveries.map(request => (
+                    <RiderOrderRequestCard
+                      key={request.id}
+                      request={request}
+                      variant="completed"
+                    />
+                  ))
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === 'earnings' && (
+          <motion.div
+            key="earnings"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {riderProfile && (
+              <RiderWalletPanel
+                riderId={riderProfile.id}
+                isOpen={true}
+                onClose={() => setActiveTab('home')}
+              />
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === 'profile' && (
+          <motion.div
+            key="profile"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {riderProfile && (
+              <RiderProfilePanel
+                riderProfile={riderProfile}
+                isOpen={true}
+                onClose={() => setActiveTab('home')}
+                totalDistance={earningsSummary?.totalDistance || 0}
+                onLogout={handleLogout}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Navigation */}
+      <RiderBottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        pendingCount={pendingRequests.length}
+        activeCount={activeDeliveries.length}
+      />
+
+      {/* Notifications Sheet */}
       <NotificationsSheet 
         open={notificationsOpen} 
         onOpenChange={setNotificationsOpen} 
+      />
+
+      {/* Heatmap Modal */}
+      <RiderHeatmap
+        isOpen={heatmapOpen}
+        onClose={() => setHeatmapOpen(false)}
+        riderLat={riderProfile?.current_location_lat ?? undefined}
+        riderLng={riderProfile?.current_location_lng ?? undefined}
       />
     </div>
   );
