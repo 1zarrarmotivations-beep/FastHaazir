@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_number": "285845112968",
+    "firebase_url": "https://fast-haazir-786-default-rtdb.firebaseio.com",
+    "project_id": "fast-haazir-786",
+    "storage_bucket": "fast-haazir-786.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:285845112968:android:2a12ea7d2818207d21b73d",
+        "android_client_info": {
+          "package_name": "com.fasthaazir.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "285845112968-84pmj23po6f3lpit3uudiqmq7c5de4lt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fasthaazir.app",
+            "certificate_hash": "553d48b63a1f72f89f446617fd3e61fa18735d25"
+          }
+        },
+        {
+          "client_id": "285845112968-abp9faiep7uluvrn5jt3cqrvrf83vgvu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fasthaazir.app",
+            "certificate_hash": "b8c905c26fe4fe441420b74cf050f3dd2405fd02"
+          }
+        },
+        {
+          "client_id": "285845112968-hka6a1e9cloia1p1pabcd01ejp6s5vld.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0dz4tCtu1M-1OOjK0tbiA7J5bzNzxN_M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "285845112968-hka6a1e9cloia1p1pabcd01ejp6s5vld.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
