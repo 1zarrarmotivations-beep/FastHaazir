@@ -16,6 +16,13 @@ interface CategoryAction {
 
 const baseActions: CategoryAction[] = [
   {
+    titleKey: 'home.assignRider',
+    subtitleKey: 'home.onDemandDelivery',
+    path: '/assign-rider',
+    emoji: '🚴',
+    color: 'bg-blue-500',
+  },
+  {
     titleKey: 'home.orderFood',
     subtitleKey: 'home.restaurantsDining',
     path: '/restaurants',
@@ -30,13 +37,6 @@ const baseActions: CategoryAction[] = [
     emoji: '🛒',
     color: 'bg-emerald-500',
     type: 'grocery',
-  },
-  {
-    titleKey: 'home.assignRider',
-    subtitleKey: 'home.onDemandDelivery',
-    path: '/assign-rider',
-    emoji: '🚴',
-    color: 'bg-blue-500',
   },
 ];
 
