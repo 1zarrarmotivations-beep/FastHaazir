@@ -40,7 +40,7 @@ const menuItems = [
   { id: "live-map", label: "Live Map", icon: MapPin },
   { id: "notifications", label: "In-App Alerts", icon: Bell },
   { id: "push-notifications", label: "Push Center", icon: Send },
-  { id: "promo-banner", label: "Special Offer", icon: Sparkles },
+  { id: "promo-banner", label: "Banners", icon: Sparkles },
   { id: "payment-settings", label: "Payment Settings", icon: Settings },
 ];
 
