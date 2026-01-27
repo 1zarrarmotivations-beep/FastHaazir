@@ -6,68 +6,110 @@ on:
       version_name:
         description: "Version name (e.g. 1.0.0)"
         required: true
+        default: "1.0.0"
       version_code:
         description: "Version code (e.g. 1)"
         required: true
+        default: "1"
 
 jobs:
   build-release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # 1. Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
+      # 2. Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: "temurin"
+          java-version: "17"
 
+      # 3. Setup Node (IMPORTANT)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 4. Install dependencies
       - name: Install dependencies
         working-directory: frontend
         run: npm install
 
-      - name: Create env file
+      # 5. Create env file
+      - name: Create .env
         working-directory: frontend
         run: |
           cat <<EOF > .env
-          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_URL=https://pmqkclhqvjfmcxzuoypa.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_KEY
+          VITE_SUPABASE_PROJECT_ID=pmqkclhqvjfmcxzuoypa
           NODE_ENV=production
           VITE_APP_VERSION=${{ github.event.inputs.version_name }}
           VITE_BUILD_NUMBER=${{ github.event.inputs.version_code }}
           EOF
 
-      - name: Build web
+      # 6. Build web app
+      - name: Build web app
         working-directory: frontend
         run: npm run build
+        env:
+          CI: false
 
-      - name: Sync Capacitor
-        working-directory: frontend
-        run: npx cap sync android
-
-      - name: Make gradlew executable
-        working-directory: frontend/android
-        run: chmod +x gradlew
-
-      - name: Update version
+      # 7. Update Android version
+      - name: Update Android version
         working-directory: frontend/android/app
         run: |
           sed -i "s/versionCode [0-9]*/versionCode ${{ github.event.inputs.version_code }}/" build.gradle
           sed -i "s/versionName \".*\"/versionName \"${{ github.event.inputs.version_name }}\"/" build.gradle
 
+      # 8. Sync Capacitor
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync android
+
+      # 9. Make gradlew executable
+      - name: Make gradlew executable
+        working-directory: frontend/android
+        run: chmod +x gradlew
+
+      # 10. Build Release APK
       - name: Build Release APK
         working-directory: frontend/android
         run: ./gradlew assembleRelease
 
+      # 11. Sign APK (debug key for now)
+      - name: Sign APK
+        working-directory: frontend/android
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -keypass android \
+              -dname "CN=Fast Haazir,O=Fast Haazir,C=PK"
+          fi
+
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          ${ANDROID_SDK_ROOT}/build-tools/34.0.0/apksigner sign \
+            --ks ~/.android/debug.keystore \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out app/build/outputs/apk/release/fast-haazir-release.apk \
+            "$APK"
+
+      # 12. Upload APK
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: fast-haazir-release-apk
+          name: fast-haazir-release
           path: frontend/android/app/build/outputs/apk/release/*.apk
