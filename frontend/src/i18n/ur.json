@@ -109,6 +109,27 @@
     "mins": "منٹ",
     "km": "کلومیٹر"
   },
+  "categories": {
+    "pizza": "پیزا",
+    "biryani": "بریانی",
+    "burger": "برگر",
+    "chinese": "چائنیز",
+    "karahi": "کڑاہی",
+    "bbq": "بی بی کیو",
+    "chai": "چائے",
+    "sweets": "ڈیزرٹ",
+    "shawarma": "شوارما",
+    "tikka": "تکہ",
+    "paratha": "پراٹھا",
+    "sandwich": "سینڈوچ",
+    "pasta": "پاستا",
+    "seafood": "سی فوڈ",
+    "drinks": "مشروبات",
+    "breakfast": "ناشتہ",
+    "grocery": "گروسری",
+    "bakery": "بیکری",
+    "medical": "میڈیکل"
+  },
   "restaurants": {
     "title": "ریستوران",
     "placesNearYou": "آپ کے قریب جگہیں",
