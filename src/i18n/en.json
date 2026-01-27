@@ -162,7 +162,10 @@
     "pasta": "Pasta",
     "seafood": "Seafood",
     "drinks": "Drinks",
-    "breakfast": "Breakfast"
+    "breakfast": "Breakfast",
+    "grocery": "Grocery",
+    "bakery": "Bakery",
+    "medical": "Medical"
   },
   "restaurants": {
     "title": "Restaurants",

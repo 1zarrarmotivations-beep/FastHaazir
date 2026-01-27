@@ -109,6 +109,27 @@
     "mins": "mins",
     "km": "km"
   },
+  "categories": {
+    "pizza": "Pizza",
+    "biryani": "Biryani",
+    "burger": "Burger",
+    "chinese": "Chinese",
+    "karahi": "Karahi",
+    "bbq": "BBQ",
+    "chai": "Chai",
+    "sweets": "Desserts",
+    "shawarma": "Shawarma",
+    "tikka": "Tikka",
+    "paratha": "Paratha",
+    "sandwich": "Sandwich",
+    "pasta": "Pasta",
+    "seafood": "Seafood",
+    "drinks": "Drinks",
+    "breakfast": "Breakfast",
+    "grocery": "Grocery",
+    "bakery": "Bakery",
+    "medical": "Medical"
+  },
   "restaurants": {
     "title": "Restaurants",
     "placesNearYou": "places near you",

@@ -167,7 +167,10 @@
     "pasta": "پاستا",
     "seafood": "سی فوڈ",
     "drinks": "مشروبات",
-    "breakfast": "ناشتہ"
+    "breakfast": "ناشتہ",
+    "grocery": "گروسری",
+    "bakery": "بیکری",
+    "medical": "میڈیکل"
   },
   "search": {
     "trending": "مقبول تلاش",
