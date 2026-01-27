@@ -36,6 +36,7 @@ const menuItems = [
   { id: "users", label: "Users & Roles", icon: UserCog },
   { id: "riders", label: "Riders", icon: Bike },
   { id: "earnings", label: "Rider Earnings", icon: DollarSign },
+  { id: "wallet-adjustments", label: "Cash Advances", icon: Wallet },
   { id: "withdrawals", label: "Withdrawals", icon: Wallet },
   { id: "businesses", label: "Businesses", icon: Store },
   { id: "orders", label: "Orders", icon: ShoppingBag },

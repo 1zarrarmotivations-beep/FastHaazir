@@ -14,15 +14,18 @@ import {
   X,
   ArrowDownLeft,
   ArrowUpRight,
-  Navigation
+  Navigation,
+  ArrowUpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRiderPayments, useRiderEarningsSummary } from '@/hooks/useRiderPayments';
+import { useRiderWalletSummary } from '@/hooks/useWalletAdjustments';
 import { format, isToday, isThisWeek, isThisMonth, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import WithdrawalRequestPanel from './WithdrawalRequestPanel';
+import WalletLedgerSection from './WalletLedgerSection';
 
 interface RiderWalletPanelProps {
   riderId: string;
@@ -37,6 +40,7 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const { data: payments = [], isLoading: paymentsLoading } = useRiderPayments(riderId);
   const { data: summary, isLoading: summaryLoading } = useRiderEarningsSummary(riderId);
+  const { data: walletSummary } = useRiderWalletSummary(riderId);
 
   // Filter payments by time range
   const filteredPayments = payments.filter(payment => {
@@ -109,18 +113,26 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
         {/* Balance Card */}
         <Card className="gradient-primary text-primary-foreground p-5 rounded-2xl shadow-elevated">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm opacity-80">Wallet Balance</p>
-            <Badge variant="secondary" className="bg-white/20 text-white border-0">
-              <Gift className="w-3 h-3 mr-1" />
-              +Rs {rangeBonuses} bonus
-            </Badge>
+            <p className="text-sm opacity-80">Total Balance</p>
+            {(walletSummary?.cashAdvances || 0) > 0 && (
+              <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                <ArrowUpCircle className="w-3 h-3 mr-1" />
+                +Rs {walletSummary?.cashAdvances} advance
+              </Badge>
+            )}
           </div>
-          <p className="text-4xl font-bold mb-2">Rs {summary?.pendingEarnings || 0}</p>
-          <div className="flex items-center gap-4 text-sm opacity-80">
+          <p className="text-4xl font-bold mb-2">Rs {walletSummary?.netBalance || summary?.pendingEarnings || 0}</p>
+          <div className="flex flex-wrap items-center gap-3 text-sm opacity-80">
             <span className="flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
-              Total: Rs {summary?.totalEarnings || 0}
+              Earnings: Rs {summary?.totalEarnings || 0}
             </span>
+            {(walletSummary?.cashAdvances || 0) > 0 && (
+              <span className="flex items-center gap-1">
+                <ArrowUpCircle className="w-4 h-4" />
+                Advances: Rs {walletSummary?.cashAdvances}
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <CheckCircle className="w-4 h-4" />
               Paid: Rs {summary?.paidEarnings || 0}
@@ -178,6 +190,9 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
             <p className="text-xs text-muted-foreground">Bonuses</p>
           </Card>
         </div>
+
+        {/* Admin Credits & Adjustments */}
+        <WalletLedgerSection riderId={riderId} />
 
         {/* Transaction History */}
         <div>
