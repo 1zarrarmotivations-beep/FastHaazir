@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import CategoryGrid from '@/components/customer/CategoryGrid';
-import PromoBanner from '@/components/customer/PromoBanner';
+import BannerCarousel from '@/components/customer/BannerCarousel';
 import SearchOverlay from '@/components/customer/SearchOverlay';
 import BottomNav from '@/components/BottomNav';
 import CoreActions from '@/components/CoreActions';
@@ -63,7 +63,7 @@ const Index: React.FC = () => {
       
       <main>
         {/* Promo Banner */}
-        <PromoBanner />
+        <BannerCarousel />
 
         {/* Category Grid */}
         <CategoryGrid />

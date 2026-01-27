@@ -511,52 +511,88 @@ export type Database = {
         Row: {
           background_type: string
           background_value: string
+          business_id: string | null
+          button_text_en: string | null
+          button_text_ur: string | null
           click_action: string
           created_at: string
           description_en: string | null
           description_ur: string | null
           display_order: number
+          end_date: string | null
           external_url: string | null
           heading_en: string
           heading_ur: string
           icon: string | null
           id: string
           is_active: boolean
+          start_date: string | null
+          subtitle_en: string | null
+          subtitle_ur: string | null
           updated_at: string
         }
         Insert: {
           background_type?: string
           background_value?: string
+          business_id?: string | null
+          button_text_en?: string | null
+          button_text_ur?: string | null
           click_action?: string
           created_at?: string
           description_en?: string | null
           description_ur?: string | null
           display_order?: number
+          end_date?: string | null
           external_url?: string | null
           heading_en?: string
           heading_ur?: string
           icon?: string | null
           id?: string
           is_active?: boolean
+          start_date?: string | null
+          subtitle_en?: string | null
+          subtitle_ur?: string | null
           updated_at?: string
         }
         Update: {
           background_type?: string
           background_value?: string
+          business_id?: string | null
+          button_text_en?: string | null
+          button_text_ur?: string | null
           click_action?: string
           created_at?: string
           description_en?: string | null
           description_ur?: string | null
           display_order?: number
+          end_date?: string | null
           external_url?: string | null
           heading_en?: string
           heading_ur?: string
           icon?: string | null
           id?: string
           is_active?: boolean
+          start_date?: string | null
+          subtitle_en?: string | null
+          subtitle_ur?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "promo_banners_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_banners_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "public_business_info"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_businesses: {
         Row: {
