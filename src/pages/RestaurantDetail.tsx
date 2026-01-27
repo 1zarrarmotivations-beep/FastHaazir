@@ -10,6 +10,7 @@ import FloatingCart from '@/components/FloatingCart';
 import { useBusiness } from '@/hooks/useBusinesses';
 import { useMenuItems } from '@/hooks/useMenuItems';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatCategoryName, formatItemName, formatPrice } from '@/lib/textFormatters';
 
 const RestaurantDetail: React.FC = () => {
   const navigate = useNavigate();
@@ -126,7 +127,7 @@ const RestaurantDetail: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: catIndex * 0.1 }}
             >
-              <h2 className="font-bold text-lg mb-3">{category.category}</h2>
+              <h2 className="font-bold text-lg mb-3">{formatCategoryName(category.category)}</h2>
               <div className="space-y-3">
                 {category.items.map((item, itemIndex) => {
                   const quantity = getItemQuantity(item.id);
@@ -149,7 +150,7 @@ const RestaurantDetail: React.FC = () => {
                             <div className="flex items-start justify-between">
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h3 className="font-semibold text-sm">{item.name}</h3>
+                                  <h3 className="font-semibold text-sm">{formatItemName(item.name)}</h3>
                                   {item.is_popular && (
                                     <Badge variant="success" className="text-[10px] px-2 py-0.5">
                                       Popular
@@ -157,7 +158,7 @@ const RestaurantDetail: React.FC = () => {
                                   )}
                                 </div>
                                 <p className="text-primary font-bold mt-1">
-                                  Rs. {item.price.toLocaleString()}
+                                  {formatPrice(item.price)}
                                 </p>
                               </div>
                             </div>

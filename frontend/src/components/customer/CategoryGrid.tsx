@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { formatCategoryName } from '@/lib/textFormatters';
 
 interface Category {
   id: string;
@@ -55,7 +56,7 @@ const CategoryGrid: React.FC = () => {
               <span className="text-2xl">{category.emoji}</span>
             </div>
             <span className="text-[10px] font-medium text-foreground text-center leading-tight">
-              {t(category.nameKey, category.id)}
+              {formatCategoryName(t(category.nameKey, category.id))}
             </span>
           </motion.button>
         ))}
