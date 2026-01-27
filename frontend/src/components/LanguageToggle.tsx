@@ -27,13 +27,18 @@ const LanguageToggle = ({ variant = 'default', className = '' }: LanguageToggleP
 
   useEffect(() => {
     // Sync state when language changes externally
-    const handleLanguageChange = () => {
+    const handleLanguageChanged = () => {
       setCurrentLang(getCurrentLanguage());
     };
     
-    // Listen for language changes
-    window.addEventListener('languagechange', handleLanguageChange);
-    return () => window.removeEventListener('languagechange', handleLanguageChange);
+    // Listen for both native and custom events
+    window.addEventListener('languagechange', handleLanguageChanged);
+    window.addEventListener('languageChanged', handleLanguageChanged);
+    
+    return () => {
+      window.removeEventListener('languagechange', handleLanguageChanged);
+      window.removeEventListener('languageChanged', handleLanguageChanged);
+    };
   }, []);
 
   const handleLanguageChange = (lang: LanguageCode) => {
