@@ -507,6 +507,57 @@ export type Database = {
           },
         ]
       }
+      promo_banners: {
+        Row: {
+          background_type: string
+          background_value: string
+          click_action: string
+          created_at: string
+          description_en: string | null
+          description_ur: string | null
+          display_order: number
+          external_url: string | null
+          heading_en: string
+          heading_ur: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          background_type?: string
+          background_value?: string
+          click_action?: string
+          created_at?: string
+          description_en?: string | null
+          description_ur?: string | null
+          display_order?: number
+          external_url?: string | null
+          heading_en?: string
+          heading_ur?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          background_type?: string
+          background_value?: string
+          click_action?: string
+          created_at?: string
+          description_en?: string | null
+          description_ur?: string | null
+          display_order?: number
+          external_url?: string | null
+          heading_en?: string
+          heading_ur?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       public_businesses: {
         Row: {
           category: string | null

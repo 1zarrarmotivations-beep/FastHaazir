@@ -17,6 +17,7 @@ import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
+import PromoBannerManager from "@/components/admin/PromoBannerManager";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
@@ -182,6 +183,16 @@ export default function Admin() {
               <p className="text-muted-foreground">Configure rider payment rates</p>
             </div>
             <PaymentSettingsManager />
+          </div>
+        );
+      case "promo-banner":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Special Offer Banner</h2>
+              <p className="text-muted-foreground">Manage promotional banner on customer home screen</p>
+            </div>
+            <PromoBannerManager />
           </div>
         );
       default:
