@@ -56,7 +56,7 @@ const PROPER_NOUNS: Record<string, string> = {
   'lunch': 'Lunch',
   'dinner': 'Dinner',
   'snacks': 'Snacks',
-  'sweets': 'Sweets',
+  'sweets': 'Desserts',
   'bakery': 'Bakery',
   'grocery': 'Grocery',
 };
