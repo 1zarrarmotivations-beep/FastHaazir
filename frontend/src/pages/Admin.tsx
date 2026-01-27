@@ -17,6 +17,7 @@ import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
 import EnhancedPaymentSettings from "@/components/admin/EnhancedPaymentSettings";
 import WithdrawalsManager from "@/components/admin/WithdrawalsManager";
+import WalletAdjustmentsManager from "@/components/admin/WalletAdjustmentsManager";
 import CategoryPricingManager from "@/components/admin/CategoryPricingManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
@@ -196,6 +197,16 @@ export default function Admin() {
               <p className="text-muted-foreground">Manage rider withdrawal requests and settlements</p>
             </div>
             <WithdrawalsManager />
+          </div>
+        );
+      case "wallet-adjustments":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Cash Advances & Adjustments</h2>
+              <p className="text-muted-foreground">Add money to rider wallets, manage advances and settlements</p>
+            </div>
+            <WalletAdjustmentsManager />
           </div>
         );
       case "category-pricing":

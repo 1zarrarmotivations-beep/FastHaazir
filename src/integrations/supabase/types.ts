@@ -957,6 +957,79 @@ export type Database = {
           },
         ]
       }
+      rider_wallet_adjustments: {
+        Row: {
+          adjustment_type: string
+          amount: number
+          created_at: string
+          created_by: string
+          id: string
+          linked_order_id: string | null
+          linked_rider_request_id: string | null
+          reason: string
+          rider_id: string
+          settled_at: string | null
+          settled_by: string | null
+          settled_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adjustment_type?: string
+          amount: number
+          created_at?: string
+          created_by: string
+          id?: string
+          linked_order_id?: string | null
+          linked_rider_request_id?: string | null
+          reason: string
+          rider_id: string
+          settled_at?: string | null
+          settled_by?: string | null
+          settled_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          adjustment_type?: string
+          amount?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          linked_order_id?: string | null
+          linked_rider_request_id?: string | null
+          reason?: string
+          rider_id?: string
+          settled_at?: string | null
+          settled_by?: string | null
+          settled_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_wallet_adjustments_linked_order_id_fkey"
+            columns: ["linked_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rider_wallet_adjustments_linked_rider_request_id_fkey"
+            columns: ["linked_rider_request_id"]
+            isOneToOne: false
+            referencedRelation: "rider_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rider_wallet_adjustments_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       riders: {
         Row: {
           claimed: boolean | null
