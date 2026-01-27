@@ -1,0 +1,82 @@
+name: Generate SHA Keys (Debug & Release)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-sha:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ===============================
+      # DEBUG KEY SHA
+      # ===============================
+      - name: Generate Debug SHA Keys
+        run: |
+          echo "======================================"
+          echo "🔑 DEBUG APP SHA KEYS"
+          echo "======================================"
+
+          mkdir -p ~/.android
+
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair \
+              -alias androiddebugkey \
+              -keystore ~/.android/debug.keystore \
+              -storepass android \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Fast Haazir Debug,O=Fast Haazir,C=PK"
+          fi
+
+          keytool -list -v \
+            -keystore ~/.android/debug.keystore \
+            -alias androiddebugkey \
+            -storepass android
+
+      # ===============================
+      # RELEASE KEY SHA
+      # ===============================
+      - name: Generate Release SHA Keys
+        run: |
+          echo "======================================"
+          echo "🔐 RELEASE APP SHA KEYS"
+          echo "======================================"
+
+          keytool -genkeypair -v \
+            -keystore fast-haazir-release.keystore \
+            -alias fast_haazir \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass fasthaazir123 \
+            -keypass fasthaazir123 \
+            -dname "CN=Fast Haazir,O=Fast Haazir,C=PK"
+
+          keytool -list -v \
+            -keystore fast-haazir-release.keystore \
+            -alias fast_haazir \
+            -storepass fasthaazir123
+
+      # ===============================
+      # SUMMARY
+      # ===============================
+      - name: SHA Keys Summary
+        run: |
+          echo "======================================"
+          echo "✅ SHA KEYS GENERATED SUCCESSFULLY"
+          echo "======================================"
+          echo "📌 Copy SHA-1 & SHA-256 from logs above"
+          echo "📌 Add both Debug + Release to Firebase"
+          echo "======================================"
