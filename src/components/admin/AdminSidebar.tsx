@@ -14,7 +14,9 @@ import {
   Settings,
   Send,
   MessageCircle,
-  Sparkles
+  Sparkles,
+  Wallet,
+  Tag
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +36,7 @@ const menuItems = [
   { id: "users", label: "Users & Roles", icon: UserCog },
   { id: "riders", label: "Riders", icon: Bike },
   { id: "earnings", label: "Rider Earnings", icon: DollarSign },
+  { id: "withdrawals", label: "Withdrawals", icon: Wallet },
   { id: "businesses", label: "Businesses", icon: Store },
   { id: "orders", label: "Orders", icon: ShoppingBag },
   { id: "requests", label: "Rider Requests", icon: Users },
@@ -42,6 +45,7 @@ const menuItems = [
   { id: "push-notifications", label: "Push Center", icon: Send },
   { id: "promo-banner", label: "Banners", icon: Sparkles },
   { id: "payment-settings", label: "Payment Settings", icon: Settings },
+  { id: "category-pricing", label: "Category Pricing", icon: Tag },
 ];
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {

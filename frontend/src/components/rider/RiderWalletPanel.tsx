@@ -13,7 +13,8 @@ import {
   Gift,
   X,
   ArrowDownLeft,
-  ArrowUpRight
+  ArrowUpRight,
+  Navigation
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRiderPayments, useRiderEarningsSummary } from '@/hooks/useRiderPayments';
 import { format, isToday, isThisWeek, isThisMonth, startOfDay, startOfWeek, startOfMonth } from 'date-fns';
+import WithdrawalRequestPanel from './WithdrawalRequestPanel';
 
 interface RiderWalletPanelProps {
   riderId: string;
@@ -32,6 +34,7 @@ type TimeRange = 'today' | 'week' | 'month' | 'all';
 
 const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) => {
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
+  const [showWithdrawal, setShowWithdrawal] = useState(false);
   const { data: payments = [], isLoading: paymentsLoading } = useRiderPayments(riderId);
   const { data: summary, isLoading: summaryLoading } = useRiderEarningsSummary(riderId);
 
@@ -54,6 +57,7 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
   const rangeEarnings = filteredPayments.reduce((sum, p) => sum + (p.final_amount || 0), 0);
   const rangeBonuses = filteredPayments.reduce((sum, p) => sum + (p.bonus || 0), 0);
   const rangeDeliveries = filteredPayments.length;
+  const rangeDistance = filteredPayments.reduce((sum, p) => sum + (p.distance_km || 0), 0);
 
   const statusConfig = {
     pending: { label: 'Pending', color: 'text-yellow-500', bg: 'bg-yellow-500/10', icon: Clock },
@@ -61,7 +65,22 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
     paid: { label: 'Paid', color: 'text-accent', bg: 'bg-accent/10', icon: CheckCircle },
   };
 
+  // Open Google Maps for navigation
+  const openGoogleMaps = (lat: number, lng: number) => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+  };
+
   if (!isOpen) return null;
+
+  if (showWithdrawal) {
+    return (
+      <WithdrawalRequestPanel 
+        riderId={riderId} 
+        isOpen={showWithdrawal} 
+        onClose={() => setShowWithdrawal(false)} 
+      />
+    );
+  }
 
   return (
     <motion.div
@@ -111,6 +130,16 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
       </div>
 
       <div className="p-4 space-y-4">
+        {/* Withdraw Button */}
+        <Button 
+          onClick={() => setShowWithdrawal(true)}
+          className="w-full bg-accent hover:bg-accent/90"
+          size="lg"
+        >
+          <ArrowUpRight className="w-5 h-5 mr-2" />
+          Request Withdrawal
+        </Button>
+
         {/* Time Range Selector */}
         <div className="flex gap-2">
           {(['today', 'week', 'month', 'all'] as TimeRange[]).map(range => (
@@ -127,7 +156,7 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card className="p-4 text-center">
             <DollarSign className="w-5 h-5 text-primary mx-auto mb-2" />
             <p className="text-lg font-bold text-foreground">Rs {rangeEarnings}</p>
@@ -137,6 +166,11 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
             <TrendingUp className="w-5 h-5 text-accent mx-auto mb-2" />
             <p className="text-lg font-bold text-foreground">{rangeDeliveries}</p>
             <p className="text-xs text-muted-foreground">Deliveries</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <Navigation className="w-5 h-5 text-blue-500 mx-auto mb-2" />
+            <p className="text-lg font-bold text-foreground">{rangeDistance.toFixed(1)} km</p>
+            <p className="text-xs text-muted-foreground">Distance</p>
           </Card>
           <Card className="p-4 text-center">
             <Gift className="w-5 h-5 text-orange-500 mx-auto mb-2" />
@@ -186,7 +220,7 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
-                              {payment.distance_km.toFixed(1)} km • Rs {payment.base_fee} base + Rs {payment.per_km_rate}/km
+                              {payment.distance_km.toFixed(1)} km • Rs {payment.base_fee} + Rs {payment.per_km_rate}/km
                             </span>
                             <Badge className={`${status.bg} ${status.color} border-0 text-xs`}>
                               {status.label}
@@ -214,26 +248,6 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
             </div>
           )}
         </div>
-
-        {/* Withdrawal Section */}
-        <Card className="p-4 bg-muted/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <ArrowUpRight className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Request Withdrawal</p>
-                <p className="text-xs text-muted-foreground">
-                  Pending balance: Rs {summary?.pendingEarnings || 0}
-                </p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" disabled>
-              Coming Soon
-            </Button>
-          </div>
-        </Card>
 
         {/* Spacer for bottom nav */}
         <div className="h-20" />
