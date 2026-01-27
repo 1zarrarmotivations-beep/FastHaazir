@@ -51,7 +51,7 @@ i18n
     },
   });
 
-// Function to change language and update document direction
+// Function to change language and update document direction + font
 // HYBRID RTL APPROACH: Layout stays LTR, only text direction changes for Urdu
 export const changeLanguage = (lang: LanguageCode) => {
   i18n.changeLanguage(lang);
@@ -63,17 +63,22 @@ export const changeLanguage = (lang: LanguageCode) => {
     console.warn('Could not save language preference');
   }
   
-  // HYBRID RTL: Keep document direction LTR always to preserve layouts
-  // Only add lang class for text styling
+  // Update HTML element attributes
   document.documentElement.lang = lang;
   document.documentElement.dir = 'ltr'; // Always LTR for layout stability
   
-  // Add language class for CSS hooks (NOT RTL class)
+  // Update language class for CSS font switching
   document.documentElement.classList.remove('lang-en', 'lang-ur');
   document.documentElement.classList.add(`lang-${lang}`);
   
-  // Remove old rtl/ltr classes that break layouts
-  document.documentElement.classList.remove('rtl', 'ltr');
+  // Update body class for additional styling hooks
+  document.body.classList.remove('lang-en', 'lang-ur');
+  document.body.classList.add(`lang-${lang}`);
+  
+  // Trigger a custom event for components that need to react
+  window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
+  
+  console.log(`[i18n] Language changed to: ${lang}`);
 };
 
 // Initialize language class on load (NOT direction - keep LTR for layouts)
