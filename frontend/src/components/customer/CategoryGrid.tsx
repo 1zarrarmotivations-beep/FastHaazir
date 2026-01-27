@@ -34,7 +34,7 @@ const CategoryGrid: React.FC = () => {
           {t('home.categories', 'اقسام')} 🍽️
         </h2>
         <button 
-          onClick={() => navigate('/restaurants')}
+          onClick={() => navigate('/categories')}
           className="text-xs text-primary font-medium"
         >
           {t('common.viewAll', 'سب دیکھیں')}

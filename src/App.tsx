@@ -17,6 +17,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const AssignRider = lazy(() => import("./pages/AssignRider"));
 const RestaurantDetail = lazy(() => import("./pages/RestaurantDetail"));
 const Restaurants = lazy(() => import("./pages/Restaurants"));
+const Categories = lazy(() => import("./pages/Categories"));
 const Grocery = lazy(() => import("./pages/Grocery"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Orders = lazy(() => import("./pages/Orders"));
@@ -59,6 +60,7 @@ const App = () => (
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
                     <Route path="/assign-rider" element={<AssignRider />} />
+                    <Route path="/categories" element={<Categories />} />
                     <Route path="/restaurants" element={<Restaurants />} />
                     <Route path="/grocery" element={<Grocery />} />
                     <Route path="/restaurant/:id" element={<RestaurantDetail />} />
