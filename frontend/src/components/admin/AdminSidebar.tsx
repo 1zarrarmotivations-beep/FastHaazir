@@ -13,7 +13,8 @@ import {
   Bell,
   Settings,
   Send,
-  MessageCircle
+  MessageCircle,
+  Sparkles
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,6 +40,7 @@ const menuItems = [
   { id: "live-map", label: "Live Map", icon: MapPin },
   { id: "notifications", label: "In-App Alerts", icon: Bell },
   { id: "push-notifications", label: "Push Center", icon: Send },
+  { id: "promo-banner", label: "Special Offer", icon: Sparkles },
   { id: "payment-settings", label: "Payment Settings", icon: Settings },
 ];
 
