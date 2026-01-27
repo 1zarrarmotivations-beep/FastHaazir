@@ -1,0 +1,73 @@
+name: Build Release APK (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version name (e.g. 1.0.0)"
+        required: true
+      version_code:
+        description: "Version code (e.g. 1)"
+        required: true
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Create env file
+        working-directory: frontend
+        run: |
+          cat <<EOF > .env
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY=${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          NODE_ENV=production
+          VITE_APP_VERSION=${{ github.event.inputs.version_name }}
+          VITE_BUILD_NUMBER=${{ github.event.inputs.version_code }}
+          EOF
+
+      - name: Build web
+        working-directory: frontend
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        working-directory: frontend/android
+        run: chmod +x gradlew
+
+      - name: Update version
+        working-directory: frontend/android/app
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.event.inputs.version_code }}/" build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${{ github.event.inputs.version_name }}\"/" build.gradle
+
+      - name: Build Release APK
+        working-directory: frontend/android
+        run: ./gradlew assembleRelease
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-haazir-release-apk
+          path: frontend/android/app/build/outputs/apk/release/*.apk
