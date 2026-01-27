@@ -14,6 +14,9 @@ import { UsersManager } from "@/components/admin/UsersManager";
 import { SystemNotifications } from "@/components/admin/SystemNotifications";
 import RiderPaymentsManager from "@/components/admin/RiderPaymentsManager";
 import PaymentSettingsManager from "@/components/admin/PaymentSettingsManager";
+import EnhancedPaymentSettings from "@/components/admin/EnhancedPaymentSettings";
+import WithdrawalsManager from "@/components/admin/WithdrawalsManager";
+import CategoryPricingManager from "@/components/admin/CategoryPricingManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import BannersManager from "@/components/admin/BannersManager";
@@ -192,9 +195,29 @@ export default function Admin() {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">Payment Settings</h2>
-              <p className="text-muted-foreground">Configure rider payment rates</p>
+              <p className="text-muted-foreground">Configure delivery fees and rider earnings</p>
             </div>
-            <PaymentSettingsManager />
+            <EnhancedPaymentSettings />
+          </div>
+        );
+      case "withdrawals":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Withdrawal Requests</h2>
+              <p className="text-muted-foreground">Manage rider withdrawal requests and settlements</p>
+            </div>
+            <WithdrawalsManager />
+          </div>
+        );
+      case "category-pricing":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Category Pricing</h2>
+              <p className="text-muted-foreground">Set different rates for each delivery category</p>
+            </div>
+            <CategoryPricingManager />
           </div>
         );
       case "promo-banner":

@@ -137,6 +137,39 @@ export type Database = {
         }
         Relationships: []
       }
+      category_pricing: {
+        Row: {
+          base_fee: number
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          min_payment: number
+          per_km_rate: number
+          updated_at: string
+        }
+        Insert: {
+          base_fee?: number
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          min_payment?: number
+          per_km_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          base_fee?: number
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          min_payment?: number
+          per_km_rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           created_at: string
@@ -717,8 +750,11 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean | null
+          max_delivery_radius_km: number | null
+          min_order_value: number | null
           min_payment: number
           per_km_rate: number
+          rider_base_earning: number | null
           updated_at: string
         }
         Insert: {
@@ -726,8 +762,11 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          max_delivery_radius_km?: number | null
+          min_order_value?: number | null
           min_payment?: number
           per_km_rate?: number
+          rider_base_earning?: number | null
           updated_at?: string
         }
         Update: {
@@ -735,8 +774,11 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          max_delivery_radius_km?: number | null
+          min_order_value?: number | null
           min_payment?: number
           per_km_rate?: number
+          rider_base_earning?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -746,15 +788,20 @@ export type Database = {
           base_fee: number
           bonus: number | null
           calculated_amount: number
+          category: string | null
           created_at: string
           customer_lat: number | null
           customer_lng: number | null
+          delivery_km: number | null
           distance_km: number
           final_amount: number
           id: string
           order_id: string | null
           penalty: number | null
           per_km_rate: number
+          pickup_km: number | null
+          pickup_lat: number | null
+          pickup_lng: number | null
           rider_id: string
           rider_lat: number | null
           rider_lng: number | null
@@ -766,15 +813,20 @@ export type Database = {
           base_fee?: number
           bonus?: number | null
           calculated_amount?: number
+          category?: string | null
           created_at?: string
           customer_lat?: number | null
           customer_lng?: number | null
+          delivery_km?: number | null
           distance_km?: number
           final_amount?: number
           id?: string
           order_id?: string | null
           penalty?: number | null
           per_km_rate?: number
+          pickup_km?: number | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           rider_id: string
           rider_lat?: number | null
           rider_lng?: number | null
@@ -786,15 +838,20 @@ export type Database = {
           base_fee?: number
           bonus?: number | null
           calculated_amount?: number
+          category?: string | null
           created_at?: string
           customer_lat?: number | null
           customer_lng?: number | null
+          delivery_km?: number | null
           distance_km?: number
           final_amount?: number
           id?: string
           order_id?: string | null
           penalty?: number | null
           per_km_rate?: number
+          pickup_km?: number | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           rider_id?: string
           rider_lat?: number | null
           rider_lng?: number | null
@@ -986,6 +1043,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          payment_method: string | null
+          payment_reference: string | null
+          processed_at: string | null
+          processed_by: string | null
+          rider_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          rider_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          rider_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "riders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
