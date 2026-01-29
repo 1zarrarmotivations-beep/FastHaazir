@@ -20,6 +20,7 @@ import CategoryPricingManager from "@/components/admin/CategoryPricingManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import BannersManager from "@/components/admin/BannersManager";
+import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -240,8 +241,9 @@ export default function Admin() {
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="flex-1 lg:ml-0 min-h-screen">
-        {/* Language Toggle in top-right corner */}
-        <div className="absolute top-4 right-4 z-50 lg:right-8">
+        {/* Top bar with notification badge and language toggle */}
+        <div className="absolute top-4 right-4 z-50 lg:right-8 flex items-center gap-3">
+          <AdminOrderNotificationBadge onTabChange={setActiveTab} />
           <LanguageToggle variant="compact" />
         </div>
         <div className="p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
