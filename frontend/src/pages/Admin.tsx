@@ -22,6 +22,7 @@ import CategoryPricingManager from "@/components/admin/CategoryPricingManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import BannersManager from "@/components/admin/BannersManager";
+import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
 import LanguageToggle from "@/components/LanguageToggle";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
@@ -243,6 +244,7 @@ export default function Admin() {
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <h1 className="text-lg font-semibold text-foreground">{t('admin.adminPanel')}</h1>
           <div className="flex items-center gap-3">
+            <AdminOrderNotificationBadge onTabChange={setActiveTab} />
             <LanguageToggle variant="admin" />
           </div>
         </div>
