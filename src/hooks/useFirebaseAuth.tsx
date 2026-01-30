@@ -10,8 +10,6 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   onAuthStateChanged,
   signOut as firebaseSignOutFn,
 } from "@/lib/firebase";
@@ -94,23 +92,6 @@ export const useFirebaseAuth = () => {
 
       if (success && auth) {
         console.log(`[useFirebaseAuth] Firebase ready ✓ (${platform})`);
-        
-        // Check for redirect result from Google Sign-In (Android)
-        if (isRunningInNativeApp()) {
-          try {
-            console.log("[useFirebaseAuth] Checking for Google redirect result (Android)...");
-            const result = await getRedirectResult(auth);
-            if (result?.user) {
-              console.log("[useFirebaseAuth] Google redirect successful ✓", result.user.email);
-            }
-          } catch (error: any) {
-            console.error("[useFirebaseAuth] Google redirect error:", error);
-            if (error?.code === 'auth/invalid-app-credential') {
-              console.error("[useFirebaseAuth] CRITICAL: SHA fingerprint mismatch or OAuth client not configured!");
-            }
-          }
-        }
-        
         unsubscribe = onAuthStateChanged(auth, (user: any) => {
           console.log("[useFirebaseAuth] Auth state changed:", user?.email || user?.phoneNumber || "null");
           setAuthState({
@@ -340,15 +321,34 @@ export const useFirebaseAuth = () => {
         return true;
       } catch (error: any) {
         console.error("[useFirebaseAuth] Send OTP error:", error);
+        console.error("[useFirebaseAuth] Error code:", error?.code);
+        console.error("[useFirebaseAuth] Error message:", error?.message);
         confirmationResultRef.current = null;
 
+        // Comprehensive error mapping for phone auth
         let errorMessage = "Failed to send OTP.";
-        if (error?.code === "auth/too-many-requests") {
-          errorMessage = "Too many attempts. Please try again later.";
-        } else if (error?.code === "auth/quota-exceeded") {
+        const errorCode = error?.code || '';
+        
+        if (errorCode === "auth/too-many-requests") {
+          errorMessage = "Too many attempts. Please wait a few minutes and try again.";
+        } else if (errorCode === "auth/quota-exceeded") {
           errorMessage = "SMS quota exceeded. Please try again tomorrow.";
-        } else if (error?.code === "auth/captcha-check-failed") {
+        } else if (errorCode === "auth/captcha-check-failed") {
           errorMessage = "Security check failed. Please refresh the page.";
+        } else if (errorCode === "auth/invalid-app-credential") {
+          // CRITICAL: This usually means SHA fingerprints are missing in Firebase Console
+          errorMessage = isRunningInNativeApp()
+            ? "App verification failed. Please update the app or contact support."
+            : "Security verification failed. Please refresh and try again.";
+          console.error("[useFirebaseAuth] CRITICAL: invalid-app-credential - Check Firebase Console SHA fingerprints!");
+        } else if (errorCode === "auth/missing-app-credential") {
+          errorMessage = "App credentials missing. Please restart the app.";
+        } else if (errorCode === "auth/invalid-phone-number") {
+          errorMessage = "Invalid phone number. Please enter a valid Pakistani mobile.";
+        } else if (errorCode === "auth/network-request-failed") {
+          errorMessage = "Network error. Please check your internet connection.";
+        } else if (errorCode === "auth/operation-not-allowed") {
+          errorMessage = "Phone authentication is not enabled. Contact support.";
         } else if (error?.message) {
           errorMessage = error.message;
         }
@@ -502,14 +502,11 @@ export const useFirebaseAuth = () => {
   }, []);
 
   /**
-   * Sign in with Google - Platform-specific implementation
-   * Web: Uses popup (reliable in browser)
-   * Android: Uses redirect (WebView-compatible)
+   * Sign in with Google
    */
   const signInWithGoogle = useCallback(async (): Promise<any> => {
     const auth = getFirebaseAuth();
     const provider = getGoogleProvider();
-    const isNative = isRunningInNativeApp();
     
     if (!auth || !provider) {
       setEmailAuthState({ loading: false, error: "Google sign-in not ready." });
@@ -519,35 +516,18 @@ export const useFirebaseAuth = () => {
     setEmailAuthState({ loading: true, error: null });
 
     try {
-      if (isNative) {
-        // Android: Use redirect (WebView-compatible)
-        console.log("[useFirebaseAuth] Starting Google sign-in (Android redirect)...");
-        await signInWithRedirect(auth, provider);
-        // Result will be handled in init() after redirect
-        return null;
-      } else {
-        // Web: Use popup (faster, more reliable in browser)
-        console.log("[useFirebaseAuth] Starting Google sign-in (Web popup)...");
-        const result = await signInWithPopup(auth, provider);
-        setEmailAuthState({ loading: false, error: null });
-        console.log("[useFirebaseAuth] Google sign-in successful ✓");
-        return result.user;
-      }
+      console.log("[useFirebaseAuth] Starting Google sign-in...");
+      const result = await signInWithPopup(auth, provider);
+      setEmailAuthState({ loading: false, error: null });
+      console.log("[useFirebaseAuth] Google sign-in successful ✓");
+      return result.user;
     } catch (error: any) {
       console.error("[useFirebaseAuth] Google sign-in error:", error);
-      console.error("[useFirebaseAuth] Error code:", error?.code);
-      console.error("[useFirebaseAuth] Error details:", error?.message);
-      
       let errorMessage = "Google sign-in failed. Please try again.";
       if (error?.code === "auth/popup-closed-by-user") {
         errorMessage = "Sign-in cancelled.";
       } else if (error?.code === "auth/popup-blocked") {
         errorMessage = "Pop-up blocked. Please allow pop-ups for this site.";
-      } else if (error?.code === "auth/invalid-app-credential") {
-        errorMessage = "Configuration error. Please check Firebase setup.";
-        console.error("[useFirebaseAuth] CRITICAL: SHA fingerprint mismatch or OAuth client not configured!");
-      } else if (error?.code === "auth/unauthorized-domain") {
-        errorMessage = "Domain not authorized. Please add this domain to Firebase.";
       }
       
       setEmailAuthState({ loading: false, error: errorMessage });

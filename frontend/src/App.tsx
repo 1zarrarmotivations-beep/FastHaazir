@@ -9,6 +9,7 @@ import ChatNotificationProvider from "@/components/chat/ChatNotificationProvider
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RealtimeProvider from "@/components/RealtimeProvider";
 import PushNotificationProvider from "@/components/push/PushNotificationProvider";
+import { AndroidNotificationSetup } from "@/components/push/AndroidNotificationSetup";
 import { initializeMobileApp } from "@/lib/mobile";
 import Index from "./pages/Index";
 
@@ -59,6 +60,8 @@ const App = () => {
             />
             <BrowserRouter>
               <PushNotificationProvider>
+                {/* Android 13+ Notification Permission Dialog */}
+                <AndroidNotificationSetup />
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
