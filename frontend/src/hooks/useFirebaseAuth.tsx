@@ -321,15 +321,34 @@ export const useFirebaseAuth = () => {
         return true;
       } catch (error: any) {
         console.error("[useFirebaseAuth] Send OTP error:", error);
+        console.error("[useFirebaseAuth] Error code:", error?.code);
+        console.error("[useFirebaseAuth] Error message:", error?.message);
         confirmationResultRef.current = null;
 
+        // Comprehensive error mapping for phone auth
         let errorMessage = "Failed to send OTP.";
-        if (error?.code === "auth/too-many-requests") {
-          errorMessage = "Too many attempts. Please try again later.";
-        } else if (error?.code === "auth/quota-exceeded") {
+        const errorCode = error?.code || '';
+        
+        if (errorCode === "auth/too-many-requests") {
+          errorMessage = "Too many attempts. Please wait a few minutes and try again.";
+        } else if (errorCode === "auth/quota-exceeded") {
           errorMessage = "SMS quota exceeded. Please try again tomorrow.";
-        } else if (error?.code === "auth/captcha-check-failed") {
+        } else if (errorCode === "auth/captcha-check-failed") {
           errorMessage = "Security check failed. Please refresh the page.";
+        } else if (errorCode === "auth/invalid-app-credential") {
+          // CRITICAL: This usually means SHA fingerprints are missing in Firebase Console
+          errorMessage = isRunningInNativeApp()
+            ? "App verification failed. Please update the app or contact support."
+            : "Security verification failed. Please refresh and try again.";
+          console.error("[useFirebaseAuth] CRITICAL: invalid-app-credential - Check Firebase Console SHA fingerprints!");
+        } else if (errorCode === "auth/missing-app-credential") {
+          errorMessage = "App credentials missing. Please restart the app.";
+        } else if (errorCode === "auth/invalid-phone-number") {
+          errorMessage = "Invalid phone number. Please enter a valid Pakistani mobile.";
+        } else if (errorCode === "auth/network-request-failed") {
+          errorMessage = "Network error. Please check your internet connection.";
+        } else if (errorCode === "auth/operation-not-allowed") {
+          errorMessage = "Phone authentication is not enabled. Contact support.";
         } else if (error?.message) {
           errorMessage = error.message;
         }
