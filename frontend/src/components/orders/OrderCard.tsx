@@ -9,6 +9,8 @@ import ChatButton from '@/components/chat/ChatButton';
 import LiveRiderTrackingMap from '@/components/tracking/LiveRiderTrackingMap';
 import { useDeliveryNotifications } from '@/hooks/useDeliveryNotifications';
 import { DeliveryOTPDisplay } from './DeliveryOTPDisplay';
+import { SupportSheet } from '@/components/support/SupportSheet';
+import { Headphones } from 'lucide-react';
 
 interface OrderCardProps {
   order: Order;
@@ -141,9 +143,9 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
                 </p>
               </div>
               {/* Chat button instead of phone - Privacy protected */}
-              <ChatButton 
-                orderId={order.id} 
-                userType="customer" 
+              <ChatButton
+                orderId={order.id}
+                userType="customer"
                 variant="outline"
                 size="icon"
                 className="shrink-0"
@@ -214,9 +216,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
-              className={`h-1.5 flex-1 rounded-full transition-all ${
-                step <= status.step ? 'gradient-primary' : 'bg-muted'
-              }`}
+              className={`h-1.5 flex-1 rounded-full transition-all ${step <= status.step ? 'gradient-primary' : 'bg-muted'
+                }`}
             />
           ))}
         </div>
@@ -237,8 +238,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
         {/* Delivery OTP - Show when order is on the way and has OTP */}
         {order.status === 'on_way' && order.delivery_otp && (
           <div className="mb-4">
-            <DeliveryOTPDisplay 
-              otp={order.delivery_otp} 
+            <DeliveryOTPDisplay
+              otp={order.delivery_otp}
               isVerified={order.otp_verified || false}
             />
           </div>
@@ -247,20 +248,29 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
         {/* Chat Actions - No phone numbers exposed */}
         <div className="flex items-center gap-2 pt-2 border-t border-border">
           {isRiderRequest ? (
-            <ChatButton 
-              riderRequestId={order.id} 
-              userType="customer" 
+            <ChatButton
+              riderRequestId={order.id}
+              userType="customer"
               variant="outline"
               size="sm"
             />
           ) : (
-            <ChatButton 
-              orderId={order.id} 
-              userType="customer" 
+            <ChatButton
+              orderId={order.id}
+              userType="customer"
               variant="outline"
               size="sm"
             />
           )}
+          <SupportSheet
+            orderId={order.id}
+            trigger={
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary gap-1">
+                <Headphones className="w-3 h-3" />
+                Need Help?
+              </Button>
+            }
+          />
           {/* Privacy notice */}
           <span className="text-xs text-muted-foreground ml-auto">
             Chat securely

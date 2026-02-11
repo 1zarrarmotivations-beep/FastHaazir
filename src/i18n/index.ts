@@ -55,29 +55,29 @@ i18n
 // HYBRID RTL APPROACH: Layout stays LTR, only text direction changes for Urdu
 export const changeLanguage = (lang: LanguageCode) => {
   i18n.changeLanguage(lang);
-  
+
   // Store preference
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
   } catch (e) {
     console.warn('Could not save language preference');
   }
-  
+
   // Update HTML element attributes
   document.documentElement.lang = lang;
-  document.documentElement.dir = 'ltr'; // Always LTR for layout stability
-  
+  document.documentElement.dir = LANGUAGES[lang].dir;
+
   // Update language class for CSS font switching
   document.documentElement.classList.remove('lang-en', 'lang-ur');
   document.documentElement.classList.add(`lang-${lang}`);
-  
+
   // Update body class for additional styling hooks
   document.body.classList.remove('lang-en', 'lang-ur');
   document.body.classList.add(`lang-${lang}`);
-  
+
   // Trigger a custom event for components that need to react
   window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
-  
+
   console.log(`[i18n] Language changed to: ${lang}`);
 };
 

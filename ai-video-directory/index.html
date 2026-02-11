@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Generation Directory - Best AI Video Generators 2025</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🎬</span>
+                <span class="logo-text">AI Video<span class="highlight">Hub</span></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#directory" class="nav-link">Directory</a></li>
+                <li><a href="#categories" class="nav-link">Categories</a></li>
+                <li><a href="#about" class="nav-link">About</a></li>
+            </ul>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search AI tools..." class="search-input">
+                <span class="search-icon">🔍</span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-bg">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+        <div class="hero-content">
+            <span class="badge">🚀 Updated February 2025</span>
+            <h1>Discover the Best <span class="gradient-text">AI Video Generators</span></h1>
+            <p class="hero-description">
+                Your comprehensive directory of AI-powered video creation tools. Compare features,
+                pricing, capabilities, and find the perfect tool for your creative projects.
+            </p>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">50+</span>
+                    <span class="stat-label">AI Tools</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">12</span>
+                    <span class="stat-label">Categories</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">Free</span>
+                    <span class="stat-label">to Use</span>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <a href="#directory" class="btn btn-primary">Explore Directory</a>
+                <a href="#categories" class="btn btn-secondary">Browse Categories</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Section -->
+    <section class="featured-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>🏆 Top Rated AI Video Generators</h2>
+                <p>The most popular and highly-rated tools based on user reviews and capabilities</p>
+            </div>
+            <div class="featured-grid" id="featuredGrid">
+                <!-- Featured cards will be injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Filters Section -->
+    <section id="directory" class="directory-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>📁 Complete AI Video Directory</h2>
+                <p>Browse all AI video generation tools with detailed comparisons</p>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all">All Tools</button>
+                <button class="filter-btn" data-filter="text-to-video">Text to Video</button>
+                <button class="filter-btn" data-filter="image-to-video">Image to Video</button>
+                <button class="filter-btn" data-filter="avatar">AI Avatars</button>
+                <button class="filter-btn" data-filter="editing">Video Editing</button>
+                <button class="filter-btn" data-filter="free">Free Tier</button>
+            </div>
+
+            <!-- Category Pills -->
+            <div class="category-pills">
+                <span class="category-label">Popular:</span>
+                <button class="category-pill" data-category="all">All</button>
+                <button class="category-pill" data-category="openai">OpenAI</button>
+                <button class="category-pill" data-category="runway">Runway</button>
+                <button class="category-pill" data-category="stability-ai">Stability AI</button>
+                <button class="category-pill" data-category="google">Google</button>
+                <button class="category-pill" data-category="meta">Meta</button>
+            </div>
+
+            <!-- Directory Grid -->
+            <div class="directory-grid" id="directoryGrid">
+                <!-- Cards will be injected by JS -->
+            </div>
+
+            <!-- Load More -->
+            <div class="load-more-container">
+                <button class="btn btn-primary" id="loadMoreBtn">Load More Tools</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Table -->
+    <section class="comparison-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>📊 Quick Comparison</h2>
+                <p>Compare key features and pricing at a glance</p>
+            </div>
+            <div class="table-container">
+                <table class="comparison-table" id="comparisonTable">
+                    <thead>
+                        <tr>
+                            <th>Tool</th>
+                            <th>Type</th>
+                            <th>Max Duration</th>
+                            <th>Resolution</th>
+                            <th>Free Tier</th>
+                            <th>Paid Plans</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Table rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Section -->
+    <section id="categories" class="categories-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>🎯 Browse by Category</h2>
+                <p>Find the perfect tool for your specific use case</p>
+            </div>
+            <div class="categories-grid">
+                <div class="category-card" data-category="text-to-video">
+                    <div class="category-icon">📝</div>
+                    <h3>Text to Video</h3>
+                    <p>Generate videos from text prompts using AI</p>
+                    <span class="tool-count">15+ Tools</span>
+                </div>
+                <div class="category-card" data-category="image-to-video">
+                    <div class="category-icon">🖼️</div>
+                    <h3>Image to Video</h3>
+                    <p>Transform static images into dynamic videos</p>
+                    <span class="tool-count">10+ Tools</span>
+                </div>
+                <div class="category-card" data-category="avatar">
+                    <div class="category-icon">👤</div>
+                    <h3>AI Avatars</h3>
+                    <p>Create AI-powered virtual presenters</p>
+                    <span class="tool-count">12+ Tools</span>
+                </div>
+                <div class="category-card" data-category="video-editing">
+                    <div class="category-icon">✂️</div>
+                    <h3>Video Editing</h3>
+                    <p>AI-assisted video editing and enhancement</p>
+                    <span class="tool-count">8+ Tools</span>
+                </div>
+                <div class="category-card" data-category="music">
+                    <div class="category-icon">🎵</div>
+                    <h3>Music & Audio</h3>
+                    <p>AI-generated music and audio for videos</p>
+                    <span class="tool-count">6+ Tools</span>
+                </div>
+                <div class="category-card" data-category="animation">
+                    <div class="category-icon">✨</div>
+                    <h3>Animation</h3>
+                    <p>Create animated videos with AI assistance</p>
+                    <span class="tool-count">9+ Tools</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-content">
+                    <h2>About AI VideoHub</h2>
+                    <p>
+                        AI VideoHub is your ultimate resource for discovering and comparing
+                        AI-powered video generation tools. We curate the best tools in the
+                        industry, providing detailed information, comparisons, and reviews
+                        to help you make informed decisions.
+                    </p>
+                    <p>
+                        Our team continuously updates the directory with the latest AI
+                        video generation technologies, ensuring you have access to the most
+                        current and innovative tools available.
+                    </p>
+                    <div class="about-features">
+                        <div class="about-feature">
+                            <span class="feature-icon">✓</span>
+                            <span>Regularly Updated</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-icon">✓</span>
+                            <span>Unbiased Reviews</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-icon">✓</span>
+                            <span>Detailed Comparisons</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-icon">✓</span>
+                            <span>User Ratings</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image">
+                    <div class="image-placeholder">
+                        <span class="placeholder-icon">🎥</span>
+                        <span>AI Video Generation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="newsletter-content">
+                <h2>Stay Updated</h2>
+                <p>Get the latest AI video generation tools delivered to your inbox</p>
+                <form class="newsletter-form" id="newsletterForm">
+                    <input type="email" placeholder="Enter your email" class="newsletter-input" required>
+                    <button type="submit" class="btn btn-primary">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <span class="logo-icon">🎬</span>
+                        <span class="logo-text">AI Video<span class="highlight">Hub</span></span>
+                    </div>
+                    <p>Your comprehensive directory for AI video generation tools.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#directory">Directory</a></li>
+                        <li><a href="#categories">Categories</a></li>
+                        <li><a href="#about">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Categories</h4>
+                    <ul>
+                        <li><a href="#">Text to Video</a></li>
+                        <li><a href="#">Image to Video</a></li>
+                        <li><a href="#">AI Avatars</a></li>
+                        <li><a href="#">Video Editing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Guides</a></li>
+                        <li><a href="#">API Docs</a></li>
+                        <li><a href="#">Support</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 AI VideoHub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

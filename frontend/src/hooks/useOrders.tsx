@@ -72,9 +72,9 @@ export const useOrders = () => {
   // Set up realtime subscription for user's orders
   useEffect(() => {
     if (!user?.id) return;
-    
+
     console.log('[useOrders] Setting up realtime subscription for user:', user.id);
-    
+
     const channel = supabase
       .channel(`orders-realtime-${user.id}`)
       .on(
@@ -136,9 +136,9 @@ export const useActiveOrders = () => {
   // Set up realtime subscriptions for active orders and rider requests
   useEffect(() => {
     if (!user?.id) return;
-    
+
     console.log('[useActiveOrders] Setting up realtime subscriptions for user:', user.id);
-    
+
     const ordersChannel = supabase
       .channel(`active-orders-realtime-${user.id}`)
       .on(
@@ -287,15 +287,25 @@ export const useCreateOrder = () => {
       delivery_lat?: number;
       delivery_lng?: number;
     }) => {
-      // Get current authenticated user from session to ensure we have latest auth state
+      // Get current authenticated user
       const { data: sessionData } = await supabase.auth.getSession();
       const currentUserId = sessionData?.session?.user?.id || user?.id;
-      
+
       if (!currentUserId) {
         throw new Error('Please login to place an order');
       }
 
-      const { data, error } = await supabase
+      // 1. Fetch business details for location
+      const { data: business, error: bizError } = await supabase
+        .from('businesses')
+        .select('owner_user_id, name, location_address, location_lat, location_lng')
+        .eq('id', orderData.business_id)
+        .maybeSingle();
+
+      if (bizError) console.error('Error fetching business:', bizError);
+
+      // 2. Create the order
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           customer_id: currentUserId,
@@ -307,59 +317,53 @@ export const useCreateOrder = () => {
           delivery_address: orderData.delivery_address,
           delivery_lat: orderData.delivery_lat || null,
           delivery_lng: orderData.delivery_lng || null,
+          pickup_address: (business as any)?.location_address || business?.name || orderData.business_name,
+          pickup_lat: (business as any)?.location_lat || null,
+          pickup_lng: (business as any)?.location_lng || null,
           status: 'placed',
           eta: '25-35 min',
-        })
+        } as any)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating order:', error);
-        throw error;
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
       }
 
-      // Notify customer about order placed
+      // 3. Notify customer
       await createNotification(
         currentUserId,
         '🛒 Order Placed!',
         `Your order from ${orderData.business_name} has been placed successfully`,
         'order',
-        data.id
+        order.id
       );
 
-      // Notify business owner about new order
-      const { data: business } = await supabase
-        .from('businesses')
-        .select('owner_user_id, name')
-        .eq('id', orderData.business_id)
-        .single();
-
+      // 4. Notify business owner
       if (business?.owner_user_id) {
         await createNotification(
           business.owner_user_id,
           '🍽️ New Order!',
           `You have a new order worth Rs ${orderData.total}`,
           'order',
-          data.id
+          order.id
         );
       }
 
-      // Notify all online riders about new order available
+      // 5. Notify all online riders
       try {
-        console.log('[useCreateOrder] Notifying all online riders about new order');
-        const notifyResult = await notifyAllOnlineRiders({
-          order_id: data.id,
-          pickup_address: business?.name || 'Business',
+        await notifyAllOnlineRiders({
+          order_id: order.id,
+          pickup_address: (business as any)?.location_address || business?.name || orderData.business_name,
           dropoff_address: orderData.delivery_address,
           order_total: orderData.total,
         });
-        console.log('[useCreateOrder] Rider notification results:', notifyResult);
       } catch (notifyError) {
         console.error('[useCreateOrder] Failed to notify riders:', notifyError);
-        // Don't throw - order was created successfully
       }
 
-      return data;
+      return order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });

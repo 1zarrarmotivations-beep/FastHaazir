@@ -10,6 +10,8 @@ import { useOrders } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { SupportSheet } from '@/components/support/SupportSheet';
+import { Headphones } from 'lucide-react';
 
 const History: React.FC = () => {
   const navigate = useNavigate();
@@ -116,15 +118,24 @@ const History: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="flex-1"
                     onClick={() => order.business_id && navigate(`/restaurant/${order.business_id}`)}
                     disabled={!order.business_id}
                   >
                     Reorder
                   </Button>
+                  <SupportSheet
+                    orderId={order.id}
+                    trigger={
+                      <Button variant="ghost" size="sm" className="text-muted-foreground gap-1">
+                        <Headphones className="w-3 h-3" />
+                        Help
+                      </Button>
+                    }
+                  />
                 </div>
               </Card>
             </motion.div>

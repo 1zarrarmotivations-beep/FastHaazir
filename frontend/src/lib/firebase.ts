@@ -2,10 +2,10 @@
 // Optimized for both Web and Android APK (Capacitor)
 // CRITICAL: This file MUST be identical between frontend/src and src directories
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  RecaptchaVerifier, 
-  signInWithPhoneNumber, 
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -13,7 +13,7 @@ import {
   signInWithCredential,
   GoogleAuthProvider,
   PhoneAuthProvider,
-  onAuthStateChanged, 
+  onAuthStateChanged,
   signOut,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -38,24 +38,24 @@ const MAX_CONFIG_FETCH_ATTEMPTS = 3;
 const detectNativeApp = (): boolean => {
   try {
     if (typeof window === 'undefined') return false;
-    
+
     // Primary check: Capacitor object exists
     const cap = (window as any)?.Capacitor;
     if (!cap) return false;
-    
+
     // Check if getPlatform is available and returns a native platform
     const platform = cap?.getPlatform?.();
     const isNativePlatform = platform === 'android' || platform === 'ios';
-    
+
     // Additional checks for native bridge
-    const hasNativeBridge = !!(window as any)?.AndroidBridge || 
-                            !!(window as any)?.webkit?.messageHandlers?.bridge;
-    
+    const hasNativeBridge = !!(window as any)?.AndroidBridge ||
+      !!(window as any)?.webkit?.messageHandlers?.bridge;
+
     // Check if isNativePlatform is explicitly true
     const isNativeExplicit = cap?.isNativePlatform?.() === true;
-    
+
     const result = isNativePlatform || isNativeExplicit || hasNativeBridge;
-    
+
     console.log('[Firebase] Platform detection:', {
       platform,
       isNativePlatform,
@@ -63,7 +63,7 @@ const detectNativeApp = (): boolean => {
       isNativeExplicit,
       result
     });
-    
+
     return result;
   } catch (e) {
     console.log('[Firebase] Platform detection error:', e);
@@ -81,48 +81,36 @@ interface FirebaseConfig {
 }
 
 /**
- * Fetch Firebase config from edge function (secrets stored securely)
- * Includes retry logic for APK network timing issues
+ * Fetch Firebase config - Prioritizes bundled environment variables for speed and reliability.
+ * APK builds will have these baked in at compile time from the .env file.
  */
 export const fetchFirebaseConfig = async (): Promise<FirebaseConfig | null> => {
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  
-  while (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
-    configFetchAttempts++;
-    
-    try {
-      console.log(`[Firebase] Fetching config (attempt ${configFetchAttempts}/${MAX_CONFIG_FETCH_ATTEMPTS})...`);
-      console.log('[Firebase] Platform:', isNativeApp ? 'Android APK' : 'Web');
-      
-      const { data, error } = await supabase.functions.invoke('get-firebase-config');
-      
-      if (error) {
-        console.error('[Firebase] Config fetch error:', error);
-        if (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
-          await delay(1000 * configFetchAttempts); // Exponential backoff
-          continue;
-        }
-        return null;
-      }
-      
-      if (!data?.success || !data?.isValid) {
-        console.error('[Firebase] Config not valid:', data);
-        return null;
-      }
-      
-      console.log('[Firebase] Config fetched successfully ✓');
-      console.log('[Firebase] Project ID:', data.config.projectId);
-      return data.config as FirebaseConfig;
-    } catch (err) {
-      console.error('[Firebase] Config fetch exception:', err);
-      if (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
-        await delay(1000 * configFetchAttempts);
-        continue;
-      }
-      return null;
-    }
+  // 1. ALWAYS check local environment variables first (baked into the APK/Web build)
+  const bundledConfig = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  };
+
+  if (bundledConfig.apiKey && bundledConfig.authDomain && bundledConfig.projectId) {
+    console.log('[Firebase] Using bundled configuration from .env');
+    return bundledConfig as FirebaseConfig;
   }
-  
+
+  // 2. Fallback to Supabase Edge Function (for remote updates without building new APK)
+  try {
+    console.log('[Firebase] Bundled config incomplete, falling back to Supabase...');
+    const { data, error } = await supabase.functions.invoke('get-firebase-config');
+
+    if (!error && data?.success && data?.isValid) {
+      console.log('[Firebase] Config fetched from Supabase ✓');
+      return data.config as FirebaseConfig;
+    }
+  } catch (err) {
+    console.warn('[Firebase] Supabase config fetch failed:', err);
+  }
+
   return null;
 };
 
@@ -134,7 +122,7 @@ export const initializeFirebase = async (): Promise<boolean> => {
   if (configLoaded) {
     return configValid;
   }
-  
+
   try {
     // Check if Firebase is already initialized
     if (getApps().length > 0) {
@@ -146,19 +134,19 @@ export const initializeFirebase = async (): Promise<boolean> => {
       configValid = true;
       return true;
     }
-    
+
     const config = await fetchFirebaseConfig();
-    
+
     if (!config) {
       console.error('[Firebase] Failed to fetch config after retries');
       configLoaded = true;
       configValid = false;
       return false;
     }
-    
+
     console.log('[Firebase] Initializing app...', isNativeApp ? '(Android APK)' : '(Web Browser)');
     firebaseApp = initializeApp(config);
-    
+
     // Initialize auth with platform-appropriate persistence
     if (isNativeApp) {
       // For Android APK: Use indexedDB as primary, with localStorage fallback
@@ -181,18 +169,18 @@ export const initializeFirebase = async (): Promise<boolean> => {
       firebaseAuth = getAuth(firebaseApp);
       console.log('[Firebase] Auth initialized with default persistence (Web)');
     }
-    
+
     firebaseAuth.languageCode = 'en';
-    
+
     // Initialize Google Auth Provider
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
       prompt: 'select_account'
     });
-    
+
     configLoaded = true;
     configValid = true;
-    
+
     console.log('[Firebase] ✓ Initialized successfully');
     console.log('[Firebase] ✓ Project:', config.projectId);
     console.log('[Firebase] ✓ Auth Domain:', config.authDomain);
@@ -251,9 +239,9 @@ export const resetConfigState = (): void => {
 };
 
 // Re-export Firebase auth functions
-export { 
-  RecaptchaVerifier, 
-  signInWithPhoneNumber, 
+export {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -261,6 +249,6 @@ export {
   signInWithCredential,
   GoogleAuthProvider,
   PhoneAuthProvider,
-  onAuthStateChanged, 
-  signOut 
+  onAuthStateChanged,
+  signOut
 };

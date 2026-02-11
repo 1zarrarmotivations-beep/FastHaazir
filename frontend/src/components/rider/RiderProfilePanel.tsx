@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  User, 
-  Phone, 
+import {
+  User,
+  Phone,
   Car,
   CreditCard,
   Star,
@@ -39,19 +39,19 @@ interface RiderProfilePanelProps {
   onLogout?: () => void;
 }
 
-const RiderProfilePanel = ({ 
-  riderProfile, 
-  isOpen, 
-  onClose, 
+const RiderProfilePanel = ({
+  riderProfile,
+  isOpen,
+  onClose,
   totalDistance,
-  onLogout 
+  onLogout
 }: RiderProfilePanelProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const queryClient = useQueryClient();
   const updateProfile = useUpdateRiderProfile();
-  
+
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -61,8 +61,9 @@ const RiderProfilePanel = ({
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
-    
+
     try {
+      // useAuth.signOut now handles both Supabase and Firebase
       await signOut(navigate);
       toast.success("لاگ آؤٹ ہو گیا");
     } catch (error) {
@@ -86,7 +87,7 @@ const RiderProfilePanel = ({
 
   // Type assertion to access cnic which exists in DB but not typed
   const riderData = riderProfile as RiderProfile & { cnic?: string };
-  
+
   const menuItems = [
     {
       section: 'Account',
@@ -216,9 +217,8 @@ const RiderProfilePanel = ({
                 return (
                   <div
                     key={item.label}
-                    className={`flex items-center justify-between p-4 ${
-                      itemIndex < section.items.length - 1 ? 'border-b border-border' : ''
-                    }`}
+                    className={`flex items-center justify-between p-4 ${itemIndex < section.items.length - 1 ? 'border-b border-border' : ''
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
@@ -227,11 +227,10 @@ const RiderProfilePanel = ({
                       <div>
                         <p className="font-medium text-foreground">{item.label}</p>
                         {item.value && typeof item.value === 'string' && (
-                          <p className={`text-xs ${
-                            item.status === 'success' ? 'text-accent' : 
-                            item.status === 'warning' ? 'text-yellow-500' : 
-                            'text-muted-foreground'
-                          }`}>
+                          <p className={`text-xs ${item.status === 'success' ? 'text-accent' :
+                              item.status === 'warning' ? 'text-yellow-500' :
+                                'text-muted-foreground'
+                            }`}>
                             {item.value}
                           </p>
                         )}

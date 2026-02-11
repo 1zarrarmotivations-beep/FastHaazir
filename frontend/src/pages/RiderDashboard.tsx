@@ -1,21 +1,14 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Package,
-  Navigation,
-  Bike,
-  Car,
   AlertCircle,
-  Bell,
-  Info,
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +17,9 @@ import { useRiderEarningsSummary } from '@/hooks/useRiderPayments';
 import { useRiderLocation } from '@/hooks/useRiderLocation';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
+import LocationPermissionBlocker from '@/components/rider/LocationPermissionBlocker';
+import PermissionWizard from '@/components/common/PermissionWizard';
+import { usePermissions, PermissionType } from '@/hooks/usePermissions';
 
 import {
   useRiderProfile,
@@ -35,7 +31,6 @@ import {
   useToggleOnlineStatus,
   useRegisterAsRider,
   useAutoSetRiderOnline,
-  OrderStatus,
 } from '@/hooks/useRiderDashboard';
 
 import RiderStatusHeader from '@/components/rider/RiderStatusHeader';
@@ -60,23 +55,33 @@ console.log('🔥 PREMIUM DARK MODE ACTIVE - PRODUCTION');
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
 
+const REQUIRED_PERMISSIONS: PermissionType[] = ['location', 'notifications', 'camera', 'microphone'];
+
 const RiderDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading, signOut } = useAuth();
 
+  // Permission Hook
+  const { permissions, checkPermissions } = usePermissions();
+  const [permissionsReady, setPermissionsReady] = useState(false);
+
+  useEffect(() => {
+    // Check if any permission status is 'unknown'
+    const isReady = !Object.values(permissions).some(s => s === 'unknown');
+    setPermissionsReady(isReady);
+  }, [permissions]);
+
   const [activeTab, setActiveTab] = useState<RiderTab>('home');
-  const [ordersSubTab, setOrdersSubTab] =
-    useState<'available' | 'active' | 'completed'>('available');
   const [showVersionInfo, setShowVersionInfo] = useState(false);
   const [heatmapOpen, setHeatmapOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const previousRequestsCount = useRef(0);
 
-  const { notifyNewOrder, notifySuccess, vibrate } =
+  // Destructure stopRinging from useNotificationSound
+  const { notifyNewOrder, vibrate, stopRinging } =
     useNotificationSound();
 
   const { data: riderProfile, isLoading: profileLoading } =
@@ -94,7 +99,13 @@ const RiderDashboard = () => {
     riderProfile?.id,
     riderProfile?.is_online ?? null
   );
-  useRiderLocation(
+
+  const {
+    permissionStatus,
+    isLocationEnabled,
+    checkPermissions: checkLocPermissions,
+    requestPermissions: requestLocPermissions
+  } = useRiderLocation(
     riderProfile?.id,
     riderProfile?.is_online || false
   );
@@ -102,9 +113,19 @@ const RiderDashboard = () => {
   const acceptRequest = useAcceptRequest();
   const updateStatus = useUpdateDeliveryStatus();
   const toggleOnline = useToggleOnlineStatus();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const registerRider = useRegisterAsRider();
 
-  /* ===== AUTO OFFLINE ===== */
+  /* ===== AUTO OFFLINE IF LOCATION DISABLED ===== */
+  useEffect(() => {
+    if (riderProfile?.is_online && (!isLocationEnabled || permissionStatus !== 'granted')) {
+      // If rider is online but location is disabled, auto-offline
+      toggleOnline.mutate(false);
+      toast.error('You were set offline because location access was lost');
+    }
+  }, [isLocationEnabled, permissionStatus, riderProfile?.is_online, toggleOnline]);
+
+  /* ===== AUTO OFFLINE INACTIVITY ===== */
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimerRef.current)
       clearTimeout(inactivityTimerRef.current);
@@ -132,20 +153,24 @@ const RiderDashboard = () => {
   useEffect(() => {
     if (!riderProfile?.is_online) return;
 
+    // The useRealtimeOrders hook already handles some logic, 
+    // but this listener ensures the query cache is invalidated immediately.
     const channel = supabase
-      .channel('rider-realtime')
+      .channel('rider-dashboard-orders')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'rider_requests',
         },
-        () => {
-          notifyNewOrder('New delivery request');
-          queryClient.invalidateQueries({
-            queryKey: ['pending-requests'],
-          });
+        (payload) => {
+          console.log('[RiderDashboard] Real-time update:', payload.eventType);
+          if (payload.eventType === 'INSERT') {
+            notifyNewOrder('New delivery request available');
+          }
+          queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
+          queryClient.invalidateQueries({ queryKey: ['active-deliveries'] });
         }
       )
       .subscribe();
@@ -173,7 +198,7 @@ const RiderDashboard = () => {
       <div className="min-h-screen rider-bg flex flex-col items-center justify-center gap-4">
         <AlertCircle className="w-16 h-16 text-orange-400" />
         <p className="text-white/80 text-lg">Please login to continue</p>
-        <Button 
+        <Button
           onClick={() => navigate('/auth')}
           className="gradient-rider-primary text-white font-semibold px-8 py-3 rounded-2xl"
         >
@@ -183,51 +208,57 @@ const RiderDashboard = () => {
     );
   }
 
+  // Determine if we need to show wizard
+  // Only show if ready AND we have missing mandatory permissions
+  const missingPermissions = REQUIRED_PERMISSIONS.filter(p => permissions[p] !== 'granted');
+  const showWizard = permissionsReady && missingPermissions.length > 0;
+
   /* ================= MAIN UI ================= */
   return (
     <div className="min-h-screen rider-bg pb-24 overflow-x-hidden">
-      {/* Premium Animated Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Purple/Blue gradient orb - top right */}
-        <motion.div
-          className="absolute -top-1/3 -right-1/4 w-[600px] h-[600px] opacity-40"
-          style={{
-            background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(99,102,241,0.08) 40%, transparent 70%)',
-            filter: 'blur(60px)',
-          }}
-          animate={{
-            scale: [1, 1.1, 1],
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+
+      {/* 1. Global Permission Wizard */}
+      <PermissionWizard
+        isOpen={showWizard}
+        requiredPermissions={REQUIRED_PERMISSIONS}
+        onComplete={() => {
+          checkPermissions();
+          // Also refresh location specific one
+          checkLocPermissions();
+        }}
+      />
+
+      {/* 2. Specific Location Service Blocker (GPS enabled check) */}
+      {/* Only show if Wizard is NOT showing (to avoid double overlay) */}
+      {!showWizard && (
+        <LocationPermissionBlocker
+          permissionStatus={permissionStatus}
+          isLocationEnabled={isLocationEnabled}
+          onRequestPermission={requestLocPermissions}
+          onCheckAgain={checkLocPermissions}
         />
-        {/* Emerald gradient orb - bottom left */}
-        <motion.div
-          className="absolute -bottom-1/3 -left-1/4 w-[500px] h-[500px] opacity-30"
+      )}
+
+      {/* Optimized Background - Simplified for Mobile Performance */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#062016]">
+        {/* Static gradient background instead of heavy blurred orbs */}
+        <div
+          className="absolute inset-0 opacity-20"
           style={{
-            background: 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.06) 40%, transparent 70%)',
-            filter: 'blur(60px)',
+            background: 'linear-gradient(135deg, #065F46 0%, #064E3B 50%, #062016 100%)'
           }}
-          animate={{
-            scale: [1.1, 1, 1.1],
-            x: [0, -20, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         />
-        {/* Subtle orange accent - center */}
+
+        {/* Subtle, low-cost animated glow */}
         <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] opacity-20"
+          className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full opacity-10"
           style={{
-            background: 'radial-gradient(circle, rgba(255,106,0,0.1) 0%, transparent 60%)',
-            filter: 'blur(80px)',
+            background: 'radial-gradient(circle, #10B981 0%, transparent 70%)',
           }}
           animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.15, 0.25, 0.15],
+            opacity: [0.05, 0.15, 0.05],
           }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
       </div>
 
@@ -238,9 +269,9 @@ const RiderDashboard = () => {
         className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center"
       >
         {/* Verification Badge */}
-        <motion.div 
+        <motion.div
           className="badge-verified px-3 py-1.5 rounded-full flex items-center gap-2"
-          animate={{ 
+          animate={{
             boxShadow: [
               '0 0 16px rgba(16, 185, 129, 0.2)',
               '0 0 24px rgba(16, 185, 129, 0.4)',
@@ -346,7 +377,7 @@ const RiderDashboard = () => {
                       key={delivery.id}
                       request={delivery}
                       variant="active"
-                      onUpdateStatus={(requestId, status, requestType) => 
+                      onUpdateStatus={(requestId, status, requestType) =>
                         updateStatus.mutate({ requestId, status, requestType })
                       }
                       isLoading={updateStatus.isPending}
@@ -367,11 +398,12 @@ const RiderDashboard = () => {
                       request={request}
                       variant="new"
                       onAccept={(requestId, requestType) => {
+                        stopRinging();
                         acceptRequest.mutate({ requestId, requestType });
                         vibrate('success');
                       }}
-                      onReject={(id) => {
-                        // Handle reject if needed
+                      onReject={() => {
+                        stopRinging();
                       }}
                       isLoading={acceptRequest.isPending}
                     />
@@ -393,7 +425,7 @@ const RiderDashboard = () => {
                     No Orders Right Now
                   </h3>
                   <p className="text-white/50 text-sm">
-                    {riderProfile?.is_online 
+                    {riderProfile?.is_online
                       ? 'Stay online to receive new delivery requests'
                       : 'Go online to start receiving orders'
                     }

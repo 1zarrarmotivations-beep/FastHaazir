@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Plus, 
-  Search, 
-  Bike, 
-  Phone, 
-  Star, 
-  ToggleLeft, 
+import {
+  Plus,
+  Search,
+  Bike,
+  Phone,
+  Star,
+  ToggleLeft,
   ToggleRight,
   User,
   CreditCard,
   Trash2,
   Percent,
-  MapPin
+  MapPin,
+  FileCheck,
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,12 +47,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAdminRiders, useCreateRider, useToggleRiderStatus, useDeleteRider } from "@/hooks/useAdmin";
+import { useAdminRiders, useCreateRider, useToggleRiderStatus, useDeleteRider, useVerifyRider } from "@/hooks/useAdmin";
 
 export function RidersManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked" | "online">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked" | "online" | "pending">("all");
   const [newRider, setNewRider] = useState({
     name: "",
     phone: "",
@@ -58,29 +61,35 @@ export function RidersManager() {
     vehicle_type: "Bike",
     commission_rate: 10,
   });
+  const [selectedRider, setSelectedRider] = useState<any>(null);
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   const { data: riders, isLoading } = useAdminRiders();
   const createRider = useCreateRider();
   const toggleStatus = useToggleRiderStatus();
   const deleteRider = useDeleteRider();
 
-  const filteredRiders = riders?.filter((rider) => {
+  const filteredRiders = (riders as any[])?.filter((rider) => {
     const matchesSearch = rider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       rider.phone.includes(searchQuery);
-    
+
     if (!matchesSearch) return false;
-    
+
     switch (statusFilter) {
       case "active":
-        return rider.is_active;
+        return rider.is_active && rider.verification_status === 'verified';
       case "blocked":
         return !rider.is_active;
       case "online":
         return rider.is_online;
+      case "pending":
+        return rider.verification_status === 'pending';
       default:
         return true;
     }
   });
+
+  const verifyRider = useVerifyRider();
 
   const handleCreateRider = () => {
     if (!newRider.name || !newRider.phone) return;
@@ -181,6 +190,7 @@ export function RidersManager() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="online">Online</SelectItem>
               <SelectItem value="blocked">Blocked</SelectItem>
@@ -269,8 +279,8 @@ export function RidersManager() {
                   />
                 </div>
               </div>
-              <Button 
-                onClick={handleCreateRider} 
+              <Button
+                onClick={handleCreateRider}
                 className="w-full gradient-primary text-primary-foreground"
                 disabled={createRider.isPending || !newRider.name || !newRider.phone}
               >
@@ -306,9 +316,9 @@ export function RidersManager() {
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                       {rider.image ? (
-                        <img 
-                          src={rider.image} 
-                          alt={rider.name} 
+                        <img
+                          src={rider.image}
+                          alt={rider.name}
                           className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
@@ -321,23 +331,32 @@ export function RidersManager() {
                           {rider.name}
                         </h3>
                         <div className="flex gap-1">
-                          {rider.is_online && (
-                            <Badge className="bg-accent text-accent-foreground text-xs">
-                              Online
+                          <div className="flex flex-wrap gap-1 justify-end">
+                            {rider.verification_status === 'pending' && (
+                              <Badge className="bg-amber-500/20 text-amber-600 border-amber-200">
+                                Pending
+                              </Badge>
+                            )}
+                            {rider.is_online && (
+                              <Badge className="bg-accent text-accent-foreground text-xs">
+                                Online
+                              </Badge>
+                            )}
+                            <Badge
+                              variant={rider.is_active ? "default" : "secondary"}
+                              className={rider.is_active ? "bg-accent/20 text-accent" : ""}
+                            >
+                              {rider.is_active ? "Active" : "Blocked"}
                             </Badge>
-                          )}
-                          <Badge 
-                            variant={rider.is_active ? "default" : "secondary"}
-                            className={rider.is_active ? "bg-accent/20 text-accent" : ""}
-                          >
-                            {rider.is_active ? "Active" : "Blocked"}
-                          </Badge>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground font-mono">
                         <Phone className="w-3 h-3" />
                         <span>{rider.phone}</span>
                       </div>
+
                       <div className="flex items-center gap-4 mt-2 text-sm">
                         <div className="flex items-center gap-1">
                           <Bike className="w-3 h-3 text-muted-foreground" />
@@ -352,6 +371,7 @@ export function RidersManager() {
                           <span className="text-muted-foreground">{rider.commission_rate || 10}%</span>
                         </div>
                       </div>
+
                       {rider.cnic && (
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <CreditCard className="w-3 h-3" />
@@ -360,29 +380,54 @@ export function RidersManager() {
                       )}
                     </div>
                   </div>
+
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                     <span className="text-sm text-muted-foreground">
                       {rider.total_trips} trips completed
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
+                      {rider.verification_status === 'pending' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => {
+                            setSelectedRider(rider);
+                            setDocDialogOpen(true);
+                          }}
+                        >
+                          <FileCheck className="w-4 h-4 mr-1" />
+                          Verify
+                        </Button>
+                      )}
+                      {rider.verification_status === 'verified' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedRider(rider);
+                            setDocDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => toggleStatus.mutate({ 
-                          riderId: rider.id, 
-                          isActive: !rider.is_active 
+                        onClick={() => toggleStatus.mutate({
+                          riderId: rider.id,
+                          isActive: !rider.is_active
                         })}
                         className={rider.is_active ? "text-destructive" : "text-accent"}
                       >
                         {rider.is_active ? (
                           <>
-                            <ToggleRight className="w-4 h-4 mr-1" />
-                            Block
+                            <ToggleRight className="w-4 h-4" />
                           </>
                         ) : (
                           <>
-                            <ToggleLeft className="w-4 h-4 mr-1" />
-                            Unblock
+                            <ToggleLeft className="w-4 h-4" />
                           </>
                         )}
                       </Button>
@@ -419,13 +464,88 @@ export function RidersManager() {
         </div>
       )}
 
-      {filteredRiders?.length === 0 && !isLoading && (
-        <div className="text-center py-12">
-          <Bike className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold text-foreground">No riders found</h3>
-          <p className="text-muted-foreground">Add your first rider to get started</p>
+      {/* Verification Dialog */}
+      <Dialog open={docDialogOpen} onOpenChange={setDocDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Rider Verification Documents</DialogTitle>
+          </DialogHeader>
+          {selectedRider && (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Full Name</h4>
+                  <p className="text-lg font-bold">{selectedRider.name}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-1">CNIC Number</h4>
+                  <p className="text-lg font-bold">{selectedRider.cnic || 'Not provided'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium border-b pb-1">Identification Documents</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <DocumentPreview label="CNIC Front" url={selectedRider.cnic_front} />
+                  <DocumentPreview label="CNIC Back" url={selectedRider.cnic_back} />
+                  <DocumentPreview label="Driving License" url={selectedRider.license_image} />
+                </div>
+              </div>
+
+              {selectedRider.verification_status === 'pending' && (
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-destructive border-destructive/20 hover:bg-destructive/5"
+                    onClick={() => {
+                      verifyRider.mutate({ riderId: selectedRider.id, status: 'rejected' });
+                      setDocDialogOpen(false);
+                    }}
+                  >
+                    Reject Application
+                  </Button>
+                  <Button
+                    className="flex-1 gradient-primary text-primary-foreground"
+                    onClick={() => {
+                      verifyRider.mutate({ riderId: selectedRider.id, status: 'verified' });
+                      setDocDialogOpen(false);
+                    }}
+                  >
+                    Approve & Activate
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DocumentPreview({ label, url }: { label: string, url?: string }) {
+  if (!url) return (
+    <div className="space-y-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="h-40 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed">
+        <AlertTriangle className="w-5 h-5 text-muted-foreground mr-2" />
+        <span className="text-xs text-muted-foreground">Missing Document</span>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div
+        className="h-40 rounded-lg overflow-hidden border border-border cursor-pointer group relative"
+        onClick={() => window.open(url, '_blank')}
+      >
+        <img src={url} alt={label} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <Eye className="w-6 h-6 text-white" />
         </div>
-      )}
+      </div>
     </div>
   );
 }

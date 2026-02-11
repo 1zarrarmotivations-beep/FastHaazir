@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Home, ShoppingBag, ClipboardList, User } from 'lucide-react';
+import { Home, ShoppingBag, ClipboardList, User, Headphones } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 
 const navItems = [
   { icon: Home, label: 'Home', path: '/' },
   { icon: ShoppingBag, label: 'Orders', path: '/orders' },
-  { icon: ClipboardList, label: 'History', path: '/history' },
+  { icon: Headphones, label: 'Support', path: '/support' },
   { icon: User, label: 'Profile', path: '/profile' },
 ];
 
@@ -14,7 +14,7 @@ const BottomNav: React.FC = () => {
   const location = useLocation();
 
   return (
-    <motion.nav 
+    <motion.nav
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="fixed bottom-0 left-0 right-0 w-full z-50 glass border-t border-border/50 px-1 pb-safe"
@@ -23,7 +23,7 @@ const BottomNav: React.FC = () => {
         {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
-          
+
           return (
             <Link
               key={item.path}
@@ -35,11 +35,10 @@ const BottomNav: React.FC = () => {
                 animate={{
                   scale: isActive ? 1 : 0.9,
                 }}
-                className={`relative p-2 rounded-xl transition-all duration-300 ${
-                  isActive 
-                    ? 'gradient-primary shadow-elevated' 
+                className={`relative p-2 rounded-xl transition-all duration-300 ${isActive
+                    ? 'gradient-primary shadow-elevated'
                     : 'bg-transparent'
-                }`}
+                  }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
                 {isActive && (
@@ -50,9 +49,8 @@ const BottomNav: React.FC = () => {
                   />
                 )}
               </motion.div>
-              <span className={`text-[10px] font-medium ${
-                isActive ? 'text-primary' : 'text-muted-foreground'
-              }`}>
+              <span className={`text-[10px] font-medium ${isActive ? 'text-primary' : 'text-muted-foreground'
+                }`}>
                 {item.label}
               </span>
             </Link>

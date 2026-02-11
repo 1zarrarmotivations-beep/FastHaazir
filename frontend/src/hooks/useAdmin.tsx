@@ -8,7 +8,7 @@ import { useEffect } from "react";
 // Check if user is admin
 export const useIsAdmin = () => {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ["is-admin", user?.id],
     queryFn: async () => {
@@ -16,17 +16,17 @@ export const useIsAdmin = () => {
         console.log("[useIsAdmin] No user id, returning false");
         return false;
       }
-      
+
       console.log("[useIsAdmin] Checking admin role for user:", user.id);
-      
+
       const { data, error } = await supabase
         .rpc('has_role', { _user_id: user.id, _role: 'admin' });
-      
+
       if (error) {
         console.error("[useIsAdmin] Error checking admin role:", error);
         return false;
       }
-      
+
       console.log("[useIsAdmin] Admin check result:", data);
       return data;
     },
@@ -37,7 +37,7 @@ export const useIsAdmin = () => {
 // Check user role for routing - with caching
 export const useUserRole = () => {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ["user-role", user?.id],
     queryFn: async () => {
@@ -45,40 +45,40 @@ export const useUserRole = () => {
         console.log("[useUserRole] No user id, returning null");
         return null;
       }
-      
+
       console.log("[useUserRole] Checking role for user:", user.id);
-      
+
       // Use Promise.all for parallel checks
       const [adminResult, riderResult, businessResult] = await Promise.all([
         supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
         supabase.from('riders').select('id').eq('user_id', user.id).maybeSingle(),
         supabase.from('businesses').select('id').eq('owner_user_id', user.id).maybeSingle(),
       ]);
-      
+
       console.log("[useUserRole] Role check results:", {
         admin: adminResult.data,
         rider: !!riderResult.data,
         business: !!businessResult.data,
       });
-      
+
       // Check admin first
       if (adminResult.data) {
         console.log("[useUserRole] User is admin");
         return 'admin';
       }
-      
+
       // Check rider
       if (riderResult.data) {
         console.log("[useUserRole] User is rider");
         return 'rider';
       }
-      
+
       // Check business
       if (businessResult.data) {
         console.log("[useUserRole] User is business");
         return 'business';
       }
-      
+
       console.log("[useUserRole] User is customer (default)");
       return 'customer';
     },
@@ -88,14 +88,14 @@ export const useUserRole = () => {
   });
 };
 
-// Admin stats
+// Admin stats with live counters
 export const useAdminStats = () => {
   const queryClient = useQueryClient();
 
   // Set up realtime subscriptions for all stat-related tables
   useEffect(() => {
     console.log('[useAdminStats] Setting up realtime subscriptions');
-    
+
     const ordersChannel = supabase
       .channel('admin-stats-orders')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
@@ -139,36 +139,40 @@ export const useAdminStats = () => {
       const [ordersRes, ridersRes, businessesRes, requestsRes] = await Promise.all([
         supabase.from("orders").select("id, total, status"),
         supabase.from("riders").select("id, is_active, is_online"),
-        supabase.from("businesses").select("id, is_active, type"),
+        (supabase.from("businesses" as any).select("id, is_active, type, is_busy") as any),
         supabase.from("rider_requests").select("id, total, status"),
       ]);
 
       const orders = ordersRes.data || [];
       const riders = ridersRes.data || [];
-      const businesses = businessesRes.data || [];
+      const businesses = (businessesRes as any).data || [];
       const requests = requestsRes.data || [];
 
       const totalOrders = orders.length + requests.length;
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0) + 
-                          requests.reduce((sum, r) => sum + (r.total || 0), 0);
+      const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0) +
+        requests.reduce((sum, r) => sum + (r.total || 0), 0);
       const activeRiders = riders.filter(r => r.is_active).length;
       const onlineRiders = riders.filter(r => r.is_online).length;
-      const activeBusinesses = businesses.filter(b => b.is_active).length;
-      
+      const activeBusinesses = businesses.filter((b: any) => b.is_active).length;
+      const busyBusinesses = businesses.filter((b: any) => b.is_busy).length;
+
       // Count by type
-      const restaurantCount = businesses.filter(b => b.type === 'restaurant').length;
-      const groceryCount = businesses.filter(b => b.type === 'grocery').length;
-      const bakeryCount = businesses.filter(b => b.type === 'bakery').length;
-      const shopCount = businesses.filter(b => b.type === 'shop').length;
+      const restaurantCount = businesses.filter((b: any) => b.type === 'restaurant').length;
+      const groceryCount = businesses.filter((b: any) => b.type === 'grocery').length;
+      const bakeryCount = businesses.filter((b: any) => b.type === 'bakery').length;
+      const shopCount = businesses.filter((b: any) => b.type === 'shop').length;
+      const pharmacyCount = businesses.filter((b: any) => b.type === 'pharmacy').length;
 
       // Order status counts
-      const pendingOrders = orders.filter(o => o.status === 'placed').length + 
-                           requests.filter(r => r.status === 'placed').length;
-      const preparingOrders = orders.filter(o => o.status === 'preparing').length;
-      const onWayOrders = orders.filter(o => o.status === 'on_way').length + 
-                          requests.filter(r => r.status === 'on_way').length;
-      const deliveredOrders = orders.filter(o => o.status === 'delivered').length + 
-                             requests.filter(r => r.status === 'delivered').length;
+      const pendingOrdersCount = orders.filter(o => o.status === 'placed').length +
+        requests.filter(r => r.status === 'placed').length;
+      const preparingOrdersCount = orders.filter(o => o.status === 'preparing').length;
+      const onWayOrdersCount = orders.filter(o => o.status === 'on_way').length +
+        requests.filter(r => r.status === 'on_way').length;
+      const deliveredOrdersCount = orders.filter(o => o.status === 'delivered').length +
+        requests.filter(r => r.status === 'delivered').length;
+      const cancelledOrdersCount = orders.filter(o => o.status === 'cancelled').length +
+        requests.filter(r => r.status === 'cancelled').length;
 
       return {
         totalOrders,
@@ -176,16 +180,20 @@ export const useAdminStats = () => {
         activeRiders,
         onlineRiders,
         activeBusinesses,
+        busyBusinesses,
         totalRiders: riders.length,
         totalBusinesses: businesses.length,
         restaurantCount,
         groceryCount,
         bakeryCount,
         shopCount,
-        pendingOrders,
-        preparingOrders,
-        onWayOrders,
-        deliveredOrders,
+        pharmacyCount,
+        pendingOrders: pendingOrdersCount,
+        preparingOrders: preparingOrdersCount,
+        onWayOrders: onWayOrdersCount,
+        deliveredOrders: deliveredOrdersCount,
+        cancelledOrders: cancelledOrdersCount,
+        newOrdersCount: pendingOrdersCount // Alias for clarity
       };
     },
   });
@@ -198,7 +206,7 @@ export const useAdminRiders = () => {
   // Set up realtime subscription for riders
   useEffect(() => {
     console.log('[useAdminRiders] Setting up realtime subscription');
-    
+
     const channel = supabase
       .channel('admin-riders-realtime')
       .on(
@@ -230,7 +238,7 @@ export const useAdminRiders = () => {
         .from("riders")
         .select("*")
         .order("created_at", { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -244,7 +252,7 @@ export const useAdminBusinesses = () => {
   // Set up realtime subscription for businesses
   useEffect(() => {
     console.log('[useAdminBusinesses] Setting up realtime subscription');
-    
+
     const channel = supabase
       .channel('admin-businesses-realtime')
       .on(
@@ -276,7 +284,7 @@ export const useAdminBusinesses = () => {
         .from("businesses")
         .select("*")
         .order("created_at", { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -290,9 +298,9 @@ export const useBusinessMenuItems = (businessId: string | null) => {
   // Set up realtime subscription for menu items
   useEffect(() => {
     if (!businessId) return;
-    
+
     console.log('[useBusinessMenuItems] Setting up realtime subscription for business:', businessId);
-    
+
     const channel = supabase
       .channel(`menu-items-realtime-${businessId}`)
       .on(
@@ -325,7 +333,7 @@ export const useBusinessMenuItems = (businessId: string | null) => {
         .select("*")
         .eq("business_id", businessId)
         .order("category", { ascending: true });
-      
+
       if (error) throw error;
       return data;
     },
@@ -340,7 +348,7 @@ export const useAdminOrders = () => {
   // Set up realtime subscription for orders
   useEffect(() => {
     console.log('[useAdminOrders] Setting up realtime subscription');
-    
+
     const channel = supabase
       .channel('admin-orders-realtime')
       .on(
@@ -371,7 +379,7 @@ export const useAdminOrders = () => {
         .from("orders")
         .select("*, riders(name, phone)")
         .order("created_at", { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -385,7 +393,7 @@ export const useAdminRiderRequests = () => {
   // Set up realtime subscription for rider requests
   useEffect(() => {
     console.log('[useAdminRiderRequests] Setting up realtime subscription');
-    
+
     const channel = supabase
       .channel('admin-rider-requests-realtime')
       .on(
@@ -416,7 +424,7 @@ export const useAdminRiderRequests = () => {
         .from("rider_requests")
         .select("*, riders(name, phone, vehicle_type)")
         .order("created_at", { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
@@ -426,7 +434,7 @@ export const useAdminRiderRequests = () => {
 // Create rider - normalize phone to digits only
 export const useCreateRider = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (riderData: {
       name: string;
@@ -438,12 +446,12 @@ export const useCreateRider = () => {
     }) => {
       // Normalize phone to digits only format for database
       const normalizedPhone = normalizePhoneDigits(riderData.phone);
-      
+
       console.log("[Admin] Creating rider:", {
         phone: normalizedPhone,
         email: riderData.email || null,
       });
-      
+
       const { data, error } = await supabase
         .from("riders")
         .insert({
@@ -458,7 +466,7 @@ export const useCreateRider = () => {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -476,14 +484,14 @@ export const useCreateRider = () => {
 // Delete rider
 export const useDeleteRider = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (riderId: string) => {
       const { error } = await supabase
         .from("riders")
         .delete()
         .eq("id", riderId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -497,17 +505,21 @@ export const useDeleteRider = () => {
   });
 };
 
-// Toggle rider status
+// Toggle rider status (Block/Unblock)
 export const useToggleRiderStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ riderId, isActive }: { riderId: string; isActive: boolean }) => {
       const { error } = await supabase
         .from("riders")
-        .update({ is_active: isActive })
+        .update({
+          is_active: isActive,
+          // If we unblock, make sure verification status is also verified
+          ...(isActive ? { verification_status: 'verified' } : {})
+        })
         .eq("id", riderId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -521,48 +533,82 @@ export const useToggleRiderStatus = () => {
   });
 };
 
+// Verify/Reject rider
+export const useVerifyRider = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ riderId, status }: { riderId: string; status: 'verified' | 'rejected' }) => {
+      const { error } = await supabase
+        .from("riders")
+        .update({
+          verification_status: status,
+          is_active: status === 'verified' // Auto-activate if verified
+        })
+        .eq("id", riderId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      toast.success(variables.status === 'verified' ? "Rider verified and activated!" : "Rider application rejected");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to complete verification: " + error.message);
+    },
+  });
+};
+
 // Create business - normalize phone to digits only
 export const useCreateBusiness = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (businessData: {
       name: string;
-      type: 'restaurant' | 'grocery' | 'bakery' | 'shop';
+      type: 'restaurant' | 'grocery' | 'bakery' | 'shop' | 'pharmacy';
       description?: string;
       category?: string;
       image?: string;
       owner_phone?: string;
       owner_email?: string;
       commission_rate?: number;
+      location_lat?: number;
+      location_lng?: number;
+      location_address?: string;
     }) => {
       // Normalize phone to digits only format for database
-      const normalizedPhone = businessData.owner_phone 
-        ? normalizePhoneDigits(businessData.owner_phone) 
+      const normalizedPhone = businessData.owner_phone
+        ? normalizePhoneDigits(businessData.owner_phone)
         : null;
-      
+
       console.log("[Admin] Creating business:", {
         phone: normalizedPhone,
         email: businessData.owner_email || null,
+        location: businessData.location_address
       });
-      
+
       const { data, error } = await supabase
         .from("businesses")
         .insert([{
           name: businessData.name,
-          type: businessData.type,
+          type: businessData.type as any,
           description: businessData.description || null,
           category: businessData.category || null,
           image: businessData.image || null,
           owner_phone: normalizedPhone,
           owner_email: businessData.owner_email?.trim() || null,
           commission_rate: businessData.commission_rate || 15,
+          location_lat: businessData.location_lat,
+          location_lng: businessData.location_lng,
+          location_address: businessData.location_address,
           is_active: true,
           featured: false,
         }])
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -580,7 +626,7 @@ export const useCreateBusiness = () => {
 // Delete business
 export const useDeleteBusiness = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (businessId: string) => {
       // First delete menu items
@@ -588,12 +634,12 @@ export const useDeleteBusiness = () => {
         .from("menu_items")
         .delete()
         .eq("business_id", businessId);
-        
+
       const { error } = await supabase
         .from("businesses")
         .delete()
         .eq("id", businessId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -610,14 +656,14 @@ export const useDeleteBusiness = () => {
 // Toggle business status
 export const useToggleBusinessStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ businessId, isActive }: { businessId: string; isActive: boolean }) => {
       const { error } = await supabase
         .from("businesses")
         .update({ is_active: isActive })
         .eq("id", businessId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -631,17 +677,41 @@ export const useToggleBusinessStatus = () => {
   });
 };
 
+// Toggle business approval
+export const useToggleBusinessApproval = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ businessId, isApproved }: { businessId: string; isApproved: boolean }) => {
+      const { error } = await supabase
+        .from("businesses")
+        .update({ is_approved: isApproved })
+        .eq("id", businessId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-businesses"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      toast.success("Business approval status updated");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update business approval: " + error.message);
+    },
+  });
+};
+
 // Toggle business featured
 export const useToggleBusinessFeatured = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ businessId, featured }: { businessId: string; featured: boolean }) => {
       const { error } = await supabase
         .from("businesses")
         .update({ featured })
         .eq("id", businessId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -657,7 +727,7 @@ export const useToggleBusinessFeatured = () => {
 // Create menu item
 export const useCreateMenuItem = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (itemData: {
       business_id: string;
@@ -682,7 +752,7 @@ export const useCreateMenuItem = () => {
         }])
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -699,14 +769,14 @@ export const useCreateMenuItem = () => {
 // Delete menu item
 export const useDeleteMenuItem = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ itemId, businessId }: { itemId: string; businessId: string }) => {
       const { error } = await supabase
         .from("menu_items")
         .delete()
         .eq("id", itemId);
-      
+
       if (error) throw error;
       return businessId;
     },
@@ -723,18 +793,18 @@ export const useDeleteMenuItem = () => {
 // Toggle menu item availability
 export const useToggleMenuItemAvailability = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ itemId, businessId, isAvailable }: { 
-      itemId: string; 
+    mutationFn: async ({ itemId, businessId, isAvailable }: {
+      itemId: string;
       businessId: string;
-      isAvailable: boolean 
+      isAvailable: boolean
     }) => {
       const { error } = await supabase
         .from("menu_items")
         .update({ is_available: isAvailable })
         .eq("id", itemId);
-      
+
       if (error) throw error;
       return businessId;
     },
@@ -751,17 +821,17 @@ export const useToggleMenuItemAvailability = () => {
 // Update order status
 export const useUpdateOrderStatus = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ orderId, status }: { 
-      orderId: string; 
+    mutationFn: async ({ orderId, status }: {
+      orderId: string;
       status: 'placed' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
     }) => {
       const { error } = await supabase
         .from("orders")
         .update({ status })
         .eq("id", orderId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -778,14 +848,14 @@ export const useUpdateOrderStatus = () => {
 // Assign rider to order
 export const useAssignRiderToOrder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ orderId, riderId }: { orderId: string; riderId: string }) => {
       const { error } = await supabase
         .from("orders")
         .update({ rider_id: riderId, status: 'preparing' })
         .eq("id", orderId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -799,44 +869,17 @@ export const useAssignRiderToOrder = () => {
   });
 };
 
-// Update rider request status
-export const useUpdateRiderRequestStatus = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ requestId, status }: { 
-      requestId: string; 
-      status: 'placed' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
-    }) => {
-      const { error } = await supabase
-        .from("rider_requests")
-        .update({ status })
-        .eq("id", requestId);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-rider-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      toast.success("Request status updated");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to update request: " + error.message);
-    },
-  });
-};
-
-// Assign rider to request
+// Assign rider to rider request
 export const useAssignRiderToRequest = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ requestId, riderId }: { requestId: string; riderId: string }) => {
       const { error } = await supabase
         .from("rider_requests")
         .update({ rider_id: riderId, status: 'preparing' })
         .eq("id", requestId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -850,94 +893,38 @@ export const useAssignRiderToRequest = () => {
   });
 };
 
-// Update business details
-export const useUpdateBusiness = () => {
+// Update rider request status
+export const useUpdateRiderRequestStatus = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ 
-      businessId, 
-      updates 
-    }: { 
-      businessId: string; 
-      updates: {
-        name?: string;
-        description?: string;
-        category?: string;
-        image?: string;
-        owner_phone?: string;
-        commission_rate?: number;
-        is_active?: boolean;
-        featured?: boolean;
-        is_blocked?: boolean;
-      }
-    }) => {
-      // Normalize phone if provided
-      const normalizedUpdates = {
-        ...updates,
-        owner_phone: updates.owner_phone 
-          ? normalizePhoneDigits(updates.owner_phone)
-          : updates.owner_phone,
-      };
-      
-      const { error } = await supabase
-        .from("businesses")
-        .update(normalizedUpdates)
-        .eq("id", businessId);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-businesses"] });
-      toast.success("Business updated successfully");
-    },
-    onError: (error: Error) => {
-      toast.error("Failed to update business: " + error.message);
-    },
-  });
-};
 
-// Update rider details
-export const useUpdateRider = () => {
-  const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ 
-      riderId, 
-      updates 
-    }: { 
-      riderId: string; 
-      updates: {
-        name?: string;
-        phone?: string;
-        cnic?: string;
-        vehicle_type?: string;
-        commission_rate?: number;
-        is_active?: boolean;
-        is_blocked?: boolean;
-      }
+    mutationFn: async ({ requestId, status, reason }: {
+      requestId: string;
+      status: string;
+      reason?: string;
     }) => {
-      // Normalize phone if provided
-      const normalizedUpdates = {
-        ...updates,
-        phone: updates.phone 
-          ? normalizePhoneDigits(updates.phone)
-          : updates.phone,
-      };
-      
       const { error } = await supabase
-        .from("riders")
-        .update(normalizedUpdates)
-        .eq("id", riderId);
-      
+        .from("rider_requests")
+        .update({ status: status as any })
+        .eq("id", requestId);
+
       if (error) throw error;
+
+      if (status === 'cancelled' && reason) {
+        await (supabase.from('order_status_logs' as any).insert({
+          rider_request_id: requestId,
+          status,
+          notes: reason
+        } as any) as any);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
-      toast.success("Rider updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["admin-rider-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      toast.success("Request status updated");
     },
     onError: (error: Error) => {
-      toast.error("Failed to update rider: " + error.message);
+      toast.error("Failed to update request: " + error.message);
     },
   });
 };
@@ -952,7 +939,7 @@ export const useOnlineRiders = () => {
         .select("id, name, phone, current_location_lat, current_location_lng, vehicle_type, is_online")
         .eq("is_online", true)
         .eq("is_active", true);
-      
+
       if (error) throw error;
       return data;
     },
@@ -969,7 +956,84 @@ export const useAdminCustomers = () => {
         .from("customer_profiles")
         .select("*")
         .order("created_at", { ascending: false });
-      
+
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+// Fetch system settings
+export const useSystemSettings = () => {
+  return useQuery({
+    queryKey: ["system-settings"],
+    queryFn: async () => {
+      const { data, error } = await (supabase
+        .from("system_settings" as any)
+        .select("*") as any);
+
+      if (error) throw error;
+      return (data as any[]).reduce((acc: any, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {});
+    },
+  });
+};
+
+// Update system setting
+export const useUpdateSystemSetting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: any }) => {
+      const { error } = await (supabase
+        .from("system_settings" as any)
+        .upsert({ key, value, updated_at: new Date().toISOString() } as any) as any);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["system-settings"] });
+      toast.success("System setting updated");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update setting: " + error.message);
+    },
+  });
+};
+
+// Fetch order timeline
+export const useOrderTimeline = (orderId?: string, riderRequestId?: string) => {
+  return useQuery({
+    queryKey: ["order-timeline", orderId, riderRequestId],
+    queryFn: async () => {
+      let query = (supabase
+        .from("order_status_logs" as any)
+        .select("*") as any)
+        .order("created_at", { ascending: true });
+
+      if (orderId) query = query.eq("order_id", orderId);
+      if (riderRequestId) query = query.eq("rider_request_id", riderRequestId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId || !!riderRequestId,
+  });
+};
+
+// All admins manager
+export const useAdminList = () => {
+  return useQuery({
+    queryKey: ["admin-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admins")
+        .select("*")
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data;
     },
@@ -979,10 +1043,10 @@ export const useAdminCustomers = () => {
 // Send system notification
 export const useSendSystemNotification = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ title, message, userIds }: { 
-      title: string; 
+    mutationFn: async ({ title, message, userIds }: {
+      title: string;
       message: string;
       userIds?: string[];
     }) => {
@@ -991,7 +1055,7 @@ export const useSendSystemNotification = () => {
         _message: message,
         _user_ids: userIds || null,
       });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1012,13 +1076,13 @@ export const useSendSystemNotification = () => {
 // Update menu item
 export const useUpdateMenuItem = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      itemId, 
-      updates 
-    }: { 
-      itemId: string; 
+    mutationFn: async ({
+      itemId,
+      updates
+    }: {
+      itemId: string;
       updates: {
         name?: string;
         description?: string;
@@ -1033,7 +1097,7 @@ export const useUpdateMenuItem = () => {
         .from("menu_items")
         .update(updates)
         .eq("id", itemId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1054,26 +1118,26 @@ export const useUpdateMenuItem = () => {
 // Accept order (admin manually accepts)
 export const useAcceptOrder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (orderId: string) => {
       const { error } = await supabase
         .from("orders")
-        .update({ 
+        .update({
           status: 'preparing',
           updated_at: new Date().toISOString()
         })
         .eq("id", orderId);
-      
+
       if (error) throw error;
-      
+
       // Create notification for customer
       const { data: order } = await supabase
         .from("orders")
         .select("customer_id")
         .eq("id", orderId)
         .single();
-      
+
       if (order?.customer_id) {
         await supabase.rpc("send_system_notification", {
           _title: "Order Accepted",
@@ -1097,32 +1161,32 @@ export const useAcceptOrder = () => {
 // Reject order (admin manually rejects)
 export const useRejectOrder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      orderId, 
-      reason 
-    }: { 
-      orderId: string; 
-      reason?: string 
+    mutationFn: async ({
+      orderId,
+      reason
+    }: {
+      orderId: string;
+      reason?: string
     }) => {
       const { error } = await supabase
         .from("orders")
-        .update({ 
+        .update({
           status: 'cancelled',
           updated_at: new Date().toISOString()
         })
         .eq("id", orderId);
-      
+
       if (error) throw error;
-      
+
       // Create notification for customer
       const { data: order } = await supabase
         .from("orders")
         .select("customer_id")
         .eq("id", orderId)
         .single();
-      
+
       if (order?.customer_id) {
         await supabase.rpc("send_system_notification", {
           _title: "Order Cancelled",

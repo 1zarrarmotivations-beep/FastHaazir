@@ -15,19 +15,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "285845112968-84pmj23po6f3lpit3uudiqmq7c5de4lt.apps.googleusercontent.com",
+          "client_id": "285845112968-agsak8vaqub0f9rc6pjjcl28480g7t2c.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.fasthaazir.app",
-            "certificate_hash": "553d48b63a1f72f89f446617fd3e61fa18735d25"
+            "certificate_hash": "f834a6fe41ad395c7ebe627f4f56740824e74d30"
           }
         },
         {
-          "client_id": "285845112968-abp9faiep7uluvrn5jt3cqrvrf83vgvu.apps.googleusercontent.com",
+          "client_id": "285845112968-vo8s3jfm6d6pq5shedpct8lemqtfnrk2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.fasthaazir.app",
-            "certificate_hash": "b8c905c26fe4fe441420b74cf050f3dd2405fd02"
+            "certificate_hash": "9c01059c6ded6145cb6df892823072570478cdbc"
           }
         },
         {

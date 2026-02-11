@@ -1,9 +1,9 @@
-import { 
-  LayoutDashboard, 
-  Users, 
-  Store, 
-  ShoppingBag, 
-  Bike, 
+import {
+  LayoutDashboard,
+  Users,
+  Store,
+  ShoppingBag,
+  Bike,
   MapPin,
   LogOut,
   Menu,
@@ -16,7 +16,9 @@ import {
   MessageCircle,
   Sparkles,
   Wallet,
-  Tag
+  Tag,
+  HeartHandshake,
+  Calculator
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import logo from "@/assets/fast-haazir-logo-optimized.webp";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -46,6 +49,8 @@ const menuItems = [
   { id: "promo-banner", label: "Banners", icon: Sparkles },
   { id: "payment-settings", label: "Payment Settings", icon: Settings },
   { id: "category-pricing", label: "Category Pricing", icon: Tag },
+  { id: "calculator", label: "Fare Calculator", icon: Calculator },
+  { id: "support", label: "Support Tickets", icon: HeartHandshake },
 ];
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
@@ -57,7 +62,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
-    
+
     try {
       await signOut(navigate);
       toast.success("لاگ آؤٹ ہو گیا");
@@ -97,9 +102,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         {/* Logo */}
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Bike className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src={logo} alt="Fast Haazir" className="w-10 h-10 object-contain" />
             <div>
               <h1 className="font-bold text-lg text-foreground">Fast Haazir</h1>
               <p className="text-xs text-muted-foreground">Admin Panel</p>

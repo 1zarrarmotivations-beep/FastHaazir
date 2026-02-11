@@ -21,6 +21,8 @@ import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import BannersManager from "@/components/admin/BannersManager";
 import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
+import AdminSupportManager from "@/components/admin/AdminSupportManager";
+import PricingSimulator from "@/components/admin/PricingSimulator";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -231,6 +233,26 @@ export default function Admin() {
             <BannersManager />
           </div>
         );
+      case "support":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Support Tickets</h2>
+              <p className="text-muted-foreground">Manage customer support tickets and inquiries</p>
+            </div>
+            <AdminSupportManager />
+          </div>
+        );
+      case "calculator":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Fare Calculator</h2>
+              <p className="text-muted-foreground">Simulate pricing logic and calculate fares</p>
+            </div>
+            <PricingSimulator />
+          </div>
+        );
       default:
         return null;
     }
@@ -239,7 +261,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen flex bg-background">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
       <main className="flex-1 lg:ml-0 min-h-screen">
         {/* Top bar with notification badge and language toggle */}
         <div className="absolute top-4 right-4 z-50 lg:right-8 flex items-center gap-3">

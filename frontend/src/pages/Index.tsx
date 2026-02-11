@@ -12,9 +12,12 @@ import HorizontalScrollSection from '@/components/HorizontalScrollSection';
 import FloatingCart from '@/components/FloatingCart';
 import { useBusinesses } from '@/hooks/useBusinesses';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SupportSheet } from '@/components/support/SupportSheet';
+import { Headphones } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useAdmin';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Star, Clock, MapPin } from 'lucide-react';
 
 const Index: React.FC = () => {
@@ -24,7 +27,7 @@ const Index: React.FC = () => {
   const { data: userRole, isLoading: roleLoading } = useUserRole();
   const hasRedirected = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  
+
   const { data: restaurants, isLoading: loadingRestaurants } = useBusinesses('restaurant');
   const { data: bakeries, isLoading: loadingBakeries } = useBusinesses('bakery');
   const { data: grocery, isLoading: loadingGrocery } = useBusinesses('grocery');
@@ -60,7 +63,7 @@ const Index: React.FC = () => {
     <div className="mobile-container bg-background min-h-screen pb-24">
       {/* Premium Customer Header */}
       <CustomerHeader onSearchClick={() => setSearchOpen(true)} />
-      
+
       <main>
         {/* Promo Banner */}
         <BannerCarousel />
@@ -79,7 +82,7 @@ const Index: React.FC = () => {
                 <span>⭐</span>
                 {t('home.featuredRestaurants', 'بہترین ریستوران')}
               </h2>
-              <button 
+              <button
                 onClick={() => navigate('/restaurants')}
                 className="text-xs text-primary font-medium"
               >
@@ -97,7 +100,7 @@ const Index: React.FC = () => {
                 >
                   <Card variant="elevated" className="overflow-hidden cursor-pointer customer-business-card">
                     <div className="relative h-24">
-                      <img 
+                      <img
                         src={restaurant.image || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop'}
                         alt={restaurant.name}
                         className="w-full h-full object-cover"
@@ -142,13 +145,13 @@ const Index: React.FC = () => {
             </div>
           </div>
         ) : restaurants && restaurants.length > 0 && (
-          <HorizontalScrollSection 
+          <HorizontalScrollSection
             title={`🍽️ ${t('home.restaurants', 'ریستوران')}`}
             subtitle={t('home.restaurantsDining', 'کھانا اور ڈائننگ')}
-            businesses={restaurants.map(formatBusinessForCard)} 
-            onViewAll={() => navigate('/restaurants')} 
-            onBusinessClick={id => navigate(`/restaurant/${id}`)} 
-            priorityFirstImage 
+            businesses={restaurants.map(formatBusinessForCard)}
+            onViewAll={() => navigate('/restaurants')}
+            onBusinessClick={id => navigate(`/restaurant/${id}`)}
+            priorityFirstImage
           />
         )}
 
@@ -163,12 +166,12 @@ const Index: React.FC = () => {
             </div>
           </div>
         ) : bakeries && bakeries.length > 0 && (
-          <HorizontalScrollSection 
+          <HorizontalScrollSection
             title={`🥐 ${t('home.bakery', 'بیکری')}`}
             subtitle={t('menu.freshBaked', 'تازہ بیکری آئٹمز')}
-            businesses={bakeries.map(formatBusinessForCard)} 
-            onViewAll={() => navigate('/restaurants?type=bakery')} 
-            onBusinessClick={id => navigate(`/restaurant/${id}`)} 
+            businesses={bakeries.map(formatBusinessForCard)}
+            onViewAll={() => navigate('/bakery')}
+            onBusinessClick={id => navigate(`/restaurant/${id}`)}
           />
         )}
 
@@ -183,12 +186,12 @@ const Index: React.FC = () => {
             </div>
           </div>
         ) : grocery && grocery.length > 0 && (
-          <HorizontalScrollSection 
+          <HorizontalScrollSection
             title={`🛒 ${t('home.grocery', 'گروسری')}`}
             subtitle={t('home.dailyEssentials', 'روزمرہ ضروریات')}
-            businesses={grocery.map(formatBusinessForCard)} 
-            onViewAll={() => navigate('/restaurants?type=grocery')} 
-            onBusinessClick={id => navigate(`/restaurant/${id}`)} 
+            businesses={grocery.map(formatBusinessForCard)}
+            onViewAll={() => navigate('/grocery')}
+            onBusinessClick={id => navigate(`/restaurant/${id}`)}
           />
         )}
       </main>
@@ -197,6 +200,15 @@ const Index: React.FC = () => {
       <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <FloatingCart />
+      <div className="fixed bottom-24 right-4 z-40">
+        <SupportSheet
+          trigger={
+            <Button size="icon" className="w-14 h-14 rounded-full shadow-2xl gradient-primary text-white border-2 border-white/20">
+              <Headphones className="w-6 h-6" />
+            </Button>
+          }
+        />
+      </div>
       <BottomNav />
     </div>
   );

@@ -4,8 +4,8 @@
   "description": "Fast Haazir – Quetta's Fastest On-Demand Delivery | Har Cheez, Turant Haazir",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0F3D28",
-  "theme_color": "#147A4A",
+  "background_color": "#16a34a",
+  "theme_color": "#16a34a",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -31,7 +31,12 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["food", "shopping", "lifestyle", "delivery"],
+  "categories": [
+    "food",
+    "shopping",
+    "lifestyle",
+    "delivery"
+  ],
   "lang": "en",
   "dir": "ltr",
   "scope": "/",
@@ -42,14 +47,24 @@
       "short_name": "Food",
       "description": "Order from restaurants in Quetta",
       "url": "/restaurants",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Assign Rider",
       "short_name": "Rider",
       "description": "Request on-demand rider delivery",
       "url": "/assign-rider",
-      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

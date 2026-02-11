@@ -1,84 +1,122 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0F5C3A" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Fast Haazir" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
-    
-    <!-- Preconnect to external origins for faster resource loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://pmqkclhqvjfmcxzuoypa.supabase.co" crossorigin />
-    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
-    
-    <!-- DNS prefetch for additional performance -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-    <link rel="dns-prefetch" href="https://images.unsplash.com" />
-    
-    <!-- Preload critical font files -->
-    <link rel="preload" href="https://fonts.gstatic.com/s/poppins/v24/pxiEyp8kv8JHgFVrJJfecnFHGPc.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLGT9Z1xlFd2JQEk.woff2" as="font" type="font/woff2" crossorigin />
-    
-    <!-- Non-blocking font loading - English -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" /></noscript>
-    
-    <!-- Urdu Font - Jameel Noori Nastaleeq (loaded on demand via CSS) -->
-    <style>
-      @font-face {
-        font-family: 'Jameel Noori Nastaleeq';
-        src: url('https://cdn.jsdelivr.net/gh/AminMehedi/Nastaliq-Fonts@master/Jameel%20Noori%20Nastaleeq.ttf') format('truetype');
-        font-weight: 400;
-        font-style: normal;
-        font-display: swap;
-      }
-      @font-face {
-        font-family: 'Noto Nastaliq Urdu';
-        src: url('https://fonts.gstatic.com/s/notonastaliqurdu/v20/LhWNMUPbN-oZdNFcBy1-DJYsEoTq5puHSPJU93cxGvC0Sbc.woff2') format('woff2');
-        font-weight: 400 700;
-        font-style: normal;
-        font-display: swap;
-      }
-    </style>
-    
-    <title>Fast Haazir – On-Demand Delivery</title>
-    <meta name="application-name" content="Fast Haazir" />
-    <meta name="description" content="Fast Haazir – Your on-demand delivery service for food, groceries, and more." />
-    <meta name="author" content="Fast Haazir" />
 
-    <meta property="og:title" content="Fast Haazir – On-Demand Delivery" />
-    <meta property="og:description" content="Fast Haazir – Your on-demand delivery service for food, groceries, and more." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#16a34a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fast Haazir" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@FastHaazir" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
+  <!-- Preconnect to external origins for faster resource loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://jqbwynomwwjhsebcicpm.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
 
-  <body>
-    <div id="root"></div>
-    <script>
-      // Force service worker update for production builds
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          registrations.forEach(function(registration) {
-            registration.update();
-          });
+  <!-- DNS prefetch for additional performance -->
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+  <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
+  <!-- Preload critical font files -->
+  <link rel="preload" href="https://fonts.gstatic.com/s/poppins/v24/pxiEyp8kv8JHgFVrJJfecnFHGPc.woff2" as="font"
+    type="font/woff2" crossorigin />
+  <link rel="preload" href="https://fonts.gstatic.com/s/poppins/v24/pxiByp8kv8JHgFVrLGT9Z1xlFd2JQEk.woff2" as="font"
+    type="font/woff2" crossorigin />
+
+  <!-- Non-blocking font loading - English -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+    media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" />
+  </noscript>
+
+  <!-- Urdu Font - Jameel Noori Nastaleeq (loaded on demand via CSS) -->
+  <style>
+    @font-face {
+      font-family: 'Jameel Noori Nastaleeq';
+      src: url('https://cdn.jsdelivr.net/gh/AminMehedi/Nastaliq-Fonts@master/Jameel%20Noori%20Nastaleeq.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: 'Noto Nastaliq Urdu';
+      src: url('https://fonts.gstatic.com/s/notonastaliqurdu/v20/LhWNMUPbN-oZdNFcBy1-DJYsEoTq5puHSPJU93cxGvC0Sbc.woff2') format('woff2');
+      font-weight: 400 700;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+
+  <title>Fast Haazir – On-Demand Delivery</title>
+  <meta name="application-name" content="Fast Haazir" />
+  <meta name="description" content="Fast Haazir – Your on-demand delivery service for food, groceries, and more." />
+  <meta name="author" content="Fast Haazir" />
+
+  <meta property="og:title" content="Fast Haazir – On-Demand Delivery" />
+  <meta property="og:description"
+    content="Fast Haazir – Your on-demand delivery service for food, groceries, and more." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://fast-haazir-786.web.app/og-fast-haazir.png" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@FastHaazir" />
+  <meta name="twitter:image" content="https://fast-haazir-786.web.app/og-fast-haazir.png" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    window.onerror = function (msg, url, lineNo, columnNo, error) {
+      var div = document.createElement('div');
+      div.style.position = 'fixed';
+      div.style.top = '0';
+      div.style.left = '0';
+      div.style.width = '100%';
+      div.style.zIndex = '999999';
+      div.style.background = 'red';
+      div.style.color = 'white';
+      div.style.padding = '10px';
+      div.style.fontSize = '12px';
+      div.innerHTML = '<b>Runtime Error:</b> ' + msg + '<br>@ ' + url + ':' + lineNo + ':' + columnNo;
+      document.body.appendChild(div);
+      return false;
+    };
+    window.onunhandledrejection = function (event) {
+      var div = document.createElement('div');
+      div.style.position = 'fixed';
+      div.style.bottom = '0';
+      div.style.left = '0';
+      div.style.width = '100%';
+      div.style.zIndex = '999999';
+      div.style.background = 'orange';
+      div.style.color = 'black';
+      div.style.padding = '10px';
+      div.style.fontSize = '12px';
+      div.innerHTML = '<b>Promise Error:</b> ' + (event.reason ? event.reason.message || event.reason : 'Unknown reason');
+      document.body.appendChild(div);
+    };
+    // Force service worker update for production builds
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        registrations.forEach(function (registration) {
+          registration.update();
         });
-      }
-      console.log('🔥 RIDER PROD BUILD v4.0 ACTIVE 🔥');
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+      });
+    }
+    console.log('🔥 RIDER PROD BUILD v4.0 ACTIVE 🔥');
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

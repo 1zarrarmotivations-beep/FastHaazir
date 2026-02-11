@@ -11,7 +11,7 @@
        Primary: Deep Green (Pakistan Identity)
        Accent: Lightning Orange (Speed & Energy)
        ============================================ */
-    
+
     --background: 150 20% 98%;
     --foreground: 160 25% 12%;
 
@@ -21,8 +21,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 160 25% 12%;
 
-    /* Primary: Deep Pakistan Green (WCAG AA compliant) */
-    --primary: 152 77% 26%;
+    /* Primary: Vibrant Green (Matches New Logo) */
+    --primary: 142 76% 36%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary: Dark Charcoal */
@@ -37,8 +37,8 @@
     --accent: 28 100% 50%;
     --accent-foreground: 0 0% 100%;
 
-    /* Success: Bright Green */
-    --success: 152 77% 35%;
+    /* Success: Bright Green (Matches New Logo) */
+    --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
     /* Destructive: Danger Red */
@@ -47,18 +47,18 @@
 
     --border: 150 15% 88%;
     --input: 150 15% 88%;
-    --ring: 152 77% 26%;
+    --ring: 142 76% 36%;
 
     --radius: 1rem;
 
-    /* Fast Haazir Brand Gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(152, 77%, 26%) 0%, hsl(152, 77%, 35%) 100%);
+    /* Fast Haazir Brand Gradients (Updated for Vibrancy) */
+    --gradient-brand: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(142, 70%, 45%) 100%);
     --gradient-speed: linear-gradient(135deg, hsl(28, 100%, 50%) 0%, hsl(38, 100%, 55%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(152, 77%, 26%) 0%, hsl(152, 77%, 22%) 50%, hsl(152, 77%, 18%) 100%);
-    --gradient-card: linear-gradient(145deg, hsla(152, 77%, 26%, 0.08) 0%, hsla(28, 100%, 50%, 0.04) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(152, 77%, 35%) 0%, hsl(152, 77%, 30%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(142, 76%, 28%) 50%, hsl(142, 76%, 22%) 100%);
+    --gradient-card: linear-gradient(145deg, hsla(142, 76%, 36%, 0.08) 0%, hsla(28, 100%, 50%, 0.04) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142, 70%, 45%) 0%, hsl(142, 76%, 36%) 100%);
     --gradient-lightning: linear-gradient(135deg, hsl(38, 100%, 55%) 0%, hsl(28, 100%, 50%) 50%, hsl(18, 100%, 48%) 100%);
-    
+
     /* Brand Shadows */
     --shadow-soft: 0 4px 20px hsla(152, 77%, 26%, 0.08);
     --shadow-card: 0 8px 30px hsla(0, 0%, 0%, 0.1);
@@ -122,7 +122,7 @@
     --gradient-brand: linear-gradient(135deg, hsl(152, 77%, 35%) 0%, hsl(152, 77%, 45%) 100%);
     --gradient-speed: linear-gradient(135deg, hsl(28, 100%, 55%) 0%, hsl(38, 100%, 60%) 100%);
     --gradient-hero: linear-gradient(135deg, hsl(160, 25%, 8%) 0%, hsl(160, 25%, 6%) 50%, hsl(160, 25%, 4%) 100%);
-    
+
     /* Dark Mode Shadows */
     --shadow-soft: 0 4px 20px hsla(0, 0%, 0%, 0.3);
     --shadow-card: 0 8px 30px hsla(0, 0%, 0%, 0.4);
@@ -174,6 +174,7 @@
 }
 
 @layer utilities {
+
   /* Fast Haazir Brand Gradients */
   .gradient-brand {
     background: var(--gradient-brand);
@@ -289,7 +290,7 @@
 
   .rider-bg-premium {
     background: #0B0F14;
-    background-image: 
+    background-image:
       radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
       radial-gradient(ellipse at bottom left, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
   }
@@ -300,7 +301,7 @@
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 
+    box-shadow:
       0 4px 24px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
@@ -310,21 +311,19 @@
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
     border: 1px solid rgba(255, 255, 255, 0.04);
-    box-shadow: 
+    box-shadow:
       0 8px 40px rgba(0, 0, 0, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
 
   .glass-card-premium {
-    background: linear-gradient(
-      135deg,
-      rgba(30, 40, 60, 0.4) 0%,
-      rgba(20, 25, 40, 0.6) 100%
-    );
+    background: linear-gradient(135deg,
+        rgba(30, 40, 60, 0.4) 0%,
+        rgba(20, 25, 40, 0.6) 100%);
     backdrop-filter: blur(40px);
     -webkit-backdrop-filter: blur(40px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
+    box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.4),
       0 0 0 1px rgba(255, 255, 255, 0.02),
       inset 0 2px 4px rgba(255, 255, 255, 0.02);
@@ -332,35 +331,35 @@
 
   /* Neon Glow Effects - Premium */
   .glow-green {
-    box-shadow: 
+    box-shadow:
       0 0 20px rgba(16, 185, 129, 0.35),
       0 0 60px rgba(16, 185, 129, 0.15),
       inset 0 0 20px rgba(16, 185, 129, 0.05);
   }
 
   .glow-orange {
-    box-shadow: 
+    box-shadow:
       0 0 20px rgba(255, 106, 0, 0.35),
       0 0 60px rgba(255, 106, 0, 0.15),
       inset 0 0 20px rgba(255, 106, 0, 0.05);
   }
 
   .glow-purple {
-    box-shadow: 
+    box-shadow:
       0 0 20px rgba(139, 92, 246, 0.35),
       0 0 60px rgba(139, 92, 246, 0.15),
       inset 0 0 20px rgba(139, 92, 246, 0.05);
   }
 
   .glow-blue {
-    box-shadow: 
+    box-shadow:
       0 0 20px rgba(59, 130, 246, 0.35),
       0 0 60px rgba(59, 130, 246, 0.15),
       inset 0 0 20px rgba(59, 130, 246, 0.05);
   }
 
   .glow-cyan {
-    box-shadow: 
+    box-shadow:
       0 0 20px rgba(34, 211, 238, 0.35),
       0 0 60px rgba(34, 211, 238, 0.15),
       inset 0 0 20px rgba(34, 211, 238, 0.05);
@@ -418,13 +417,16 @@
 
   /* Pulse Glow Animation - Enhanced */
   @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 
+
+    0%,
+    100% {
+      box-shadow:
         0 0 8px rgba(255, 106, 0, 0.4),
         0 0 16px rgba(255, 106, 0, 0.2);
     }
+
     50% {
-      box-shadow: 
+      box-shadow:
         0 0 24px rgba(255, 106, 0, 0.6),
         0 0 48px rgba(255, 106, 0, 0.3),
         0 0 80px rgba(255, 106, 0, 0.15);
@@ -437,21 +439,29 @@
 
   /* Shimmer animation */
   @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
   }
 
   .shimmer {
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.06) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 2.5s infinite;
   }
 
   /* Online status glow - Enhanced */
   @keyframes online-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
     }
+
     50% {
       box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
     }
@@ -463,10 +473,13 @@
 
   /* Neon pulse for new orders */
   @keyframes neon-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
       opacity: 1;
       filter: brightness(1);
     }
+
     50% {
       opacity: 0.8;
       filter: brightness(1.3);
@@ -479,8 +492,15 @@
 
   /* Float animation */
   @keyframes float-gentle {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-6px);
+    }
   }
 
   .animate-float {
@@ -493,6 +513,7 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -509,12 +530,15 @@
       opacity: 0;
       transform: scale(0.3);
     }
+
     50% {
       transform: scale(1.05);
     }
+
     70% {
       transform: scale(0.9);
     }
+
     100% {
       opacity: 1;
       transform: scale(1);
@@ -527,9 +551,12 @@
 
   /* Premium ring glow */
   @keyframes ring-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
     }
+
     50% {
       box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
     }
@@ -540,8 +567,40 @@
   }
 
   /* Safe Area */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
   .safe-area-bottom {
     padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+
+  /* Premium Customer Header Glass */
+  .customer-header-glass {
+    background: hsla(var(--background), 0.8) !important;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border-bottom: 1px solid hsla(var(--border), 0.5);
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .customer-search-bar {
+    background: hsla(var(--muted), 0.6);
+    border: 1px solid hsla(var(--border), 0.8);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+  }
+
+  .customer-search-bar:active {
+    background: hsla(var(--muted), 0.8);
+    transform: scale(0.98);
+  }
+
+  .customer-glass-button {
+    background: hsla(var(--muted), 0.6);
+    border: 1px solid hsla(var(--border), 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 }
 
@@ -586,7 +645,8 @@ html.lang-en * {
 /* ===== URDU MODE ===== */
 /* HYBRID APPROACH: Document stays LTR, text elements get RTL */
 html.lang-ur {
-  direction: ltr; /* Keep layout stable */
+  direction: ltr;
+  /* Keep layout stable */
 }
 
 /* Global Urdu font application */
@@ -779,7 +839,8 @@ html.lang-ur [class*="chat"],
 html.lang-ur [class*="Chat"],
 html.lang-ur [class*="message"],
 html.lang-ur [class*="Message"] {
-  direction: ltr; /* Bubble layout stays LTR */
+  direction: ltr;
+  /* Bubble layout stays LTR */
 }
 
 html.lang-ur [class*="chat"] p,
@@ -819,10 +880,24 @@ html.lang-ur {
   --spacing-text: 0.25rem;
 }
 
-html.lang-ur h1 { font-size: 1.75rem; margin-bottom: 1rem; }
-html.lang-ur h2 { font-size: 1.5rem; margin-bottom: 0.875rem; }
-html.lang-ur h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
-html.lang-ur p { margin-bottom: 0.75rem; }
+html.lang-ur h1 {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+html.lang-ur h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.875rem;
+}
+
+html.lang-ur h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+html.lang-ur p {
+  margin-bottom: 0.75rem;
+}
 
 /* ===== UTILITY CLASSES ===== */
 /* Force LTR anywhere */

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MapPin, 
-  Clock, 
-  Package, 
+import {
+  MapPin,
+  Clock,
+  Package,
   Navigation,
   ChevronRight,
   ExternalLink,
@@ -34,17 +34,17 @@ interface RiderOrderRequestCardProps {
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
   placed: { label: 'New Request', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
-  preparing: { label: 'Picked Up', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-  on_way: { label: 'On The Way', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+  preparing: { label: 'Pending (Go to Pickup)', color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
+  on_way: { label: 'On The Way (Picked Up)', color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
   delivered: { label: 'Delivered', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' },
   cancelled: { label: 'Cancelled', color: 'text-red-400', bgColor: 'bg-red-500/20' },
 };
 
 const getNextAction = (status: OrderStatus): { label: string; nextStatus: OrderStatus; requiresOTP?: boolean } | null => {
   const flow: Record<string, { label: string; nextStatus: OrderStatus; requiresOTP?: boolean }> = {
-    placed: { label: 'Picked Up', nextStatus: 'preparing' },
-    preparing: { label: 'Start Delivery', nextStatus: 'on_way' },
-    on_way: { label: 'Verify & Deliver', nextStatus: 'delivered', requiresOTP: true },
+    placed: { label: 'Mark Picked-up', nextStatus: 'preparing' },
+    preparing: { label: 'Mark Picked-up', nextStatus: 'on_way' },
+    on_way: { label: 'Mark Delivered', nextStatus: 'delivered', requiresOTP: true },
   };
   return flow[status] || null;
 };
@@ -68,6 +68,10 @@ const RiderOrderRequestCard = ({
     ? calculateDistance(request.pickup_lat!, request.pickup_lng!, request.dropoff_lat!, request.dropoff_lng!)
     : 0;
 
+  // New reveal logic: Dropoff revealed only when status is 'on_way'
+  const isDropoffRevealed = request.status === 'on_way' || request.status === 'delivered';
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Timer interval intentionally doesn't include timeLeft to prevent restart on every tick
   useEffect(() => {
     if (variant === 'new' && timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -89,9 +93,9 @@ const RiderOrderRequestCard = ({
   const config = statusConfig[request.status];
   const nextAction = getNextAction(request.status);
 
-  const openInGoogleMaps = () => {
-    if (hasCoordinates) {
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${request.pickup_lat},${request.pickup_lng}&destination=${request.dropoff_lat},${request.dropoff_lng}&travelmode=driving`;
+  const navigateTo = (lat: number | null, lng: number | null) => {
+    if (lat && lng) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
       window.open(url, '_blank');
     }
   };
@@ -104,13 +108,12 @@ const RiderOrderRequestCard = ({
       exit={{ opacity: 0, x: -100 }}
       className="mb-4"
     >
-      <div className={`glass-card-dark rounded-3xl overflow-hidden transition-all duration-300 ${
-        variant === 'new' 
-          ? 'animate-pulse-glow ring-2 ring-orange-500/50' 
-          : variant === 'active'
-            ? 'ring-1 ring-emerald-500/30'
-            : 'ring-1 ring-white/5'
-      }`}>
+      <div className={`glass-card-dark rounded-3xl overflow-hidden transition-all duration-300 ${variant === 'new'
+        ? 'animate-pulse-glow ring-2 ring-orange-500/50'
+        : variant === 'active'
+          ? 'ring-1 ring-emerald-500/30'
+          : 'ring-1 ring-white/5'
+        }`}>
         {/* Timer Bar for New Requests */}
         {variant === 'new' && (
           <div className="h-1 bg-white/10 overflow-hidden">
@@ -127,7 +130,7 @@ const RiderOrderRequestCard = ({
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <motion.div 
+              <motion.div
                 className={`w-14 h-14 rounded-2xl ${config.bgColor} flex items-center justify-center`}
                 animate={variant === 'new' ? { scale: [1, 1.05, 1] } : {}}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -155,7 +158,7 @@ const RiderOrderRequestCard = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="text-right">
               <div className="flex items-center gap-1 justify-end">
                 <Banknote className="w-4 h-4 text-emerald-400" />
@@ -171,30 +174,68 @@ const RiderOrderRequestCard = ({
           </div>
 
           {/* Locations */}
-          <div 
-            className="space-y-3 cursor-pointer"
-            onClick={() => setIsExpanded(!isExpanded)}
+          <div
+            className="space-y-4"
           >
             {/* Pickup */}
             <div className="flex items-start gap-3">
               <div className="flex flex-col items-center">
-                <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50" />
-                <div className="w-0.5 h-8 bg-gradient-to-b from-emerald-400 to-red-400" />
+                <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50 mt-1" />
+                {isDropoffRevealed && <div className="w-0.5 h-12 bg-gradient-to-b from-emerald-400 to-red-400" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/40 uppercase tracking-wider">Pickup</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-white/40 uppercase tracking-wider">Pickup Location</p>
+                  {variant === 'active' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[10px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                      onClick={() => navigateTo(request.pickup_lat, request.pickup_lng)}
+                    >
+                      <Navigation className="w-3 h-3 mr-1" />
+                      Navigate
+                    </Button>
+                  )}
+                </div>
                 <p className="text-sm font-medium text-white/90 truncate">{request.pickup_address}</p>
               </div>
             </div>
 
-            {/* Dropoff */}
-            <div className="flex items-start gap-3">
-              <div className="w-3 h-3 rounded-full bg-red-400 shadow-lg shadow-red-400/50" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/40 uppercase tracking-wider">Dropoff</p>
-                <p className="text-sm font-medium text-white/90 truncate">{request.dropoff_address}</p>
+            {/* Dropoff - Revealed conditionally */}
+            {isDropoffRevealed ? (
+              <div className="flex items-start gap-3">
+                <div className="w-3 h-3 rounded-full bg-red-400 shadow-lg shadow-red-400/50 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-white/40 uppercase tracking-wider">Dropoff (Customer)</p>
+                    {variant === 'active' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => navigateTo(request.dropoff_lat, request.dropoff_lng)}
+                      >
+                        <Navigation className="w-3 h-3 mr-1" />
+                        Navigate
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium text-white/90 truncate">{request.dropoff_address}</p>
+                </div>
               </div>
-            </div>
+            ) : variant === 'active' && (
+              <div className="flex items-start gap-3 opacity-50">
+                <div className="w-3 h-3 rounded-full bg-white/20 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white/40 uppercase tracking-wider">Dropoff</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Shield className="w-3 h-3 text-white/30" />
+                    <p className="text-sm italic text-white/30">Revealed after pickup</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Expanded Content */}
@@ -223,18 +264,6 @@ const RiderOrderRequestCard = ({
                       )}
                     </div>
                   </div>
-                )}
-
-                {hasCoordinates && (
-                  <Button
-                    variant="outline"
-                    className="w-full mb-3 glass-card border-white/10 text-white hover:bg-white/10"
-                    onClick={openInGoogleMaps}
-                  >
-                    <Navigation className="w-4 h-4 mr-2" />
-                    Open in Google Maps
-                    <ExternalLink className="w-3 h-3 ml-auto" />
-                  </Button>
                 )}
               </motion.div>
             )}
@@ -276,11 +305,10 @@ const RiderOrderRequestCard = ({
                 />
                 {nextAction && onUpdateStatus && (
                   <motion.button
-                    className={`flex-1 h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all ${
-                      nextAction.requiresOTP 
-                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25' 
-                        : 'gradient-rider-primary shadow-orange-500/25'
-                    }`}
+                    className={`flex-1 h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all ${nextAction.requiresOTP
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25'
+                      : 'gradient-rider-primary shadow-orange-500/25'
+                      }`}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       if (nextAction.requiresOTP) {

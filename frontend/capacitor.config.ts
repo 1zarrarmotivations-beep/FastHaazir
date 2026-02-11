@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.fasthaazir.app',
   appName: 'Fast Haazir',
   webDir: 'dist',
-  
+
   // Server configuration for production APK
   server: {
     // Use HTTPS scheme for Android (required for modern Android security)
@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
     // Allow cleartext for development - needed for some Firebase operations
     cleartext: true,
   },
-  
+
   // Android-specific configuration
   android: {
     // Allow mixed content for API calls
@@ -31,13 +31,13 @@ const config: CapacitorConfig = {
       releaseType: 'APK'
     }
   },
-  
+
   // Plugin configurations
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#10b981',
+      backgroundColor: '#16a34a',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,
@@ -57,14 +57,14 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'dark',
-      backgroundColor: '#10b981'
+      backgroundColor: '#16a34a'
     },
     // HTTP configuration for API calls
     CapacitorHttp: {
       enabled: true
     }
   },
-  
+
   // Logging configuration - use 'debug' for troubleshooting, 'production' for release
   loggingBehavior: 'debug'
 };

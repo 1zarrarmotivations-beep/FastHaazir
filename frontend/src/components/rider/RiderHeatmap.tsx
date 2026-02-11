@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Flame, 
-  X, 
+import {
+  Flame,
+  X,
   Clock,
   MapPin,
   TrendingUp,
@@ -51,7 +51,7 @@ const RiderHeatmap = ({ isOpen, onClose, riderLat, riderLng }: RiderHeatmapProps
       setIsLoading(true);
 
       // Calculate time range based on filter
-      let startTime = new Date();
+      const startTime = new Date();
       if (timeFilter === '1h') {
         startTime.setHours(startTime.getHours() - 1);
       } else if (timeFilter === 'today') {
@@ -106,6 +106,7 @@ const RiderHeatmap = ({ isOpen, onClose, riderLat, riderLng }: RiderHeatmapProps
     };
 
     fetchHeatmapData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- aggregateToZones is called synchronously and doesn't need to be a dependency
   }, [isOpen, timeFilter]);
 
   // Aggregate points into zones with a grid-based approach
@@ -182,6 +183,7 @@ const RiderHeatmap = ({ isOpen, onClose, riderLat, riderLng }: RiderHeatmapProps
         mapRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultLat/defaultLng are derived from props; we only want to initialize the map once when opened
   }, [isOpen]);
 
   // Update heatmap circles
@@ -331,12 +333,12 @@ const RiderHeatmap = ({ isOpen, onClose, riderLat, riderLng }: RiderHeatmapProps
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${getHeatColor(selectedZone.intensity)}20` }}
                   >
-                    <MapPin 
-                      className="w-6 h-6" 
+                    <MapPin
+                      className="w-6 h-6"
                       style={{ color: getHeatColor(selectedZone.intensity) }}
                     />
                   </div>
@@ -347,15 +349,15 @@ const RiderHeatmap = ({ isOpen, onClose, riderLat, riderLng }: RiderHeatmapProps
                     </p>
                   </div>
                 </div>
-                <Badge 
+                <Badge
                   className="px-3 py-1"
-                  style={{ 
+                  style={{
                     backgroundColor: `${getHeatColor(selectedZone.intensity)}20`,
                     color: getHeatColor(selectedZone.intensity),
                   }}
                 >
-                  {selectedZone.intensity >= 0.7 ? 'Hot Zone 🔥' : 
-                   selectedZone.intensity >= 0.4 ? 'Moderate' : 'Low Activity'}
+                  {selectedZone.intensity >= 0.7 ? 'Hot Zone 🔥' :
+                    selectedZone.intensity >= 0.4 ? 'Moderate' : 'Low Activity'}
                 </Badge>
               </div>
               <Button

@@ -322,6 +322,9 @@ const CompleteProfile = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Invisible reCAPTCHA container - REQUIRED for Firebase Phone Auth */}
+      <div id="recaptcha-container" />
     </div>
   );
 };

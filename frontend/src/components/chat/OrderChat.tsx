@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MessageCircle, 
-  Send, 
-  X, 
-  User, 
-  Store, 
-  Bike, 
-  Map, 
-  ChevronUp, 
+import {
+  MessageCircle,
+  Send,
+  X,
+  User,
+  Store,
+  Bike,
+  Map,
+  ChevronUp,
   ChevronDown,
   Mic,
   Square,
@@ -21,14 +21,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
-import { 
-  useChatMessages, 
-  useSendMessage, 
+import {
+  useChatMessages,
+  useSendMessage,
   useOrderParticipants,
   useRiderRequestParticipants,
   useUploadVoiceNote,
   ChatMessage
 } from '@/hooks/useChat';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+import { usePermissions } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -41,12 +43,12 @@ interface OrderChatProps {
 }
 
 // Memoized Mini Map Component - Only renders once per order
-const MiniMapPreview = memo(({ 
-  pickupAddress, 
-  dropoffAddress 
-}: { 
-  pickupAddress?: string; 
-  dropoffAddress?: string; 
+const MiniMapPreview = memo(({
+  pickupAddress,
+  dropoffAddress
+}: {
+  pickupAddress?: string;
+  dropoffAddress?: string;
 }) => {
   return (
     <div className="p-3 bg-muted/30 border-b border-border">
@@ -76,12 +78,12 @@ MiniMapPreview.displayName = 'MiniMapPreview';
 import { VoiceNotePlayer } from '@/components/chat/VoiceNotePlayer';
 
 // Message Bubble Component
-const MessageBubble = memo(({ 
-  msg, 
+const MessageBubble = memo(({
+  msg,
   isOwnMessage,
   getSenderName,
-  getSenderIcon 
-}: { 
+  getSenderIcon
+}: {
   msg: ChatMessage;
   isOwnMessage: boolean;
   getSenderName: (senderType: string, senderId: string) => string;
@@ -89,7 +91,7 @@ const MessageBubble = memo(({
 }) => {
   const isCustomerMessage = msg.sender_type === 'customer';
   const isVoiceMessage = msg.message_type === 'voice' && msg.voice_url;
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -104,34 +106,32 @@ const MessageBubble = memo(({
           </span>
           {getSenderIcon(msg.sender_type)}
         </div>
-        
+
         {/* Message Bubble */}
         <div
-          className={`px-4 py-3 shadow-sm ${
-            isCustomerMessage
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-foreground'
-          }`}
+          className={`px-4 py-3 shadow-sm ${isCustomerMessage
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-foreground'
+            }`}
           style={{
-            borderRadius: isCustomerMessage 
+            borderRadius: isCustomerMessage
               ? '18px 18px 4px 18px'
               : '18px 18px 18px 4px'
           }}
         >
           {isVoiceMessage ? (
-            <VoiceNotePlayer 
-              voiceUrl={msg.voice_url!} 
+            <VoiceNotePlayer
+              voiceUrl={msg.voice_url!}
               duration={msg.voice_duration}
               isOwnMessage={isCustomerMessage}
             />
           ) : (
             <p className="text-sm leading-relaxed">{msg.message}</p>
           )}
-          <p className={`text-xs mt-2 ${
-            isCustomerMessage 
-              ? 'text-primary-foreground/70 text-right' 
-              : 'text-muted-foreground text-left'
-          }`}>
+          <p className={`text-xs mt-2 ${isCustomerMessage
+            ? 'text-primary-foreground/70 text-right'
+            : 'text-muted-foreground text-left'
+            }`}>
             {format(new Date(msg.created_at), 'HH:mm')}
           </p>
         </div>
@@ -143,66 +143,33 @@ const MessageBubble = memo(({
 MessageBubble.displayName = 'MessageBubble';
 
 // Voice Recorder Component
-const VoiceRecorder = ({ 
+const VoiceRecorder = ({
   onRecorded,
-  isUploading 
-}: { 
+  isUploading
+}: {
   onRecorded: (blob: Blob, duration: number) => void;
   isUploading: boolean;
 }) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const { isRecording, duration, startRecording, stopRecording } = useVoiceRecorder();
+  const { requestPermission, permissions } = usePermissions();
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const duration = recordingDuration;
-        onRecorded(blob, duration);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      startTimeRef.current = Date.now();
-      setIsRecording(true);
-      setRecordingDuration(0);
-
-      // Update duration every 100ms
-      timerRef.current = setInterval(() => {
-        setRecordingDuration((Date.now() - startTimeRef.current) / 1000);
-      }, 100);
-
-    } catch (err) {
-      console.error('Failed to start recording:', err);
-      toast.error('Could not access microphone');
+  const handleStart = async () => {
+    // Check permission first
+    if (permissions.microphone !== 'granted') {
+      const result = await requestPermission('microphone');
+      if (result !== 'granted') {
+        toast.error('Microphone permission is required to record voice notes');
+        return;
+      }
     }
+
+    await startRecording();
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+  const handleStop = async () => {
+    const result = await stopRecording();
+    if (result) {
+      onRecorded(result.blob, result.duration);
     }
   };
 
@@ -225,12 +192,12 @@ const VoiceRecorder = ({
     return (
       <div className="flex items-center gap-3 px-3 py-2 bg-red-500/10 rounded-lg border border-red-500/30">
         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-        <span className="text-sm font-medium text-red-600">{formatDuration(recordingDuration)}</span>
+        <span className="text-sm font-medium text-red-600">{formatDuration(duration)}</span>
         <div className="flex-1" />
         <Button
           variant="destructive"
           size="sm"
-          onClick={stopRecording}
+          onClick={handleStop}
           className="h-8"
         >
           <Square className="w-4 h-4 mr-1" />
@@ -244,7 +211,7 @@ const VoiceRecorder = ({
     <Button
       variant="ghost"
       size="icon"
-      onClick={startRecording}
+      onClick={handleStart}
       className="shrink-0"
       title="Record voice note"
     >
@@ -338,7 +305,7 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
 
   const getSenderName = (senderType: string, senderId: string) => {
     if (senderId === user?.id) return 'You';
-    
+
     switch (senderType) {
       case 'customer':
         return 'Customer';
@@ -464,9 +431,9 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <MiniMapPreview 
-                    pickupAddress={locationInfo.pickup} 
-                    dropoffAddress={locationInfo.dropoff} 
+                  <MiniMapPreview
+                    pickupAddress={locationInfo.pickup}
+                    dropoffAddress={locationInfo.dropoff}
                   />
                 </motion.div>
               )}
@@ -517,13 +484,13 @@ const OrderChat = ({ orderId, riderRequestId, userType, isOpen, onClose }: Order
               className="flex-1"
               disabled={isUploading}
             />
-            
+
             {/* Voice Recorder */}
-            <VoiceRecorder 
+            <VoiceRecorder
               onRecorded={handleVoiceRecorded}
               isUploading={isUploading}
             />
-            
+
             {/* Send Button */}
             <Button
               onClick={handleSend}

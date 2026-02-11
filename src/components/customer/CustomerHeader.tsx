@@ -9,6 +9,7 @@ import LanguageToggle from '../LanguageToggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
+import { useIsAdmin } from '@/hooks/useAdmin';
 import fastHaazirLogo from '@/assets/fast-haazir-logo-optimized.webp';
 
 interface CustomerHeaderProps {
@@ -20,6 +21,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile } = useCustomerProfile();
+  const { data: isAdmin } = useIsAdmin();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Get greeting based on time of day
@@ -35,7 +37,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
 
   return (
     <>
-      <motion.header 
+      <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-50 customer-header-glass"
@@ -45,9 +47,9 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
           <div className="flex items-center justify-between">
             {/* Logo & Location */}
             <div className="flex items-center gap-3">
-              <motion.img 
-                src={fastHaazirLogo} 
-                alt="Fast Haazir" 
+              <motion.img
+                src={fastHaazirLogo}
+                alt="Fast Haazir"
                 className="w-11 h-11 object-contain rounded-xl shadow-soft"
                 width={44}
                 height={44}
@@ -66,8 +68,19 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
             {/* Right Side - Language, Notifications, Profile */}
             <div className="flex items-center gap-2">
               <LanguageToggle variant="compact" />
-              
-              <motion.div 
+
+              {/* Admin Panel Button (Only visible to admins) */}
+              {isAdmin && (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => window.location.href = '/admin'}
+                  className="px-3 py-1.5 bg-primary text-black text-xs font-bold rounded-lg shadow-glow-sm hover:shadow-glow-md transition-all whitespace-nowrap"
+                >
+                  Admin Panel
+                </motion.button>
+              )}
+
+              <motion.div
                 whileTap={{ scale: 0.9 }}
                 className="w-9 h-9 rounded-xl customer-glass-button flex items-center justify-center"
               >
@@ -94,23 +107,23 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
 
         {/* Greeting Section */}
         <div className="px-4 pb-2">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
           >
-            <p className="text-xs text-muted-foreground">
-              {getGreeting()}, <span className="font-medium text-foreground">{displayName}</span> 👋
+            <p className="text-sm text-foreground font-semibold flex items-center gap-1">
+              Assalamualaikum, <span className="text-primary">{displayName}</span> <span className="text-xl">👋</span>
             </p>
-            <h1 className="text-lg font-bold text-foreground mt-0.5">
-              {t('home.whatWouldYouLike', 'آج کیا منگوانا ہے؟')} 🍕
+            <h1 className="text-sm text-muted-foreground mt-0.5 font-medium">
+              What would you like to do today?
             </h1>
           </motion.div>
         </div>
 
         {/* Search Bar */}
         <div className="px-4 pb-3">
-          <motion.div 
+          <motion.div
             className="relative"
             whileTap={{ scale: 0.98 }}
             onClick={onSearchClick}
@@ -127,9 +140,9 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
         </div>
       </motion.header>
 
-      <NotificationsSheet 
-        open={notificationsOpen} 
-        onOpenChange={setNotificationsOpen} 
+      <NotificationsSheet
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
       />
     </>
   );

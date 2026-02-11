@@ -16,8 +16,8 @@ const categories: Category[] = [
   { id: 'pizza', nameKey: 'categories.pizza', emoji: '🍕', path: '/restaurants?category=pizza', gradient: 'from-red-500/20 to-orange-500/20' },
   { id: 'biryani', nameKey: 'categories.biryani', emoji: '🍛', path: '/restaurants?category=biryani', gradient: 'from-amber-500/20 to-yellow-500/20' },
   { id: 'burger', nameKey: 'categories.burger', emoji: '🍔', path: '/restaurants?category=burger', gradient: 'from-orange-500/20 to-red-500/20' },
-  { id: 'grocery', nameKey: 'categories.grocery', emoji: '🛒', path: '/restaurants?category=grocery', gradient: 'from-green-500/20 to-emerald-500/20' },
-  { id: 'bakery', nameKey: 'categories.bakery', emoji: '🥖', path: '/restaurants?category=bakery', gradient: 'from-amber-400/20 to-orange-400/20' },
+  { id: 'grocery', nameKey: 'categories.grocery', emoji: '🛒', path: '/grocery', gradient: 'from-green-500/20 to-emerald-500/20' },
+  { id: 'bakery', nameKey: 'categories.bakery', emoji: '🥖', path: '/bakery', gradient: 'from-amber-400/20 to-orange-400/20' },
   { id: 'medical', nameKey: 'categories.medical', emoji: '💊', path: '/restaurants?category=medical', gradient: 'from-blue-500/20 to-cyan-500/20' },
   { id: 'bbq', nameKey: 'categories.bbq', emoji: '🍖', path: '/restaurants?category=bbq', gradient: 'from-red-600/20 to-orange-500/20' },
   { id: 'sweets', nameKey: 'categories.sweets', emoji: '🍰', path: '/restaurants?category=sweets', gradient: 'from-pink-500/20 to-purple-500/20' },
@@ -33,7 +33,7 @@ const CategoryGrid: React.FC = () => {
         <h2 className="font-bold text-foreground">
           {t('home.categories', 'اقسام')} 🍽️
         </h2>
-        <button 
+        <button
           onClick={() => navigate('/categories')}
           className="text-xs text-primary font-medium"
         >

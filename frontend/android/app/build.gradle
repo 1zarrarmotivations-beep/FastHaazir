@@ -16,8 +16,26 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    buildTypes {
+    signingConfigs {
+        debug {
+            storeFile file('fasthaazir-debug.keystore')
+            storePassword 'fasthaazir'
+            keyAlias 'fasthaazir'
+            keyPassword 'fasthaazir'
+        }
         release {
+            storeFile file('fasthaazir-release.keystore')
+            storePassword 'fasthaazir'
+            keyAlias 'fasthaazir-release'
+            keyPassword 'fasthaazir'
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -1,9 +1,10 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 
 // High-quality notification sound as base64 (attention-grabbing bell)
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2MkZaQkIuJiISCgH58e3l4d3Z1dXV2d3h5e3x+gIOGiY2RlZqdn6CgoJ+fnp2cm5qZmJeWlZSUk5OTk5OTlJSVlpeYmZqbnJ2en5+goKCfn56dnJuamZiXlpWUk5KSkZGQkJCQkJCRkZKSk5SVlpeYmZqbnJ2en5+goA==';
 
 // Urgent order notification sound (louder, more attention-grabbing)
+// This is a placeholder. In a real app, use a proper long alarm file URL.
 const ORDER_SOUND = 'data:audio/wav;base64,UklGRl9vT19teleQQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVNvdXJjZT0zNjAwLCBmcmVxPTQ0MCwgZ2Fpbj0wLjUsIGZhZGU9MC4xMHN0YXJ0';
 
 // Vibration patterns (in milliseconds)
@@ -25,6 +26,10 @@ export const useNotificationSound = () => {
   const orderAudioRef = useRef<HTMLAudioElement | null>(null);
   const lastPlayTime = useRef<number>(0);
   const lastVibrateTime = useRef<number>(0);
+  // Type as any because NodeJS.Timeout vs number can be tricky in frontend envs
+  const ringingIntervalRef = useRef<any>(null);
+  const [isRinging, setIsRinging] = useState(false);
+
   const MIN_INTERVAL = 2000; // Minimum 2 seconds between sounds
   const MIN_VIBRATE_INTERVAL = 1000; // Minimum 1 second between vibrations
 
@@ -33,12 +38,18 @@ export const useNotificationSound = () => {
     audioRef.current = new Audio(NOTIFICATION_SOUND);
     audioRef.current.volume = 0.7;
     audioRef.current.preload = 'auto';
-    
+
     orderAudioRef.current = new Audio(ORDER_SOUND);
     orderAudioRef.current.volume = 1.0; // Full volume for orders
     orderAudioRef.current.preload = 'auto';
-    
+    // Enable looping for order sound
+    orderAudioRef.current.loop = true;
+
     return () => {
+      // Cleanup on unmount
+      if (ringingIntervalRef.current) {
+        clearInterval(ringingIntervalRef.current);
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -58,19 +69,18 @@ export const useNotificationSound = () => {
   // Vibrate device with pattern
   const vibrate = useCallback((pattern: VibrationPattern = 'medium') => {
     const now = Date.now();
-    if (now - lastVibrateTime.current < MIN_VIBRATE_INTERVAL) return false;
-    
+    // Allow urgent vibrations to bypass throttle if we are ringing
+    if (pattern !== 'urgent' && now - lastVibrateTime.current < MIN_VIBRATE_INTERVAL) return false;
+
     lastVibrateTime.current = now;
-    
+
     if (!canVibrate()) {
-      console.log('[Notification] Vibration API not supported');
       return false;
     }
 
     try {
       const vibrationPattern = VIBRATION_PATTERNS[pattern];
       const result = navigator.vibrate(vibrationPattern);
-      console.log(`[Notification] Vibrate (${pattern}):`, result);
       return result;
     } catch (error) {
       console.error('[Notification] Vibration error:', error);
@@ -89,9 +99,9 @@ export const useNotificationSound = () => {
   const playSound = useCallback(() => {
     const now = Date.now();
     if (now - lastPlayTime.current < MIN_INTERVAL) return;
-    
+
     lastPlayTime.current = now;
-    
+
     try {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
@@ -104,41 +114,59 @@ export const useNotificationSound = () => {
     }
   }, []);
 
-  // Play order notification sound (louder, more urgent)
-  const playOrderSound = useCallback(() => {
-    const now = Date.now();
-    if (now - lastPlayTime.current < MIN_INTERVAL) return;
-    
-    lastPlayTime.current = now;
-    
-    try {
-      if (orderAudioRef.current) {
-        orderAudioRef.current.currentTime = 0;
-        orderAudioRef.current.play().catch((error) => {
-          console.error('[Notification] Order sound play error:', error);
-        });
-      } else {
-        // Fallback: create new audio element
-        const audio = new Audio(ORDER_SOUND);
-        audio.volume = 1.0;
-        audio.play().catch(console.error);
-      }
-    } catch (error) {
-      console.error('[Notification] Failed to play order sound:', error);
+  // Start continuous ringing (Smart Order Alert)
+  const startRinging = useCallback(() => {
+    setIsRinging(true); // Always set true to ensure UI updates if used
+    console.log('[Notification] Starting smart alert ringing...');
+
+    // Play loop audio
+    if (orderAudioRef.current) {
+      orderAudioRef.current.currentTime = 0;
+      orderAudioRef.current.loop = true;
+      orderAudioRef.current.play().catch(e => console.error('Audio play failed', e));
     }
-  }, []);
+
+    // Interval for vibration and backup sound re-trigger
+    if (ringingIntervalRef.current) clearInterval(ringingIntervalRef.current);
+
+    // Initial vibrate
+    vibrate('urgent');
+
+    ringingIntervalRef.current = setInterval(() => {
+      vibrate('urgent');
+    }, 3000); // Vibrate every 3 seconds
+
+  }, [vibrate]);
+
+  // Stop continuous ringing
+  const stopRinging = useCallback(() => {
+    console.log('[Notification] Stopping smart alert ringing...');
+    setIsRinging(false);
+
+    if (ringingIntervalRef.current) {
+      clearInterval(ringingIntervalRef.current);
+      ringingIntervalRef.current = null;
+    }
+
+    if (orderAudioRef.current) {
+      orderAudioRef.current.pause();
+      orderAudioRef.current.currentTime = 0;
+    }
+
+    stopVibration();
+  }, [stopVibration]);
 
   // Speak notification using Web Speech API
   const speakNotification = useCallback((message: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      
+
       const utterance = new SpeechSynthesisUtterance(message);
       utterance.rate = 1.1;
       utterance.pitch = 1.2;
       utterance.volume = 1;
       utterance.lang = 'en-US';
-      
+
       window.speechSynthesis.speak(utterance);
     }
   }, []);
@@ -146,21 +174,17 @@ export const useNotificationSound = () => {
   // Combined notification: sound + vibration + optional speech
   const notifyNewOrder = useCallback((speakMessage?: string) => {
     console.log('[Notification] New order notification triggered');
-    
-    // Play urgent vibration pattern
-    vibrate('urgent');
-    
-    // Play order sound
-    playOrderSound();
-    
+
+    startRinging();
+
     // Speak if message provided
     if (speakMessage) {
-      // Delay speech slightly to not overlap with sound
+      // Delay speech slightly to not overlap with sound start
       setTimeout(() => {
         speakNotification(speakMessage);
-      }, 500);
+      }, 1000);
     }
-  }, [vibrate, playOrderSound, speakNotification]);
+  }, [startRinging, speakNotification]);
 
   // Combined notification for general alerts
   const notifyAlert = useCallback((pattern: VibrationPattern = 'double') => {
@@ -182,14 +206,18 @@ export const useNotificationSound = () => {
   return {
     // Basic functions
     playSound,
-    playOrderSound,
     speakNotification,
-    
+
     // Vibration functions
     canVibrate,
     vibrate,
     stopVibration,
-    
+
+    // Ringing functions
+    startRinging,
+    stopRinging,
+    isRinging,
+
     // Combined notifications
     notifyNewOrder,
     notifyAlert,

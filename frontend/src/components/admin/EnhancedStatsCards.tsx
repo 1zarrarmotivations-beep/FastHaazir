@@ -1,8 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ShoppingBag, 
-  DollarSign, 
-  Bike, 
+import {
+  ShoppingBag,
+  DollarSign,
+  Bike,
   Store,
   TrendingUp,
   Clock,
@@ -21,10 +21,12 @@ interface EnhancedStatsCardsProps {
     activeRiders: number;
     onlineRiders: number;
     activeBusinesses: number;
+    busyBusinesses?: number;
     pendingOrders?: number;
     preparingOrders?: number;
     onWayOrders?: number;
     deliveredOrders?: number;
+    cancelledOrders?: number;
   } | undefined;
   isLoading: boolean;
 }
@@ -55,7 +57,7 @@ export function EnhancedStatsCards({ stats, isLoading }: EnhancedStatsCardsProps
         const now = Date.now();
         const progress = Math.min((now - startTime) / duration, 1);
         const value = Math.floor(start + (target - start) * progress);
-        
+
         setAnimatedValues(prev => ({ ...prev, [key]: value }));
 
         if (progress < 1) {
@@ -72,6 +74,7 @@ export function EnhancedStatsCards({ stats, isLoading }: EnhancedStatsCardsProps
     animate('onlineRiders', stats.onlineRiders || 0);
     animate('activeBusinesses', stats.activeBusinesses || 0);
     animate('pendingOrders', stats.pendingOrders || 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- animatedValues is read inside animate() via closure; including it would cause infinite animation loop
   }, [stats]);
 
   const mainCards: StatCard[] = [
@@ -100,6 +103,7 @@ export function EnhancedStatsCards({ stats, isLoading }: EnhancedStatsCardsProps
       value: animatedValues.activeBusinesses || 0,
       icon: Store,
       gradient: "from-purple-500 to-pink-500",
+      suffix: stats?.busyBusinesses ? ` (${stats.busyBusinesses} Busy)` : "",
     },
   ];
 
@@ -123,10 +127,10 @@ export function EnhancedStatsCards({ stats, isLoading }: EnhancedStatsCardsProps
       gradient: "from-purple-500 to-violet-500",
     },
     {
-      title: "Delivered",
-      value: stats?.deliveredOrders || 0,
-      icon: CheckCircle,
-      gradient: "from-green-500 to-teal-500",
+      title: "Cancelled",
+      value: stats?.cancelledOrders || 0,
+      icon: AlertCircle,
+      gradient: "from-red-500 to-rose-600",
     },
   ];
 

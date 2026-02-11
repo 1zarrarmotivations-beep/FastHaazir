@@ -11,7 +11,17 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   build: {
-    sourcemap: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', '@tanstack/react-query'],
+          ui: ['lucide-react', 'framer-motion', 'clsx', 'tailwind-merge', 'sonner'],
+          utils: ['zod', 'react-hook-form', 'date-fns']
+        }
+      }
+    }
   },
   plugins: [
     react(),

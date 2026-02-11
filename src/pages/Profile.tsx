@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, 
-  MapPin, 
-  HelpCircle, 
-  LogOut, 
-  ChevronRight, 
-  Bell, 
-  Shield, 
-  Package, 
+import {
+  User,
+  MapPin,
+  HelpCircle,
+  LogOut,
+  ChevronRight,
+  Bell,
+  Shield,
+  Package,
   Edit2,
   Star,
   Bike,
@@ -94,15 +94,15 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const { data: userRole, isLoading: roleLoading } = useUserRole();
-  
+
   // Only fetch customer data if role is customer (or still loading role)
   const isCustomer = !userRole || userRole === 'customer';
-  
+
   // Conditional queries - only fetch if customer role
   const { data: profile, isLoading: profileLoading } = useCustomerProfile();
   const { data: orders } = useOrders();
   const { data: addresses = [] } = useCustomerAddresses();
-  
+
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [notificationsSheetOpen, setNotificationsSheetOpen] = useState(false);
@@ -112,7 +112,7 @@ const Profile: React.FC = () => {
   const handleSignOut = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
-    
+
     try {
       // Try to sign out from Firebase if available
       try {
@@ -149,19 +149,19 @@ const Profile: React.FC = () => {
 
   // Role-based dashboard config (Business role removed - Admin controls all)
   const roleConfig = {
-    admin: { 
-      label: 'Admin Dashboard', 
-      path: '/admin', 
-      icon: ShieldCheck, 
-      color: 'text-emerald-500', 
-      bgColor: 'bg-emerald-500/10' 
+    admin: {
+      label: 'Admin Dashboard',
+      path: '/admin',
+      icon: ShieldCheck,
+      color: 'text-emerald-500',
+      bgColor: 'bg-emerald-500/10'
     },
-    rider: { 
-      label: 'Rider Dashboard', 
-      path: '/rider', 
-      icon: Bike, 
-      color: 'text-blue-500', 
-      bgColor: 'bg-blue-500/10' 
+    rider: {
+      label: 'Rider Dashboard',
+      path: '/rider',
+      icon: Bike,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-500/10'
     },
   };
 
@@ -170,51 +170,51 @@ const Profile: React.FC = () => {
   // Memoized menu items - only show customer-specific items to customers
   const menuItems = useMemo(() => {
     const baseItems = [
-      { 
-        icon: Edit2, 
-        label: 'Edit Profile', 
+      {
+        icon: Edit2,
+        label: 'Edit Profile',
         action: () => setEditProfileOpen(true),
         color: 'text-blue-500',
         bgColor: 'bg-blue-500/10',
         showFor: 'all' as const,
       },
-      { 
-        icon: MapPin, 
-        label: 'Saved Addresses', 
+      {
+        icon: MapPin,
+        label: 'Saved Addresses',
         badge: addressCount > 0 ? String(addressCount) : undefined,
         action: () => setCurrentScreen('addresses'),
         color: 'text-green-500',
         bgColor: 'bg-green-500/10',
         showFor: 'customer' as const,
       },
-      { 
-        icon: Package, 
-        label: 'Order History', 
+      {
+        icon: Package,
+        label: 'Order History',
         action: () => navigate('/history'),
         color: 'text-orange-500',
         bgColor: 'bg-orange-500/10',
         showFor: 'customer' as const,
       },
-      { 
-        icon: Bell, 
-        label: 'Notification Settings', 
+      {
+        icon: Bell,
+        label: 'Notification Settings',
         action: () => setCurrentScreen('notifications'),
         color: 'text-purple-500',
         bgColor: 'bg-purple-500/10',
         showFor: 'all' as const,
       },
-      { 
-        icon: HelpCircle, 
-        label: 'Help & Support', 
-        action: () => setCurrentScreen('help'),
+      {
+        icon: HelpCircle,
+        label: 'Help & Support',
+        action: () => navigate('/support'),
         color: 'text-cyan-500',
         bgColor: 'bg-cyan-500/10',
         showFor: 'all' as const,
       },
-      { 
-        icon: Shield, 
-        label: 'Privacy & Security', 
-        action: () => toast.info('Coming soon!'),
+      {
+        icon: Shield,
+        label: 'Privacy & Security',
+        action: () => navigate('/privacy-policy'),
         color: 'text-pink-500',
         bgColor: 'bg-pink-500/10',
         showFor: 'all' as const,
@@ -222,7 +222,7 @@ const Profile: React.FC = () => {
     ];
 
     // Filter based on role
-    return baseItems.filter(item => 
+    return baseItems.filter(item =>
       item.showFor === 'all' || (item.showFor === 'customer' && isCustomer)
     );
   }, [addressCount, navigate, isCustomer]);
@@ -252,20 +252,20 @@ const Profile: React.FC = () => {
     <div className="mobile-container bg-background min-h-screen pb-24">
       {/* Header */}
       <header className="gradient-hero pt-8 pb-16 px-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-start justify-between"
         >
           <div className="flex items-center gap-4">
-            <div 
+            <div
               className="w-20 h-20 rounded-2xl bg-primary-foreground/20 flex items-center justify-center overflow-hidden cursor-pointer"
               onClick={() => user && setEditProfileOpen(true)}
             >
               {(profile as any)?.profile_image ? (
-                <img 
-                  src={(profile as any).profile_image} 
-                  alt="Profile" 
+                <img
+                  src={(profile as any).profile_image}
+                  alt="Profile"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -300,9 +300,9 @@ const Profile: React.FC = () => {
                 <p className="text-xs text-primary-foreground/60">{profile.email}</p>
               )}
               {!user && !authLoading && (
-                <Button 
-                  variant="glass" 
-                  size="sm" 
+                <Button
+                  variant="glass"
+                  size="sm"
                   className="mt-2 text-primary-foreground border-primary-foreground/30"
                   onClick={handleLogin}
                 >
@@ -311,7 +311,7 @@ const Profile: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           {user && (
             <div className="bg-primary-foreground/20 rounded-xl">
               <NotificationBell onClick={() => setNotificationsSheetOpen(true)} />
@@ -327,8 +327,8 @@ const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="px-4 -mt-8 relative z-10 mb-4"
         >
-          <Card 
-            variant="elevated" 
+          <Card
+            variant="elevated"
             className="p-4 cursor-pointer hover:shadow-card transition-all"
             onClick={() => navigate(currentRoleConfig.path)}
           >
@@ -350,7 +350,7 @@ const Profile: React.FC = () => {
 
       {/* Stats Card - Only show for customers with content */}
       {isCustomer && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className={`px-4 relative z-10 ${!currentRoleConfig ? '-mt-8' : ''}`}
@@ -385,8 +385,8 @@ const Profile: React.FC = () => {
           transition={{ delay: 0.1 }}
           className="px-4 mt-4"
         >
-          <Card 
-            variant="elevated" 
+          <Card
+            variant="elevated"
             className="p-4 cursor-pointer"
             onClick={() => setCurrentScreen('addresses')}
           >
@@ -419,8 +419,8 @@ const Profile: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card 
-                  variant="elevated" 
+                <Card
+                  variant="elevated"
                   className="p-4 cursor-pointer hover:shadow-card transition-all active:scale-[0.98]"
                   onClick={item.action}
                 >
@@ -454,8 +454,8 @@ const Profile: React.FC = () => {
             transition={{ delay: menuItems.length * 0.05 }}
             className="pt-4"
           >
-            <Card 
-              variant="elevated" 
+            <Card
+              variant="elevated"
               className="p-4 cursor-pointer hover:shadow-card transition-all border-destructive/20 active:scale-[0.98]"
               onClick={handleSignOut}
             >
@@ -477,15 +477,15 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Edit Profile Sheet */}
-      <EditProfileSheet 
-        open={editProfileOpen} 
-        onOpenChange={setEditProfileOpen} 
+      <EditProfileSheet
+        open={editProfileOpen}
+        onOpenChange={setEditProfileOpen}
       />
 
       {/* Notifications Sheet */}
-      <NotificationsSheet 
-        open={notificationsSheetOpen} 
-        onOpenChange={setNotificationsSheetOpen} 
+      <NotificationsSheet
+        open={notificationsSheetOpen}
+        onOpenChange={setNotificationsSheetOpen}
       />
 
       <BottomNav />

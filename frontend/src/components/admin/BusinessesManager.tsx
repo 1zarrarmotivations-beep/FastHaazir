@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Plus, 
-  Search, 
-  Store, 
-  Star, 
-  ToggleLeft, 
+import {
+  Plus,
+  Search,
+  Store,
+  Star,
+  ToggleLeft,
   ToggleRight,
   UtensilsCrossed,
   ShoppingCart,
@@ -14,13 +14,19 @@ import {
   Trash2,
   Percent,
   Menu,
-  Award
+  Award,
+  Clock,
+  MapPin,
+  Globe,
+  FileCheck
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -47,12 +53,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { 
-  useAdminBusinesses, 
-  useCreateBusiness, 
-  useToggleBusinessStatus, 
+import {
+  useAdminBusinesses,
+  useCreateBusiness,
+  useToggleBusinessStatus,
   useDeleteBusiness,
-  useToggleBusinessFeatured 
+  useToggleBusinessFeatured,
+  useToggleBusinessApproval
 } from "@/hooks/useAdmin";
 import { MenuItemsManager } from "./MenuItemsManager";
 import { ImageUpload } from "./ImageUpload";
@@ -61,6 +68,7 @@ const businessTypeIcons = {
   restaurant: UtensilsCrossed,
   grocery: ShoppingCart,
   bakery: Cake,
+  pharmacy: Package, // Using Package as a placeholder for pharmacy
   shop: Package,
 };
 
@@ -68,6 +76,7 @@ const businessTypeColors = {
   restaurant: "bg-primary/10 text-primary",
   grocery: "bg-accent/10 text-accent",
   bakery: "bg-amber-500/10 text-amber-600",
+  pharmacy: "bg-emerald-500/10 text-emerald-600",
   shop: "bg-blue-500/10 text-blue-600",
 };
 
@@ -76,15 +85,19 @@ export function BusinessesManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
-  const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop" | "pharmacy">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending">("all");
   // Business role removed - Admin controls all, no owner phone/email needed
   const [newBusiness, setNewBusiness] = useState({
     name: "",
-    type: "restaurant" as 'restaurant' | 'grocery' | 'bakery' | 'shop',
+    type: "restaurant" as 'restaurant' | 'grocery' | 'bakery' | 'shop' | 'pharmacy',
     description: "",
     category: "",
     image: "",
     commission_rate: 15,
+    location_address: "",
+    location_lat: 30.1798, // Default Quetta lat
+    location_lng: 66.9750, // Default Quetta lng
   });
 
   const { data: businesses, isLoading } = useAdminBusinesses();
@@ -92,29 +105,52 @@ export function BusinessesManager() {
   const toggleStatus = useToggleBusinessStatus();
   const deleteBusiness = useDeleteBusiness();
   const toggleFeatured = useToggleBusinessFeatured();
+  const toggleApproval = useToggleBusinessApproval();
 
   const filteredBusinesses = businesses?.filter((business) => {
     const matchesSearch = business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      business.type.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      business.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ((business as any).location_address && (business as any).location_address.toLowerCase().includes(searchQuery.toLowerCase()));
+
     if (!matchesSearch) return false;
-    
-    if (typeFilter === "all") return true;
-    return business.type === typeFilter;
+
+    const matchesType = typeFilter === "all" || business.type === typeFilter;
+    const matchesStatus = statusFilter === "all" ||
+      (statusFilter === "approved" && business.is_approved) ||
+      (statusFilter === "pending" && !business.is_approved);
+
+    return matchesType && matchesStatus;
   });
 
   const handleCreateBusiness = () => {
-    if (!newBusiness.name || !newBusiness.type) return;
-    createBusiness.mutate(newBusiness, {
+    if (!newBusiness.name || !newBusiness.type) {
+      toast.error("Business name and type are required");
+      return;
+    }
+
+    if (!newBusiness.location_address) {
+      toast.error("Shop address is required for riders");
+      return;
+    }
+
+    if (!newBusiness.location_lat || !newBusiness.location_lng) {
+      toast.error("Precise location coordinates are required for riders");
+      return;
+    }
+
+    createBusiness.mutate(newBusiness as any, {
       onSuccess: () => {
         setDialogOpen(false);
-        setNewBusiness({ 
-          name: "", 
-          type: "restaurant", 
-          description: "", 
-          category: "", 
-          image: "", 
-          commission_rate: 15 
+        setNewBusiness({
+          name: "",
+          type: "restaurant" as any,
+          description: "",
+          category: "",
+          image: "",
+          commission_rate: 15,
+          location_address: "",
+          location_lat: 30.1798,
+          location_lng: 66.9750,
         });
       },
     });
@@ -225,7 +261,18 @@ export function BusinessesManager() {
               <SelectItem value="restaurant">Restaurants</SelectItem>
               <SelectItem value="grocery">Grocery</SelectItem>
               <SelectItem value="bakery">Bakery</SelectItem>
+              <SelectItem value="pharmacy">Pharmacy</SelectItem>
               <SelectItem value="shop">Shop</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={(v: typeof statusFilter) => setStatusFilter(v)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -254,7 +301,7 @@ export function BusinessesManager() {
                 <Label htmlFor="business-type">Business Type *</Label>
                 <Select
                   value={newBusiness.type}
-                  onValueChange={(value: 'restaurant' | 'grocery' | 'bakery' | 'shop') => 
+                  onValueChange={(value: any) =>
                     setNewBusiness({ ...newBusiness, type: value })
                   }
                 >
@@ -265,6 +312,7 @@ export function BusinessesManager() {
                     <SelectItem value="restaurant">Restaurant</SelectItem>
                     <SelectItem value="grocery">Grocery Store</SelectItem>
                     <SelectItem value="bakery">Bakery</SelectItem>
+                    <SelectItem value="pharmacy">Pharmacy</SelectItem>
                     <SelectItem value="shop">Shop</SelectItem>
                   </SelectContent>
                 </Select>
@@ -290,6 +338,53 @@ export function BusinessesManager() {
                   onChange={(e) => setNewBusiness({ ...newBusiness, commission_rate: parseInt(e.target.value) || 0 })}
                 />
               </div>
+
+              {/* Location Section */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  Shop Location (For Rider)
+                </h4>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Full Shop Address *</Label>
+                  <Textarea
+                    id="address"
+                    placeholder="e.g., Shop #12, Phase 4, Quetta"
+                    value={newBusiness.location_address}
+                    onChange={(e) => setNewBusiness({ ...newBusiness, location_address: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="lat" className="flex items-center gap-1">
+                      <Globe className="w-3 h-3" /> Latitude
+                    </Label>
+                    <Input
+                      id="lat"
+                      type="number"
+                      step="any"
+                      value={newBusiness.location_lat}
+                      onChange={(e) => setNewBusiness({ ...newBusiness, location_lat: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lng" className="flex items-center gap-1">
+                      <Globe className="w-3 h-3" /> Longitude
+                    </Label>
+                    <Input
+                      id="lng"
+                      type="number"
+                      step="any"
+                      value={newBusiness.location_lng}
+                      onChange={(e) => setNewBusiness({ ...newBusiness, location_lng: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -297,7 +392,7 @@ export function BusinessesManager() {
                   placeholder="Brief description of the business"
                   value={newBusiness.description}
                   onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
-                  rows={3}
+                  rows={2}
                 />
               </div>
               <div className="space-y-2">
@@ -311,8 +406,8 @@ export function BusinessesManager() {
                   maxSizeMB={5}
                 />
               </div>
-              <Button 
-                onClick={handleCreateBusiness} 
+              <Button
+                onClick={handleCreateBusiness}
                 className="w-full gradient-primary text-primary-foreground"
                 disabled={createBusiness.isPending || !newBusiness.name}
               >
@@ -351,7 +446,7 @@ export function BusinessesManager() {
           {filteredBusinesses?.map((business, index) => {
             const Icon = businessTypeIcons[business.type as keyof typeof businessTypeIcons] || Store;
             const colorClass = businessTypeColors[business.type as keyof typeof businessTypeColors] || "bg-muted text-foreground";
-            
+
             return (
               <motion.div
                 key={business.id}
@@ -363,9 +458,9 @@ export function BusinessesManager() {
                   {/* Image */}
                   <div className="h-32 bg-muted relative">
                     {business.image ? (
-                      <img 
-                        src={business.image} 
-                        alt={business.name} 
+                      <img
+                        src={business.image}
+                        alt={business.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -373,7 +468,7 @@ export function BusinessesManager() {
                         <Icon className="w-12 h-12 text-primary/50" />
                       </div>
                     )}
-                    <Badge 
+                    <Badge
                       className={`absolute top-2 right-2 ${colorClass}`}
                     >
                       {business.type}
@@ -385,7 +480,7 @@ export function BusinessesManager() {
                       </Badge>
                     )}
                   </div>
-                  
+
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -397,13 +492,27 @@ export function BusinessesManager() {
                             {business.category}
                           </p>
                         )}
+                        {(business as any).location_address && (
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1 truncate" title={(business as any).location_address}>
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                            {(business as any).location_address}
+                          </p>
+                        )}
                       </div>
-                      <Badge 
-                        variant={business.is_active ? "default" : "secondary"}
-                        className={business.is_active ? "bg-accent/20 text-accent" : ""}
-                      >
-                        {business.is_active ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge
+                          variant={business.is_active ? "default" : "secondary"}
+                          className={business.is_active ? "bg-accent/20 text-accent" : ""}
+                        >
+                          {business.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                        {!business.is_approved && (
+                          <Badge variant="outline" className="text-amber-600 border-amber-500 bg-amber-500/5">Pending</Badge>
+                        )}
+                        {((business as any).is_busy) && (
+                          <Badge variant="destructive" className="animate-pulse">Busy</Badge>
+                        )}
+                      </div>
                     </div>
 
                     {/* Owner phone removed - Admin controls all businesses */}
@@ -436,30 +545,56 @@ export function BusinessesManager() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggleFeatured.mutate({ 
-                            businessId: business.id, 
-                            featured: !business.featured 
+                          onClick={() => toggleFeatured.mutate({
+                            businessId: business.id,
+                            featured: !business.featured
                           })}
                           className={business.featured ? "text-amber-500" : "text-muted-foreground"}
                         >
                           <Award className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleApproval.mutate({
+                            businessId: business.id,
+                            isApproved: !business.is_approved
+                          })}
+                          className={business.is_approved ? "text-emerald-500" : "text-amber-500"}
+                          title={business.is_approved ? "Revoke Approval" : "Approve Business"}
+                        >
+                          <FileCheck className={`w-4 h-4 ${!business.is_approved ? 'animate-pulse' : ''}`} />
                         </Button>
                       </div>
                       <div className="flex gap-1">
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggleStatus.mutate({ 
-                            businessId: business.id, 
-                            isActive: !business.is_active 
+                          onClick={() => toggleStatus.mutate({
+                            businessId: business.id,
+                            isActive: !business.is_active
                           })}
-                          className={business.is_active ? "text-destructive" : "text-accent"}
+                          className={business.is_active ? "text-destructive" : "text-emerald-500"}
+                          title={business.is_active ? "Deactivate" : "Activate"}
                         >
                           {business.is_active ? (
                             <ToggleRight className="w-4 h-4" />
                           ) : (
                             <ToggleLeft className="w-4 h-4" />
                           )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            supabase.from('businesses').update({ is_busy: !((business as any).is_busy) } as any).eq('id', business.id).then(() => {
+                              toast.success("Business busy status updated");
+                            });
+                          }}
+                          className={(business as any).is_busy ? "text-orange-500" : "text-muted-foreground"}
+                          title={(business as any).is_busy ? "Set to Productive" : "Set to Busy"}
+                        >
+                          <Clock className="w-4 h-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

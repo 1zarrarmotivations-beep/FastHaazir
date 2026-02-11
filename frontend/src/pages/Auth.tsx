@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Phone, Mail, ArrowLeft, Shield, Loader2, AlertCircle, 
-  RefreshCw, LogOut, User, CheckCircle, Home, Eye, EyeOff 
+import {
+  Phone, Mail, ArrowLeft, Shield, Loader2, AlertCircle,
+  RefreshCw, LogOut, User, CheckCircle, Home, Eye, EyeOff
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,8 @@ const clearAuthStorage = () => {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && (
-      key.includes('supabase') || 
-      key.includes('firebase') || 
+      key.includes('supabase') ||
+      key.includes('firebase') ||
       key.includes('auth') ||
       key.includes('sb-')
     )) {
@@ -62,19 +62,19 @@ const syncWithSupabaseByPhone = async (
 ): Promise<{ success: boolean; error?: string }> => {
   const e164Phone = normalizePhoneNumber(firebasePhone);
   const digitsPhone = normalizePhoneDigits(firebasePhone);
-  
+
   console.log("[Auth] Syncing by phone:", digitsPhone);
   clearRoleCache(queryClient);
 
   try {
     const supabaseEmail = `user_${digitsPhone}@fasthaazir.app`;
     const supabasePassword = `firebase_${digitsPhone}_auth`;
-    
+
     let { data, error } = await supabase.auth.signInWithPassword({
       email: supabaseEmail,
       password: supabasePassword,
     });
-    
+
     if (error && error.message.includes("Invalid login credentials")) {
       console.log("[Auth] Creating new Supabase account...");
       const signUpResult = await supabase.auth.signUp({
@@ -84,7 +84,7 @@ const syncWithSupabaseByPhone = async (
       });
       data = signUpResult.data;
       error = signUpResult.error;
-      
+
       if (!error && data?.user) {
         const signInResult = await supabase.auth.signInWithPassword({
           email: supabaseEmail,
@@ -97,17 +97,17 @@ const syncWithSupabaseByPhone = async (
 
     if (error) {
       console.error("[Auth] Supabase auth error:", error);
-      return { success: false, error: "Account setup failed. Please try again." };
+      return { success: false, error: `Account setup failed: ${error.message}` };
     }
 
     if (!data?.session) {
-      return { success: false, error: "Session not ready. Please try again." };
+      return { success: false, error: "Session not ready. Please check if email confirmation is required in Supabase." };
     }
 
     return await checkRoleByPhone(digitsPhone, navigate, queryClient, data.session, firebaseSignOut);
-  } catch (err) {
+  } catch (err: any) {
     console.error("[Auth] Sync error:", err);
-    return { success: false, error: "Failed to complete login. Please try again." };
+    return { success: false, error: `Failed to complete login: ${err?.message || 'Unknown error'}` };
   }
 };
 
@@ -126,12 +126,12 @@ const syncWithSupabaseByEmail = async (
   try {
     const supabaseEmail = `firebase_${email.replace(/[^a-zA-Z0-9]/g, '_')}@fasthaazir.app`;
     const supabasePassword = `firebase_${email}_auth_v2`;
-    
+
     let { data, error } = await supabase.auth.signInWithPassword({
       email: supabaseEmail,
       password: supabasePassword,
     });
-    
+
     if (error && error.message.includes("Invalid login credentials")) {
       console.log("[Auth] Creating new Supabase account for email user...");
       const signUpResult = await supabase.auth.signUp({
@@ -141,7 +141,7 @@ const syncWithSupabaseByEmail = async (
       });
       data = signUpResult.data;
       error = signUpResult.error;
-      
+
       if (!error && data?.user) {
         const signInResult = await supabase.auth.signInWithPassword({
           email: supabaseEmail,
@@ -153,12 +153,12 @@ const syncWithSupabaseByEmail = async (
     }
 
     if (error) {
-      console.error("[Auth] Supabase auth error:", error);
-      return { success: false, error: "Account setup failed. Please try again." };
+      console.error("[Auth] Supabase auth error (email):", error);
+      return { success: false, error: `Account setup failed: ${error.message}` };
     }
 
     if (!data?.session) {
-      return { success: false, error: "Session not ready. Please try again." };
+      return { success: false, error: "Session not ready. Please check if email confirmation is required in Supabase." };
     }
 
     return await checkRoleByEmail(email, navigate, queryClient, data.session, firebaseSignOut);
@@ -182,12 +182,12 @@ const checkRoleByPhone = async (
 
   let data: { role: string; is_blocked: boolean }[] | null = null;
   let error: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     const result = await supabase.rpc("resolve_role_by_phone", { _phone: phoneDigits });
     data = result.data;
     error = result.error;
-    
+
     if (!error && data && data.length > 0) break;
     if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 500));
   }
@@ -196,9 +196,9 @@ const checkRoleByPhone = async (
     await supabase.auth.signOut();
     await firebaseSignOut();
     clearAuthStorage();
-    return { 
-      success: false, 
-      error: "This phone number is linked to a different account. Contact support." 
+    return {
+      success: false,
+      error: "This phone number is linked to a different account. Contact support."
     };
   }
 
@@ -230,12 +230,12 @@ const checkRoleByEmail = async (
 
   let data: { role: string; is_blocked: boolean }[] | null = null;
   let error: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     const result = await supabase.rpc("resolve_role_by_email", { _email: email });
     data = result.data;
     error = result.error;
-    
+
     if (!error && data && data.length > 0) break;
     if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 500));
   }
@@ -244,9 +244,9 @@ const checkRoleByEmail = async (
     await supabase.auth.signOut();
     await firebaseSignOut();
     clearAuthStorage();
-    return { 
-      success: false, 
-      error: "This email is linked to a different account. Contact support." 
+    return {
+      success: false,
+      error: "This email is linked to a different account. Contact support."
     };
   }
 
@@ -283,7 +283,7 @@ const redirectByRole = (
       default: return "/";
     }
   })();
-  
+
   const welcomeMessage = (() => {
     switch (role) {
       case "admin": return "Welcome Admin!";
@@ -292,7 +292,7 @@ const redirectByRole = (
       default: return "Welcome to Fast Haazir!";
     }
   })();
-  
+
   console.log("[Auth] Redirecting to:", redirectPath);
   toast.success(welcomeMessage);
   navigate(redirectPath, { replace: true });
@@ -350,17 +350,21 @@ const Auth = () => {
     try {
       // Clear React Query cache first
       queryClient.clear();
-      
+
       // Sign out from Firebase
       await firebaseSignOut();
-      
+
       // Sign out from Supabase with global scope
       await supabase.auth.signOut({ scope: 'global' });
-      
-      // Clear all storage completely
+
+      // Clear all storage completely but preserve onboarding state
+      const onboardingCompleted = localStorage.getItem('fasthaazir_onboarding_completed');
       localStorage.clear();
+      if (onboardingCompleted) {
+        localStorage.setItem('fasthaazir_onboarding_completed', onboardingCompleted);
+      }
       sessionStorage.clear();
-      
+
       toast.success("لاگ آؤٹ ہو گیا");
       setStep("select");
       setPhone("");
@@ -393,11 +397,11 @@ const Auth = () => {
     if (firebaseUser && !authLoading && !isSyncing) {
       const phoneNumber = firebaseUser.phoneNumber;
       const userEmail = firebaseUser.email;
-      
+
       if (phoneNumber || userEmail) {
         console.log("[Auth] Firebase user detected, starting sync...");
         setIsSyncing(true);
-        
+
         const timeoutId = setTimeout(async () => {
           console.error("[Auth] Sync timeout - cleaning up");
           toast.error("سیشن ختم ہو گیا۔ دوبارہ لاگ ان کریں۔");
@@ -407,11 +411,11 @@ const Auth = () => {
           sessionStorage.clear();
           setIsSyncing(false);
         }, 15000);
-        
-        const syncPromise = phoneNumber 
+
+        const syncPromise = phoneNumber
           ? syncWithSupabaseByPhone(phoneNumber, navigate, queryClient, firebaseSignOut)
           : syncWithSupabaseByEmail(userEmail!, navigate, queryClient, firebaseSignOut);
-        
+
         syncPromise
           .then((result) => {
             clearTimeout(timeoutId);
@@ -436,9 +440,9 @@ const Auth = () => {
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+
     const fullPhone = getFullPhoneNumber();
-    
+
     if (!isValidPakistaniMobile(fullPhone)) {
       toast.error("Please enter a valid Pakistani mobile number");
       return;
@@ -459,7 +463,7 @@ const Auth = () => {
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+
     if (otp.length !== 6) {
       toast.error("Please enter a valid 6-digit OTP");
       return;
@@ -607,7 +611,7 @@ const Auth = () => {
   }
 
   // ==================== AUTH SCREENS ====================
-  
+
   const error = otpState.error || emailAuthState.error;
 
   return (
@@ -618,7 +622,7 @@ const Auth = () => {
           <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-white/20 blur-2xl" />
           <div className="absolute bottom-4 left-4 w-24 h-24 rounded-full bg-white/10 blur-xl" />
         </div>
-        
+
         <div className="relative z-10">
           {step !== "select" && (
             <Button
@@ -630,12 +634,12 @@ const Auth = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             {step === "select" ? (
-              <img 
-                src={fastHaazirLogo} 
-                alt="Fast Haazir" 
+              <img
+                src={fastHaazirLogo}
+                alt="Fast Haazir"
                 className="w-32 h-32 mx-auto mb-4 object-contain"
               />
             ) : (
@@ -649,7 +653,7 @@ const Auth = () => {
                 )}
               </div>
             )}
-            
+
             <h1 className="text-2xl font-bold text-white">
               {step === "select" && "Welcome to Fast Haazir"}
               {step === "phone" && "Enter Phone Number"}
@@ -670,7 +674,7 @@ const Auth = () => {
       <div className="flex-1 -mt-8 relative z-20">
         <div className="bg-card rounded-t-3xl min-h-full p-6">
           <AnimatePresence mode="wait">
-            
+
             {/* AUTH METHOD SELECTION */}
             {step === "select" && (
               <motion.div
@@ -719,10 +723,10 @@ const Auth = () => {
                     <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                   ) : (
                     <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
                   )}
                   Continue with Google
@@ -956,6 +960,9 @@ const Auth = () => {
           </AnimatePresence>
         </div>
       </div>
+      {/* Hidden reCAPTCHA container for Phone Auth */}
+      {/* Hidden reCAPTCHA container for Phone Auth - PROPERLY STYLED TO BE IN DOM */}
+      <div id="recaptcha-container" className="fixed bottom-0 left-0 z-[-1] w-10 h-10 opacity-0 pointer-events-none"></div>
     </div>
   );
 };

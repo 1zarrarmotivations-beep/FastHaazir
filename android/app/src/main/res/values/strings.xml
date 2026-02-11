@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fast Haazir</string>
+    <string name="title_activity_main">Fast Haazir</string>
+    <string name="package_name">com.fasthaazir.app</string>
+    <string name="custom_url_scheme">com.fasthaazir.app</string>
+</resources>

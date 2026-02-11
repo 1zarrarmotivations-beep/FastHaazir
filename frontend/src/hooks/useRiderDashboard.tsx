@@ -40,6 +40,10 @@ export interface RiderProfile {
   image: string | null;
   current_location_lat: number | null;
   current_location_lng: number | null;
+  cnic_front: string | null;
+  cnic_back: string | null;
+  license_image: string | null;
+  verification_status: 'pending' | 'verified' | 'rejected';
 }
 
 export const useRiderProfile = () => {
@@ -61,7 +65,7 @@ export const useRiderProfile = () => {
         throw error;
       }
 
-      return data as RiderProfile | null;
+      return data as any as RiderProfile | null;
     },
     enabled: !!user,
   });
@@ -341,9 +345,9 @@ export const useAcceptRequest = () => {
         // Try to claim the order atomically
         const { data, error } = await supabase
           .from('orders')
-          .update({ 
+          .update({
             rider_id: riderProfile.id,
-            status: 'on_way'
+            status: 'preparing' // Changed from 'on_way' to 'preparing' for pickup flow
           })
           .eq('id', requestId)
           .is('rider_id', null) // Ensure no one else claimed it
@@ -390,7 +394,7 @@ export const useAcceptRequest = () => {
         // Try to claim the request atomically
         const { data, error } = await supabase
           .from('rider_requests')
-          .update({ 
+          .update({
             rider_id: riderProfile.id,
             status: 'preparing'
           })
@@ -479,7 +483,7 @@ export const useUpdateDeliveryStatus = () => {
         if (customerId) {
           let title = '';
           let message = '';
-          
+
           switch (status) {
             case 'on_way':
               title = '🚀 Your Order is On The Way!';
@@ -503,7 +507,7 @@ export const useUpdateDeliveryStatus = () => {
               message = 'Your order has been cancelled';
               break;
           }
-          
+
           if (title) {
             await createNotification(
               customerId,
@@ -544,7 +548,7 @@ export const useUpdateDeliveryStatus = () => {
         if (customerId) {
           let title = '';
           let message = '';
-          
+
           switch (status) {
             case 'on_way':
               title = '🚀 Rider On The Way!';
@@ -568,7 +572,7 @@ export const useUpdateDeliveryStatus = () => {
               message = 'Your delivery has been cancelled';
               break;
           }
-          
+
           if (title) {
             await createNotification(
               customerId,
@@ -610,7 +614,7 @@ export const useToggleOnlineStatus = () => {
 
       const { data, error } = await supabase
         .from('riders')
-        .update({ 
+        .update({
           is_online: isOnline,
           updated_at: new Date().toISOString()
         })
@@ -633,37 +637,13 @@ export const useToggleOnlineStatus = () => {
   });
 };
 
-// Hook to auto-set rider online when dashboard mounts
+// Hook to auto-set rider offline on unmount (session hygiene)
 export const useAutoSetRiderOnline = (riderId: string | undefined, currentOnlineStatus: boolean | null) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  useEffect(() => {
-    // Only auto-set online if rider exists and is currently offline
-    if (!user || !riderId || currentOnlineStatus === true) return;
-
-    const setOnline = async () => {
-      console.log('[useAutoSetRiderOnline] Auto-setting rider online on dashboard mount');
-      
-      const { error } = await supabase
-        .from('riders')
-        .update({ 
-          is_online: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('[useAutoSetRiderOnline] Error setting online:', error);
-      } else {
-        console.log('[useAutoSetRiderOnline] Rider set to online');
-        queryClient.invalidateQueries({ queryKey: ['rider-profile'] });
-        queryClient.invalidateQueries({ queryKey: ['online-riders'] });
-      }
-    };
-
-    setOnline();
-  }, [user, riderId, currentOnlineStatus, queryClient]);
+  // HEALERS NOTE: Auto-online on mount is REMOVED to give riders manual control.
+  // Manual online/offline toggle is more battery efficient and preferred by riders.
 
   // Set offline when component unmounts or tab closes
   useEffect(() => {
@@ -674,8 +654,21 @@ export const useAutoSetRiderOnline = (riderId: string | undefined, currentOnline
       // Use sendBeacon for reliable offline setting on tab close
       const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/riders?user_id=eq.${user.id}`;
       const body = JSON.stringify({ is_online: false, updated_at: new Date().toISOString() });
-      
-      navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      const headers = {
+        'Content-Type': 'application/json',
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+      };
+
+      // Note: sendBeacon doesn't support custom headers easily, 
+      // but Supabase Anon Key can be in URL for some setups. 
+      // We'll stick to a best-effort fetch with keepalive.
+      fetch(url, {
+        method: 'PATCH',
+        body,
+        headers,
+        keepalive: true
+      });
     };
 
     const handleVisibilityChange = async () => {
@@ -700,7 +693,15 @@ export const useRegisterAsRider = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (riderData: { name: string; phone: string; vehicle_type: string }) => {
+    mutationFn: async (riderData: {
+      name: string;
+      phone: string;
+      vehicle_type: string;
+      cnic?: string;
+      cnic_front?: string;
+      cnic_back?: string;
+      license_image?: string;
+    }) => {
       if (!user) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -710,8 +711,13 @@ export const useRegisterAsRider = () => {
           name: riderData.name,
           phone: riderData.phone,
           vehicle_type: riderData.vehicle_type,
-          is_active: true,
+          cnic: riderData.cnic,
+          cnic_front: riderData.cnic_front,
+          cnic_back: riderData.cnic_back,
+          license_image: riderData.license_image,
+          is_active: false, // Inactive until admin verifies
           is_online: false,
+          verification_status: 'pending'
         })
         .select()
         .single();
@@ -735,9 +741,9 @@ export const useUpdateRiderProfile = () => {
   const { data: riderProfile } = useRiderProfile();
 
   return useMutation({
-    mutationFn: async (updates: { 
-      name?: string; 
-      phone?: string; 
+    mutationFn: async (updates: {
+      name?: string;
+      phone?: string;
       vehicle_type?: string;
       image?: string | null;
     }) => {

@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { 
-  Power, 
-  PowerOff, 
-  Star, 
+import {
+  Power,
+  PowerOff,
+  Star,
   Wallet,
   TrendingUp,
   Bike,
@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { RiderProfile } from '@/hooks/useRiderDashboard';
+import logo from '@/assets/fast-haazir-logo-optimized.webp';
 
 interface RiderStatusHeaderProps {
   riderProfile: RiderProfile | null | undefined;
@@ -95,6 +96,11 @@ const RiderStatusHeader = ({
           </>
         )}
 
+        {/* Logo Watermark */}
+        <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none">
+          <img src={logo} alt="" className="w-32 h-32 rotate-12" />
+        </div>
+
         {/* Profile Row */}
         <div className="relative flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -103,17 +109,16 @@ const RiderStatusHeader = ({
               className="relative"
               whileTap={{ scale: 0.95 }}
             >
-              <div className={`w-18 h-18 rounded-2xl overflow-hidden relative ${
-                isOnline 
-                  ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-transparent animate-ring-glow' 
-                  : 'ring-1 ring-white/10'
-              }`}
-              style={{ width: '72px', height: '72px' }}
+              <div className={`w-18 h-18 rounded-2xl overflow-hidden relative ${isOnline
+                ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-transparent animate-ring-glow'
+                : 'ring-1 ring-white/10'
+                }`}
+                style={{ width: '72px', height: '72px' }}
               >
                 {riderProfile.image ? (
-                  <img 
-                    src={riderProfile.image} 
-                    alt={riderProfile.name} 
+                  <img
+                    src={riderProfile.image}
+                    alt={riderProfile.name}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -123,17 +128,16 @@ const RiderStatusHeader = ({
                 )}
               </div>
               {/* Premium Status Indicator */}
-              <motion.div 
-                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-3 border-[#0B0F14] flex items-center justify-center ${
-                  isOnline ? 'bg-emerald-400' : 'bg-gray-600'
-                }`}
+              <motion.div
+                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-3 border-[#0B0F14] flex items-center justify-center ${isOnline ? 'bg-emerald-400' : 'bg-gray-600'
+                  }`}
                 animate={isOnline ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 {isOnline && <CheckCircle2 className="w-3 h-3 text-white" />}
               </motion.div>
             </motion.div>
-            
+
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">{riderProfile.name}</h1>
               <div className="flex items-center gap-2 text-sm mt-1.5">
@@ -156,21 +160,20 @@ const RiderStatusHeader = ({
             <motion.button
               onClick={() => !isToggling && !cannotGoOffline && onToggleOnline(!isOnline)}
               disabled={isToggling || cannotGoOffline}
-              className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl transition-all duration-500 min-w-[80px] ${
-                cannotGoOffline 
-                  ? 'bg-orange-500/10 cursor-not-allowed opacity-70'
-                  : isOnline 
-                    ? 'bg-emerald-500/15 glow-green' 
-                    : 'bg-white/3 hover:bg-white/5 border border-white/5'
-              }`}
+              className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl transition-all duration-500 min-w-[80px] ${cannotGoOffline
+                ? 'bg-orange-500/10 cursor-not-allowed opacity-70'
+                : isOnline
+                  ? 'bg-emerald-500/15 glow-green'
+                  : 'bg-white/3 hover:bg-white/5 border border-white/5'
+                }`}
               whileTap={cannotGoOffline ? {} : { scale: 0.95 }}
             >
               <motion.div
-                animate={{ 
+                animate={{
                   rotate: isToggling ? 360 : 0,
                   scale: isOnline && !cannotGoOffline ? [1, 1.1, 1] : 1
                 }}
-                transition={{ 
+                transition={{
                   rotate: { duration: 1, repeat: isToggling ? Infinity : 0 },
                   scale: { duration: 2.5, repeat: Infinity }
                 }}
@@ -181,20 +184,19 @@ const RiderStatusHeader = ({
                   <PowerOff className="w-7 h-7 text-white/30" />
                 )}
               </motion.div>
-              <span className={`text-[10px] font-black tracking-widest ${
-                cannotGoOffline 
-                  ? 'text-orange-400' 
-                  : isOnline 
-                    ? 'text-emerald-400 text-glow-green' 
-                    : 'text-white/30'
-              }`}>
+              <span className={`text-[10px] font-black tracking-widest ${cannotGoOffline
+                ? 'text-orange-400'
+                : isOnline
+                  ? 'text-emerald-400 text-glow-green'
+                  : 'text-white/30'
+                }`}>
                 {isOnline ? 'ONLINE' : 'OFFLINE'}
               </span>
             </motion.button>
-            
+
             {/* Helper text when cannot go offline */}
             {cannotGoOffline && (
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-[9px] text-orange-400/80 mt-1.5 text-center max-w-[90px] leading-tight"

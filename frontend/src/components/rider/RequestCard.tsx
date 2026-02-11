@@ -44,16 +44,16 @@ const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
 
 const getNextStatusLabel = (currentStatus: OrderStatus): string | null => {
   const labels: Record<string, string> = {
-    placed: 'Mark as Picked Up',
-    preparing: 'Start Delivery',
-    on_way: 'Mark as Delivered',
+    placed: 'Mark Picked-up',
+    preparing: 'Mark Picked-up',
+    on_way: 'Mark Delivered',
   };
   return labels[currentStatus] || null;
 };
 
-export const RequestCard = ({ 
-  request, 
-  showActions = false, 
+export const RequestCard = ({
+  request,
+  showActions = false,
   activeTab,
   onAccept,
   onUpdateStatus,
@@ -61,7 +61,7 @@ export const RequestCard = ({
   isUpdating = false
 }: RequestCardProps) => {
   const [showMap, setShowMap] = useState(false);
-  
+
   // Calculate distance and charge
   const hasCoordinates = request.pickup_lat && request.pickup_lng && request.dropoff_lat && request.dropoff_lng;
   const distance = hasCoordinates
@@ -76,122 +76,122 @@ export const RequestCard = ({
       exit={{ opacity: 0, y: -10 }}
     >
       <Card className="bg-card border-border mb-3 overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary" />
-            <span className="font-medium text-foreground">
-              {request.item_description || 'Package Delivery'}
-            </span>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary" />
+              <span className="font-medium text-foreground">
+                {request.item_description || 'Package Delivery'}
+              </span>
+            </div>
+            <Badge className={statusColors[request.status]}>
+              {statusLabels[request.status]}
+            </Badge>
           </div>
-          <Badge className={statusColors[request.status]}>
-            {statusLabels[request.status]}
-          </Badge>
-        </div>
 
-        {/* Map Toggle Button */}
-        {hasCoordinates && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowMap(!showMap)}
-            className="w-full mb-3"
-          >
-            <Map className="w-4 h-4 mr-2" />
-            {showMap ? 'Hide Map' : 'View on Map'} • {distance.toFixed(1)} km
-          </Button>
-        )}
+          {/* Map Toggle Button */}
+          {hasCoordinates && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMap(!showMap)}
+              className="w-full mb-3"
+            >
+              <Map className="w-4 h-4 mr-2" />
+              {showMap ? 'Hide Map' : 'View on Map'} • {distance.toFixed(1)} km
+            </Button>
+          )}
 
-        {/* Delivery Map */}
-        {showMap && hasCoordinates && (
-          <DeliveryMap
-            pickupLat={request.pickup_lat}
-            pickupLng={request.pickup_lng}
-            dropoffLat={request.dropoff_lat}
-            dropoffLng={request.dropoff_lng}
-            pickupAddress={request.pickup_address}
-            dropoffAddress={request.dropoff_address}
-          />
-        )}
+          {/* Delivery Map */}
+          {showMap && hasCoordinates && (
+            <DeliveryMap
+              pickupLat={request.pickup_lat}
+              pickupLng={request.pickup_lng}
+              dropoffLat={request.dropoff_lat}
+              dropoffLng={request.dropoff_lng}
+              pickupAddress={request.pickup_address}
+              dropoffAddress={request.dropoff_address}
+            />
+          )}
 
-        <div className="space-y-2 mb-3">
-          <div className="flex items-start gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Pickup</p>
-              <p className="text-sm text-foreground">{request.pickup_address}</p>
+          <div className="space-y-2 mb-3">
+            <div className="flex items-start gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500 mt-2" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Pickup</p>
+                <p className="text-sm text-foreground">{request.pickup_address}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 mt-2" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Dropoff</p>
+                <p className="text-sm text-foreground">{request.dropoff_address}</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-start gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 mt-2" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Dropoff</p>
-              <p className="text-sm text-foreground">{request.dropoff_address}</p>
+
+          <div className="flex items-center justify-between text-sm mb-3">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              {new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div className="text-right">
+              <span className="font-bold text-primary">Rs. {calculatedCharge}</span>
+              {hasCoordinates && (
+                <p className="text-xs text-muted-foreground">{distance.toFixed(1)} km</p>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between text-sm mb-3">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            {new Date(request.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {/* Customer contact via chat only - Privacy protected */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3 p-2 bg-blue-500/5 rounded-lg border border-blue-500/10">
+            <User className="w-4 h-4 text-blue-500" />
+            <span className="text-xs">Contact customer via in-app chat</span>
           </div>
-          <div className="text-right">
-            <span className="font-bold text-primary">Rs. {calculatedCharge}</span>
-            {hasCoordinates && (
-              <p className="text-xs text-muted-foreground">{distance.toFixed(1)} km</p>
-            )}
-          </div>
-        </div>
 
-        {/* Customer contact via chat only - Privacy protected */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3 p-2 bg-blue-500/5 rounded-lg border border-blue-500/10">
-          <User className="w-4 h-4 text-blue-500" />
-          <span className="text-xs">Contact customer via in-app chat</span>
-        </div>
-
-        {showActions && (
-          <div className="flex gap-2">
-            {activeTab === 'available' && onAccept && (
-              <Button
-                className="flex-1"
-                onClick={() => onAccept(request.id, request.type || 'rider_request')}
-                disabled={isAccepting}
-              >
-                {isAccepting ? 'Accepting...' : 'Accept Request'}
-              </Button>
-            )}
-            {activeTab === 'active' && (
-              <>
-                <ChatButton 
+          {showActions && (
+            <div className="flex gap-2">
+              {activeTab === 'available' && onAccept && (
+                <Button
+                  className="flex-1"
+                  onClick={() => onAccept(request.id, request.type || 'rider_request')}
+                  disabled={isAccepting}
+                >
+                  {isAccepting ? 'Accepting...' : 'Accept Request'}
+                </Button>
+              )}
+              {activeTab === 'active' && (
+                <>
+                  <ChatButton
+                    riderRequestId={request.type === 'order' ? undefined : request.id}
+                    orderId={request.type === 'order' ? request.id : undefined}
+                    userType="rider"
+                    variant="outline"
+                  />
+                  {getNextStatus(request.status) && onUpdateStatus && (
+                    <Button
+                      className="flex-1"
+                      onClick={() => onUpdateStatus(request.id, getNextStatus(request.status)!, request.type || 'rider_request')}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? 'Updating...' : getNextStatusLabel(request.status)}
+                    </Button>
+                  )}
+                </>
+              )}
+              {activeTab === 'completed' && (
+                <ChatButton
                   riderRequestId={request.type === 'order' ? undefined : request.id}
                   orderId={request.type === 'order' ? request.id : undefined}
-                  userType="rider" 
-                  variant="outline"
+                  userType="rider"
+                  variant="ghost"
                 />
-                {getNextStatus(request.status) && onUpdateStatus && (
-                  <Button
-                    className="flex-1"
-                    onClick={() => onUpdateStatus(request.id, getNextStatus(request.status)!, request.type || 'rider_request')}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? 'Updating...' : getNextStatusLabel(request.status)}
-                  </Button>
-                )}
-              </>
-            )}
-            {activeTab === 'completed' && (
-              <ChatButton 
-                riderRequestId={request.type === 'order' ? undefined : request.id}
-                orderId={request.type === 'order' ? request.id : undefined}
-                userType="rider" 
-                variant="ghost"
-              />
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  </motion.div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { 
-  Search, 
+import {
+  Search,
   ShoppingBag,
   Clock,
   MapPin,
@@ -11,6 +11,10 @@ import {
   ChevronDown,
   Check,
   X,
+  EyeOff,
+  ClipboardList,
+  History,
+  FileText,
   AlertCircle,
   Bike,
   Store,
@@ -20,7 +24,7 @@ import {
   XCircle,
   RefreshCw,
   MessageCircle,
-  EyeOff
+  Navigation
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,16 +43,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  useAdminOrders, 
-  useAdminRiders, 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  useAdminOrders,
+  useAdminRiders,
   useAcceptOrder,
   useRejectOrder,
   useAssignRiderToOrder,
-  useUpdateOrderStatus 
+  useUpdateOrderStatus,
+  useOrderTimeline
 } from "@/hooks/useAdmin";
 import { format } from "date-fns";
 import AdminChatViewer from "./AdminChatViewer";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export function OrdersManager() {
   const { t } = useTranslation();
@@ -60,34 +76,37 @@ export function OrdersManager() {
     riderName?: string;
     businessName?: string;
   } | null>(null);
+  const [viewingTimelineOrderId, setViewingTimelineOrderId] = useState<string | null>(null);
+
+  const { data: timeline } = useOrderTimeline(viewingTimelineOrderId || undefined);
 
   const statusConfig = {
-    placed: { 
-      color: "bg-amber-500/10 text-amber-600 border-amber-500/30", 
+    placed: {
+      color: "bg-amber-500/10 text-amber-600 border-amber-500/30",
       icon: Clock,
       label: t('orderStatus.placed'),
       gradient: "from-amber-500 to-orange-500"
     },
-    preparing: { 
-      color: "bg-blue-500/10 text-blue-600 border-blue-500/30", 
+    preparing: {
+      color: "bg-blue-500/10 text-blue-600 border-blue-500/30",
       icon: Package,
       label: t('orderStatus.preparing'),
       gradient: "from-blue-500 to-indigo-500"
     },
-    on_way: { 
-      color: "bg-purple-500/10 text-purple-600 border-purple-500/30", 
+    on_way: {
+      color: "bg-purple-500/10 text-purple-600 border-purple-500/30",
       icon: Truck,
       label: t('orderStatus.onTheWay'),
       gradient: "from-purple-500 to-violet-500"
     },
-    delivered: { 
-      color: "bg-green-500/10 text-green-600 border-green-500/30", 
+    delivered: {
+      color: "bg-green-500/10 text-green-600 border-green-500/30",
       icon: CheckCircle,
       label: t('orderStatus.delivered'),
       gradient: "from-green-500 to-emerald-500"
     },
-    cancelled: { 
-      color: "bg-red-500/10 text-red-600 border-red-500/30", 
+    cancelled: {
+      color: "bg-red-500/10 text-red-600 border-red-500/30",
       icon: XCircle,
       label: t('orderStatus.cancelled'),
       gradient: "from-red-500 to-rose-500"
@@ -102,7 +121,7 @@ export function OrdersManager() {
   const assignRider = useAssignRiderToOrder();
 
   const filteredOrders = orders?.filter((order) => {
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.delivery_address?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
@@ -210,8 +229,8 @@ export function OrdersManager() {
                       <p className="text-sm opacity-90">Take action to keep customers happy</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="secondary" 
+                  <Button
+                    variant="secondary"
                     size="sm"
                     onClick={() => setStatusFilter('placed')}
                     className="bg-white/20 hover:bg-white/30 text-white border-0"
@@ -284,12 +303,11 @@ export function OrdersManager() {
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.03 }}
                 >
-                  <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 ${
-                    order.status === 'placed' ? 'border-l-amber-500 bg-amber-500/5' : 
+                  <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 border-l-4 ${order.status === 'placed' ? 'border-l-amber-500 bg-amber-500/5' :
                     order.status === 'preparing' ? 'border-l-blue-500' :
-                    order.status === 'on_way' ? 'border-l-purple-500' :
-                    order.status === 'delivered' ? 'border-l-green-500' : 'border-l-red-500'
-                  }`}>
+                      order.status === 'on_way' ? 'border-l-purple-500' :
+                        order.status === 'delivered' ? 'border-l-green-500' : 'border-l-red-500'
+                    }`}>
                     <CardContent className="p-4 sm:p-6">
                       <div className="flex flex-col lg:flex-row lg:items-start gap-4">
                         {/* Order Info */}
@@ -372,14 +390,24 @@ export function OrdersManager() {
 
                           {/* Assigned Rider */}
                           {assignedRider && (
-                            <div className="mt-3 flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                              <Bike className="w-4 h-4 text-emerald-600" />
-                              <span className="text-sm font-medium text-emerald-700">
-                                Rider: {assignedRider.name}
-                              </span>
-                              <Badge variant="outline" className="text-xs ml-auto">
-                                {assignedRider.vehicle_type}
-                              </Badge>
+                            <div className="mt-3 flex flex-col gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                              <div className="flex items-center gap-2">
+                                <Bike className="w-4 h-4 text-emerald-600" />
+                                <span className="text-sm font-medium text-emerald-700">
+                                  Rider: {assignedRider.name}
+                                </span>
+                                <Badge variant="outline" className="text-xs ml-auto">
+                                  {assignedRider.vehicle_type}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Navigation className="w-3 h-3 text-emerald-500" />
+                                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">
+                                  {order.status === 'preparing' ? "Heading to Pickup" :
+                                    order.status === 'on_way' ? "Heading to Customer" :
+                                      order.status === 'delivered' ? "Delivered" : "Waiting"}
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -423,35 +451,35 @@ export function OrdersManager() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => updateStatus.mutate({ orderId: order.id, status: 'placed' })}
                                 className="flex items-center gap-2"
                               >
                                 <Clock className="w-4 h-4 text-amber-500" />
                                 New Order
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => updateStatus.mutate({ orderId: order.id, status: 'preparing' })}
                                 className="flex items-center gap-2"
                               >
                                 <Package className="w-4 h-4 text-blue-500" />
                                 Preparing
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => updateStatus.mutate({ orderId: order.id, status: 'on_way' })}
                                 className="flex items-center gap-2"
                               >
                                 <Truck className="w-4 h-4 text-purple-500" />
                                 On the Way
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => updateStatus.mutate({ orderId: order.id, status: 'delivered' })}
                                 className="flex items-center gap-2"
                               >
                                 <CheckCircle className="w-4 h-4 text-green-500" />
                                 Delivered
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => updateStatus.mutate({ orderId: order.id, status: 'cancelled' })}
                                 className="flex items-center gap-2 text-destructive"
                               >
@@ -465,7 +493,7 @@ export function OrdersManager() {
                           {order.status !== 'delivered' && order.status !== 'cancelled' && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button 
+                                <Button
                                   variant={order.rider_id ? "outline" : "default"}
                                   className={!order.rider_id ? "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0" : ""}
                                 >
@@ -482,7 +510,7 @@ export function OrdersManager() {
                                   </div>
                                 ) : (
                                   activeRiders.map((rider) => (
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                       key={rider.id}
                                       onClick={() => assignRider.mutate({ orderId: order.id, riderId: rider.id })}
                                       className="flex items-center justify-between"
@@ -502,22 +530,34 @@ export function OrdersManager() {
                           )}
 
                           {/* Silent Chat Monitor Button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-2 bg-slate-100 hover:bg-slate-200 border-slate-300"
-                            onClick={() => {
-                              setViewingChatOrderId(order.id);
-                              setChatOrderInfo({
-                                customerLabel: `Customer #${order.id.slice(0, 6)}`,
-                                riderName: assignedRider?.name,
-                                businessName: (order as any).business?.name,
-                              });
-                            }}
-                          >
-                            <EyeOff className="w-4 h-4 mr-2 text-slate-600" />
-                            <span className="text-slate-700">Monitor Chat</span>
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 mt-2 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                              onClick={() => {
+                                setViewingChatOrderId(order.id);
+                                setChatOrderInfo({
+                                  customerLabel: `Customer #${order.id.slice(0, 6)}`,
+                                  riderName: assignedRider?.name,
+                                  businessName: (order as any).business?.name,
+                                });
+                              }}
+                            >
+                              <EyeOff className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                              <span className="text-slate-600 text-xs">Chat</span>
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 mt-2 bg-slate-50 hover:bg-slate-100 border-slate-200"
+                              onClick={() => setViewingTimelineOrderId(order.id)}
+                            >
+                              <History className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                              <span className="text-slate-600 text-xs">History</span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -528,6 +568,58 @@ export function OrdersManager() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Order Timeline Sheet */}
+      <Sheet open={!!viewingTimelineOrderId} onOpenChange={() => setViewingTimelineOrderId(null)}>
+        <SheetContent className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              Order Timeline
+            </SheetTitle>
+            <SheetDescription>
+              A history of all status changes for order #{viewingTimelineOrderId?.slice(0, 8).toUpperCase()}
+            </SheetDescription>
+          </SheetHeader>
+
+          <ScrollArea className="h-[calc(100vh-180px)] pr-4 mt-6">
+            <div className="relative pl-6 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-muted">
+              {timeline && timeline.length > 0 ? (
+                timeline.map((log: any, idx) => (
+                  <div key={log.id} className="relative">
+                    <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-background ${idx === timeline.length - 1 ? 'bg-primary' : 'bg-muted-foreground'
+                      }`}>
+                      {idx === timeline.length - 1 && (
+                        <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-25" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <Badge variant="outline" className="text-xs uppercase font-bold tracking-tight">
+                          {log.status.replace('_', ' ')}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(log.created_at), "h:mm:ss a, MMM d")}
+                        </span>
+                      </div>
+                      {log.notes && (
+                        <p className="text-sm text-foreground bg-muted/30 p-2 rounded-md border border-muted/50">
+                          {log.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground/30 mb-2" />
+                  <p className="text-muted-foreground text-sm">No activity logs yet</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       {/* Admin Chat Viewer (Silent Mode) */}
       <AdminChatViewer
@@ -541,7 +633,7 @@ export function OrdersManager() {
       />
 
       {filteredOrders?.length === 0 && !isLoading && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center py-16"
@@ -551,13 +643,13 @@ export function OrdersManager() {
           </div>
           <h3 className="text-xl font-semibold text-foreground mb-2">No orders found</h3>
           <p className="text-muted-foreground max-w-sm mx-auto">
-            {statusFilter !== 'all' 
+            {statusFilter !== 'all'
               ? `No ${statusFilter} orders at the moment. Try a different filter.`
               : 'Orders will appear here when customers place them.'}
           </p>
           {statusFilter !== 'all' && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="mt-4"
               onClick={() => setStatusFilter('all')}
             >

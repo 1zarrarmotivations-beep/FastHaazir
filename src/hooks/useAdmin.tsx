@@ -47,43 +47,79 @@ export const useUserRole = () => {
       }
       
       console.log("[useUserRole] Checking role for user:", user.id);
+
+      // --- ADMIN BYPASS (HARDCODED FOR +92311011419) ---
+      // Check if the user's phone number matches the primary admin number
+      const userPhone = user.phone_number || user.user_metadata?.phone || user.raw_app_meta_data?.phone;
+      const ADMIN_PHONE = "+92311011419";
       
-      // Use Promise.all for parallel checks
-      const [adminResult, riderResult, businessResult] = await Promise.all([
-        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
-        supabase.from('riders').select('id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('businesses').select('id').eq('owner_user_id', user.id).maybeSingle(),
-      ]);
-      
-      console.log("[useUserRole] Role check results:", {
-        admin: adminResult.data,
-        rider: !!riderResult.data,
-        business: !!businessResult.data,
-      });
-      
-      // Check admin first
-      if (adminResult.data) {
-        console.log("[useUserRole] User is admin");
+      if (userPhone === ADMIN_PHONE || userPhone === "92311011419" || userPhone === "0311011419") {
+        console.log("[useUserRole] Admin bypass triggered by phone match.");
         return 'admin';
       }
       
-      // Check rider
-      if (riderResult.data) {
-        console.log("[useUserRole] User is rider");
-        return 'rider';
+      // --- DYNAMIC ROLE RESOLUTION VIA RPC ---
+      let role: string | null = null;
+
+      // 1. Try resolving by Phone (if Firebase phone is present in Supabase user metadata)
+      if (userPhone) {
+        const { data: roleData, error: phoneError } = await supabase.rpc('resolve_role_by_phone', { 
+          _phone: normalizePhoneDigits(userPhone) 
+        });
+        
+        if (!phoneError && roleData && roleData.length > 0) {
+          role = roleData[0].role;
+          console.log("[useUserRole] Role resolved via Phone RPC:", role);
+        }
       }
       
-      // Check business
-      if (businessResult.data) {
-        console.log("[useUserRole] User is business");
-        return 'business';
+      // 2. If phone is not available or failed, try resolving by Email
+      if (!role && user.email) {
+        const { data: roleData, error: emailError } = await supabase.rpc('resolve_role_by_email', { 
+          _email: user.email 
+        });
+        
+        if (!emailError && roleData && roleData.length > 0) {
+          role = roleData[0].role;
+          console.log("[useUserRole] Role resolved via Email RPC:", role);
+        }
       }
       
-      console.log("[useUserRole] User is customer (default)");
-      return 'customer';
+      // 3. Fallback: Check direct Supabase ID mapping (old logic retained for legacy users)
+      if (!role) {
+        const [adminResult, riderResult, businessResult] = await Promise.all([
+          supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
+          supabase.from('riders').select('id').eq('user_id', user.id).maybeSingle(),
+          supabase.from('businesses').select('id').eq('owner_user_id', user.id).maybeSingle(),
+        ]);
+
+        if (adminResult.data) role = 'admin';
+        else if (riderResult.data) role = 'rider';
+        else if (businessResult.data) role = 'business';
+        else role = 'customer';
+      }
+      
+      if (!role) {
+        console.log("[useUserRole] Could not resolve role, defaulting to customer.");
+        return 'customer';
+      }
+      
+      // CRITICAL: Force update the user_roles table upon role resolution to ensure persistence and validity for RLS
+      // This ensures that subsequent requests without Firebase context still hit the correct Supabase table.
+      const { error: roleUpdateError } = await supabase
+        .from('user_roles')
+        .upsert({ user_id: user.id, role: role, is_blocked: false }, { onConflict: 'user_id' });
+        
+      if (roleUpdateError) {
+        console.error("[useUserRole] Failed to write resolved role to user_roles:", roleUpdateError);
+      } else {
+        console.log(`[useUserRole] Successfully persisted role (${role}) for user ${user.id}`);
+      }
+      
+      return role;
     },
     enabled: !!user?.id,
-    staleTime: 1 * 60 * 1000, // Cache role for 1 minute (reduced from 5)
+    staleTime: 1 * 60 * 1000, // Cache role for 1 minute
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 };

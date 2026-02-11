@@ -78,7 +78,7 @@ export const useFirebaseAuth = () => {
   useEffect(() => {
     if (initAttemptedRef.current) return;
     initAttemptedRef.current = true;
-    
+
     let unsubscribe: (() => void) | null = null;
 
     const init = async () => {
@@ -152,10 +152,14 @@ export const useFirebaseAuth = () => {
    * Initialize SINGLETON invisible reCAPTCHA verifier
    * Enhanced for Android WebView compatibility
    */
+  /*
+   * Initialize SINGLETON invisible reCAPTCHA verifier
+   * Enhanced for Android WebView compatibility and localhost debugging
+   */
   const initRecaptcha = useCallback(async (containerId: string): Promise<boolean> => {
     const auth = getFirebaseAuth();
     const isNative = isRunningInNativeApp();
-    
+
     if (!auth) {
       console.error("[useFirebaseAuth] Cannot init reCAPTCHA - no auth instance");
       return false;
@@ -164,23 +168,45 @@ export const useFirebaseAuth = () => {
     recaptchaContainerIdRef.current = containerId;
     window.__recaptchaInitAttempts = (window.__recaptchaInitAttempts || 0) + 1;
 
-    const container = document.getElementById(containerId);
+    // Wait for DOM to be ready (critical for React rendering timing)
+    let container = document.getElementById(containerId);
     if (!container) {
-      console.error("[useFirebaseAuth] reCAPTCHA container not found:", containerId);
-      // On Android, retry after a delay (DOM might not be ready)
-      if (isNative && window.__recaptchaInitAttempts < 5) {
-        console.log("[useFirebaseAuth] Android: Will retry reCAPTCHA init...");
-        await new Promise(r => setTimeout(r, 500));
-        const retryContainer = document.getElementById(containerId);
-        if (!retryContainer) return false;
-      } else {
-        return false;
+      console.warn(`[useFirebaseAuth] reCAPTCHA container '${containerId}' not found. Waiting...`);
+      await new Promise(r => setTimeout(r, 500));
+      container = document.getElementById(containerId);
+
+      if (!container) {
+        console.error(`[useFirebaseAuth] reCAPTCHA container '${containerId}' STILL missing after wait.`);
+        // Try fallback
+        container = document.getElementById('recaptcha-container');
+        if (container) {
+          console.log("[useFirebaseAuth] Found fallback container 'recaptcha-container'");
+          containerId = 'recaptcha-container';
+        } else {
+          setOtpState((prev) => ({
+            ...prev,
+            error: "Security component missing. Please refresh the page.",
+          }));
+          return false;
+        }
       }
     }
 
+    // Singleton check
     if (window.__fasthaazirRecaptchaVerifier) {
       console.log("[useFirebaseAuth] reCAPTCHA already initialized (singleton) ✓");
-      return true;
+      // Verify it's still valid by checking if it clears dummy verification
+      try {
+        // Optional: Re-render if widget ID is missing
+        if (!window.__fasthaazirRecaptchaWidgetId) {
+          await window.__fasthaazirRecaptchaVerifier.render();
+        }
+        return true;
+      } catch (e) {
+        console.warn("[useFirebaseAuth] Existing reCAPTCHA seems stale, re-initializing...");
+        window.__fasthaazirRecaptchaVerifier.clear();
+        window.__fasthaazirRecaptchaVerifier = undefined;
+      }
     }
 
     if (recaptchaRenderingRef.current) {
@@ -191,63 +217,49 @@ export const useFirebaseAuth = () => {
     try {
       recaptchaRenderingRef.current = true;
       console.log(`[useFirebaseAuth] Creating invisible reCAPTCHA (${isNative ? 'Android' : 'Web'})...`);
-      console.log(`[useFirebaseAuth] Container ID: ${containerId}, DOM ready: ${!!document.getElementById(containerId)}`);
+
+      // Clear any existing instances in the DOM properly
+      if (container) container.innerHTML = '';
 
       const verifier = new RecaptchaVerifier(auth, containerId, {
         size: "invisible",
-        callback: () => {
-          console.log("[useFirebaseAuth] reCAPTCHA verified ✓");
+        callback: (response: any) => {
+          console.log("[useFirebaseAuth] reCAPTCHA verified ✓ Token:", response ? "Received" : "None");
         },
         "expired-callback": () => {
-          console.log("[useFirebaseAuth] reCAPTCHA expired - will recreate on next attempt");
-          window.__fasthaazirRecaptchaVerifier = undefined;
-          window.__fasthaazirRecaptchaWidgetId = undefined;
+          console.warn("[useFirebaseAuth] reCAPTCHA expired");
+          // Don't fully clear, just legitimate expire handling
         },
         "error-callback": (err: any) => {
-          console.error("[useFirebaseAuth] reCAPTCHA error:", err);
-          // On Android WebView, reCAPTCHA errors are common but often recoverable
-          if (isNative) {
-            console.log("[useFirebaseAuth] Android reCAPTCHA error - proceeding with lenient mode");
-          }
+          console.error("[useFirebaseAuth] reCAPTCHA error-callback:", err);
+          setOtpState(prev => ({ ...prev, error: "Security check failed. Please refresh." }));
         },
       });
 
       window.__fasthaazirRecaptchaVerifier = verifier;
-      
-      // Render with extended timeout for Android (WebView can be slow)
-      const renderPromise = verifier.render();
-      const timeoutMs = isNative ? 15000 : 8000; // More time for Android
-      const timeoutPromise = new Promise<number>((_, reject) => 
-        setTimeout(() => reject(new Error('reCAPTCHA render timeout')), timeoutMs)
-      );
-      
-      try {
-        window.__fasthaazirRecaptchaWidgetId = await Promise.race([renderPromise, timeoutPromise]) as number;
-        console.log("[useFirebaseAuth] reCAPTCHA rendered ✓ widgetId:", window.__fasthaazirRecaptchaWidgetId);
-        return true;
-      } catch (timeoutErr) {
-        console.warn("[useFirebaseAuth] reCAPTCHA render timeout after", timeoutMs, "ms");
-        // On Android, timeout is common but OTP often still works
-        if (isNative) {
-          console.log("[useFirebaseAuth] Android: Proceeding despite timeout (may work on user interaction)");
-          return true;
-        }
-        return false;
-      }
+
+      // Render it explicitly
+      console.log("[useFirebaseAuth] Rendering reCAPTCHA...");
+      const widgetId = await verifier.render();
+      window.__fasthaazirRecaptchaWidgetId = widgetId;
+      console.log("[useFirebaseAuth] reCAPTCHA rendered successfully. Widget ID:", widgetId);
+
+      return true;
+
     } catch (error: any) {
-      console.error("[useFirebaseAuth] reCAPTCHA init error:", error);
+      console.error("[useFirebaseAuth] reCAPTCHA init FATAL error:", error);
       window.__fasthaazirRecaptchaVerifier = undefined;
       window.__fasthaazirRecaptchaWidgetId = undefined;
 
-      // On Android, be lenient - let user try anyway
+      // On Android, be lenient
       if (isNative) {
-        console.log("[useFirebaseAuth] Android: Allowing OTP attempt despite reCAPTCHA error");
+        console.log("[useFirebaseAuth] Android: Ignoring reCAPTCHA error to allow fallback flow");
         return true;
       }
-      
+
       setOtpState((prev) => ({
         ...prev,
-        error: error?.message || "reCAPTCHA failed to initialize. Please refresh.",
+        error: error?.message || "Security check initialization failed.",
       }));
       return false;
     } finally {
@@ -260,12 +272,12 @@ export const useFirebaseAuth = () => {
     const hasContainer = !!(containerId && document.getElementById(containerId));
     const hasVerifier = !!window.__fasthaazirRecaptchaVerifier;
     const isNative = isRunningInNativeApp();
-    
+
     // On Android, be more lenient - allow OTP attempt even if verifier seems missing
     if (isNative && hasContainer) {
       return true;
     }
-    
+
     return hasVerifier && hasContainer;
   }, []);
 
@@ -328,7 +340,7 @@ export const useFirebaseAuth = () => {
         // Comprehensive error mapping for phone auth
         let errorMessage = "Failed to send OTP.";
         const errorCode = error?.code || '';
-        
+
         if (errorCode === "auth/too-many-requests") {
           errorMessage = "Too many attempts. Please wait a few minutes and try again.";
         } else if (errorCode === "auth/quota-exceeded") {
@@ -393,7 +405,7 @@ export const useFirebaseAuth = () => {
       } else if (error?.code === "auth/code-expired") {
         errorMessage = "OTP has expired. Please request a new one.";
       }
-      
+
       setOtpState((prev) => ({
         ...prev,
         verifying: false,
@@ -431,7 +443,7 @@ export const useFirebaseAuth = () => {
       } else if (error?.code === "auth/too-many-requests") {
         errorMessage = "Too many attempts. Please try again later.";
       }
-      
+
       setEmailAuthState({ loading: false, error: errorMessage });
       return null;
     }
@@ -465,7 +477,7 @@ export const useFirebaseAuth = () => {
       } else if (error?.code === "auth/invalid-email") {
         errorMessage = "Invalid email address.";
       }
-      
+
       setEmailAuthState({ loading: false, error: errorMessage });
       return null;
     }
@@ -495,7 +507,7 @@ export const useFirebaseAuth = () => {
       if (error?.code === "auth/user-not-found") {
         errorMessage = "No account found with this email.";
       }
-      
+
       setEmailAuthState({ loading: false, error: errorMessage });
       return false;
     }
@@ -507,7 +519,7 @@ export const useFirebaseAuth = () => {
   const signInWithGoogle = useCallback(async (): Promise<any> => {
     const auth = getFirebaseAuth();
     const provider = getGoogleProvider();
-    
+
     if (!auth || !provider) {
       setEmailAuthState({ loading: false, error: "Google sign-in not ready." });
       return null;
@@ -529,7 +541,7 @@ export const useFirebaseAuth = () => {
       } else if (error?.code === "auth/popup-blocked") {
         errorMessage = "Pop-up blocked. Please allow pop-ups for this site.";
       }
-      
+
       setEmailAuthState({ loading: false, error: errorMessage });
       return null;
     }

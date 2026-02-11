@@ -22,8 +22,11 @@ import CategoryPricingManager from "@/components/admin/CategoryPricingManager";
 import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import BannersManager from "@/components/admin/BannersManager";
+import { EnhancedSupportTicketsManager } from "@/components/admin/EnhancedSupportTicketsManager";
 import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
+import AdminSupportNotificationBadge from "@/components/admin/AdminSupportNotificationBadge";
 import LanguageToggle from "@/components/LanguageToggle";
+import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -220,6 +223,12 @@ export default function Admin() {
             <CategoryPricingManager />
           </div>
         );
+      case "analytics":
+        return (
+          <div className="space-y-6">
+            <AnalyticsDashboard />
+          </div>
+        );
       case "promo-banner":
         return (
           <div className="space-y-6">
@@ -230,6 +239,16 @@ export default function Admin() {
             <BannersManager />
           </div>
         );
+      case "support":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Support Center</h2>
+              <p className="text-muted-foreground">Manage customer and rider support tickets with live chat</p>
+            </div>
+            <EnhancedSupportTicketsManager />
+          </div>
+        );
       default:
         return null;
     }
@@ -238,17 +257,31 @@ export default function Admin() {
   return (
     <div className="min-h-screen flex bg-background">
       <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      
+
       <main className="flex-1 lg:ml-0 min-h-screen">
-        {/* Admin Top Bar with Language Toggle */}
+        {/* Admin Top Bar with Language Toggle and Master Controls */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">{t('admin.adminPanel')}</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold text-foreground">{t('admin.adminPanel')}</h1>
+
+            {/* Global Order Receiving Toggle */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
+              <div className={`w-2 h-2 rounded-full ${stats?.pendingOrders ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500'}`} />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Flow: <span className={stats?.pendingOrders ? 'text-orange-500' : 'text-emerald-500'}>
+                  {stats?.pendingOrders ? `${stats.pendingOrders} Active` : 'Stable'}
+                </span>
+              </span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
+            <AdminSupportNotificationBadge onTabChange={setActiveTab} />
             <AdminOrderNotificationBadge onTabChange={setActiveTab} />
             <LanguageToggle variant="admin" />
           </div>
         </div>
-        
+
         <div className="p-4 sm:p-6 lg:p-8">
           <motion.div
             key={activeTab}

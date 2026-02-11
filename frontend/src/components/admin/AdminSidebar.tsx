@@ -1,9 +1,9 @@
-import { 
-  LayoutDashboard, 
-  Users, 
-  Store, 
-  ShoppingBag, 
-  Bike, 
+import {
+  LayoutDashboard,
+  Users,
+  Store,
+  ShoppingBag,
+  Bike,
   MapPin,
   LogOut,
   Menu,
@@ -16,11 +16,14 @@ import {
   MessageCircle,
   Sparkles,
   Wallet,
-  Tag
+  Tag,
+  BarChart3,
+  Headphones
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -32,6 +35,8 @@ interface AdminSidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "support", label: "Support Center", icon: Headphones },
   { id: "chats", label: "All Chats", icon: MessageCircle },
   { id: "users", label: "Users & Roles", icon: UserCog },
   { id: "riders", label: "Riders", icon: Bike },
@@ -53,13 +58,16 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { signOut } = useAuth();
+  const { signOut: firebaseSignOut } = useFirebaseAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
-    
+
     try {
+      // signOut(navigate) now handles both Supabase and Firebase sign out
+      // and clears the cache/storage correctly while preserving non-auth flags.
       await signOut(navigate);
       toast.success("لاگ آؤٹ ہو گیا");
     } catch (error) {
