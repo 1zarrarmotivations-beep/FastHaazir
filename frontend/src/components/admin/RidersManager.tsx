@@ -15,7 +15,9 @@ import {
   MapPin,
   FileCheck,
   AlertTriangle,
-  Eye
+  Eye,
+  Wallet,
+  ArrowRight
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,9 +49,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAdminRiders, useCreateRider, useToggleRiderStatus, useDeleteRider, useVerifyRider } from "@/hooks/useAdmin";
+import { useAdminRiders, useCreateRider, useToggleRiderStatus, useDeleteRider, useVerifyRider, useAdminUpdateRider } from "@/hooks/useAdmin";
+import { useRiderAvailableBalance } from "@/hooks/useWithdrawals";
 
-export function RidersManager() {
+interface RidersManagerProps {
+  onNavigate?: (tab: string, riderId?: string) => void;
+}
+
+export function RidersManager({ onNavigate }: RidersManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked" | "online" | "pending">("all");
@@ -57,15 +64,18 @@ export function RidersManager() {
     name: "",
     phone: "",
     email: "",
+    password: "",
     cnic: "",
     vehicle_type: "Bike",
     commission_rate: 10,
   });
   const [selectedRider, setSelectedRider] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
 
   const { data: riders, isLoading } = useAdminRiders();
   const createRider = useCreateRider();
+  const updateRider = useAdminUpdateRider();
   const toggleStatus = useToggleRiderStatus();
   const deleteRider = useDeleteRider();
 
@@ -96,8 +106,28 @@ export function RidersManager() {
     createRider.mutate(newRider, {
       onSuccess: () => {
         setDialogOpen(false);
-        setNewRider({ name: "", phone: "", email: "", cnic: "", vehicle_type: "Bike", commission_rate: 10 });
+        setNewRider({ name: "", phone: "", email: "", password: "", cnic: "", vehicle_type: "Bike", commission_rate: 10 });
       },
+    });
+  };
+
+  const handleUpdateRider = () => {
+    if (!selectedRider || !selectedRider.name || !selectedRider.phone) return;
+    updateRider.mutate({
+      id: selectedRider.id,
+      userId: selectedRider.user_id,
+      name: selectedRider.name,
+      phone: selectedRider.phone,
+      email: selectedRider.email,
+      cnic: selectedRider.cnic,
+      vehicle_type: selectedRider.vehicle_type,
+      commission_rate: selectedRider.commission_rate,
+      password: selectedRider.password || undefined // Only send if set
+    }, {
+      onSuccess: () => {
+        setEditDialogOpen(false);
+        setSelectedRider(null);
+      }
     });
   };
 
@@ -228,7 +258,7 @@ export function RidersManager() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email (Login via Email/Google)</Label>
+                <Label htmlFor="email">Email (Login via Email)</Label>
                 <Input
                   id="email"
                   type="email"
@@ -236,8 +266,18 @@ export function RidersManager() {
                   value={newRider.email}
                   onChange={(e) => setNewRider({ ...newRider, email: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password (Optional)</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Set login password"
+                  value={newRider.password}
+                  onChange={(e) => setNewRider({ ...newRider, password: e.target.value })}
+                />
                 <p className="text-xs text-muted-foreground">
-                  Rider can login with Phone OTP or Email/Google
+                  If set, rider can login with Email + Password immediately.
                 </p>
               </div>
               <div className="space-y-2">
@@ -378,14 +418,113 @@ export function RidersManager() {
                           <span>{rider.cnic}</span>
                         </div>
                       )}
+
+                      <RiderBalanceBadge riderId={rider.id} />
                     </div>
                   </div>
+
+
+
+                  {/* Edit Dialog */}
+                  <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Edit Rider</DialogTitle>
+                      </DialogHeader>
+                      {selectedRider && (
+                        <div className="space-y-4 mt-4">
+                          <div className="space-y-2">
+                            <Label>Full Name</Label>
+                            <Input
+                              value={selectedRider.name}
+                              onChange={(e) => setSelectedRider({ ...selectedRider, name: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Phone Number</Label>
+                            <Input
+                              value={selectedRider.phone}
+                              onChange={(e) => setSelectedRider({ ...selectedRider, phone: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input
+                              value={selectedRider.email || ''}
+                              onChange={(e) => setSelectedRider({ ...selectedRider, email: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>New Password (Optional)</Label>
+                            <Input
+                              type="password"
+                              placeholder="Leave blank to keep current"
+                              value={selectedRider.password || ''}
+                              onChange={(e) => setSelectedRider({ ...selectedRider, password: e.target.value })}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Vehicle Type</Label>
+                            <Select
+                              value={selectedRider.vehicle_type}
+                              onValueChange={(value) => setSelectedRider({ ...selectedRider, vehicle_type: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Bike">Bike</SelectItem>
+                                <SelectItem value="Car">Car</SelectItem>
+                                <SelectItem value="Van">Van</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Commission %</Label>
+                            <Input
+                              type="number"
+                              value={selectedRider.commission_rate}
+                              onChange={(e) => setSelectedRider({ ...selectedRider, commission_rate: parseInt(e.target.value) || 0 })}
+                            />
+                          </div>
+                          <Button
+                            onClick={handleUpdateRider}
+                            className="w-full gradient-primary text-primary-foreground"
+                            disabled={updateRider.isPending}
+                          >
+                            {updateRider.isPending ? "Updating..." : "Update Rider"}
+                          </Button>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
 
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                     <span className="text-sm text-muted-foreground">
                       {rider.total_trips} trips completed
                     </span>
                     <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedRider({ ...rider, password: '' }); // Clear password field for edit
+                          setEditDialogOpen(true);
+                        }}
+                      >
+                        <User className="w-4 h-4 text-blue-500" />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-orange-500 hover:bg-orange-500/10"
+                        onClick={() => onNavigate?.('wallet-adjustments', rider.id)}
+                        title="Manage Finance"
+                      >
+                        <Wallet className="w-4 h-4" />
+                      </Button>
+
                       {rider.verification_status === 'pending' && (
                         <Button
                           size="sm"
@@ -460,8 +599,9 @@ export function RidersManager() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
-        </div>
+          ))
+          }
+        </div >
       )}
 
       {/* Verification Dialog */}
@@ -519,6 +659,27 @@ export function RidersManager() {
           )}
         </DialogContent>
       </Dialog>
+    </div >
+  );
+}
+
+
+
+function RiderBalanceBadge({ riderId }: { riderId: string }) {
+  const { data: balance, isLoading } = useRiderAvailableBalance(riderId);
+
+  if (isLoading) return <div className="h-4 w-16 bg-muted animate-pulse rounded mt-2" />;
+
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <Badge variant="outline" className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[10px] py-0 h-5">
+        Rs {balance?.available?.toLocaleString() || 0} Available
+      </Badge>
+      {balance?.pending > 0 && (
+        <Badge variant="outline" className="bg-orange-500/5 text-orange-600 border-orange-500/20 text-[10px] py-0 h-5">
+          Rs {balance.pending.toLocaleString()} Pending
+        </Badge>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { 
-  Wallet, 
-  Search, 
-  Loader2, 
+import {
+  Wallet,
+  Search,
+  Loader2,
   User,
   CheckCircle,
   XCircle,
@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { 
+import {
   useAllWalletAdjustments,
   useCreateWalletAdjustment,
   useSettleWalletAdjustment,
@@ -66,7 +66,11 @@ interface RiderOption {
   image: string | null;
 }
 
-const WalletAdjustmentsManager = () => {
+interface WalletAdjustmentsManagerProps {
+  riderId?: string;
+}
+
+const WalletAdjustmentsManager = ({ riderId }: WalletAdjustmentsManagerProps) => {
   const { data: adjustments, isLoading } = useAllWalletAdjustments();
   const createAdjustment = useCreateWalletAdjustment();
   const settleAdjustment = useSettleWalletAdjustment();
@@ -84,6 +88,18 @@ const WalletAdjustmentsManager = () => {
   const [newAmount, setNewAmount] = useState('');
   const [newType, setNewType] = useState<WalletAdjustment['adjustment_type']>('cash_advance');
   const [newReason, setNewReason] = useState('');
+
+  // Handle incoming riderId
+  useEffect(() => {
+    if (riderId) {
+      setNewRiderId(riderId);
+      // Optional: search for the rider to show their adjustments
+      const rider = riders?.find(r => r.id === riderId);
+      if (rider) {
+        setSearchQuery(rider.name);
+      }
+    }
+  }, [riderId, riders]);
 
   // Fetch riders for dropdown
   const { data: riders } = useQuery({
@@ -295,11 +311,10 @@ const WalletAdjustmentsManager = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-xl font-bold ${
-                          adjustment.adjustment_type === 'deduction' || adjustment.adjustment_type === 'settlement'
-                            ? 'text-red-500'
-                            : 'text-green-500'
-                        }`}>
+                        <p className={`text-xl font-bold ${adjustment.adjustment_type === 'deduction' || adjustment.adjustment_type === 'settlement'
+                          ? 'text-red-500'
+                          : 'text-green-500'
+                          }`}>
                           {adjustment.adjustment_type === 'deduction' || adjustment.adjustment_type === 'settlement' ? '-' : '+'}
                           Rs {adjustment.amount}
                         </p>

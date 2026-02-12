@@ -400,7 +400,7 @@ export function BusinessesManager() {
                 <ImageUpload
                   value={newBusiness.image}
                   onChange={(url) => setNewBusiness({ ...newBusiness, image: url })}
-                  bucket="business-images"
+                  bucket="businesses"
                   folder="businesses"
                   label="Upload Business Image"
                   maxSizeMB={5}

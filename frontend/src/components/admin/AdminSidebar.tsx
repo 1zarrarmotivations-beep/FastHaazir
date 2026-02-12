@@ -18,7 +18,8 @@ import {
   Wallet,
   Tag,
   BarChart3,
-  Headphones
+  Headphones,
+  FileText
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,32 +34,51 @@ interface AdminSidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "support", label: "Support Center", icon: Headphones },
-  { id: "chats", label: "All Chats", icon: MessageCircle },
-  { id: "users", label: "Users & Roles", icon: UserCog },
-  { id: "riders", label: "Riders", icon: Bike },
-  { id: "earnings", label: "Rider Earnings", icon: DollarSign },
-  { id: "wallet-adjustments", label: "Cash Advances", icon: Wallet },
-  { id: "withdrawals", label: "Withdrawals", icon: Wallet },
-  { id: "businesses", label: "Businesses", icon: Store },
-  { id: "orders", label: "Orders", icon: ShoppingBag },
-  { id: "requests", label: "Rider Requests", icon: Users },
-  { id: "live-map", label: "Live Map", icon: MapPin },
-  { id: "notifications", label: "In-App Alerts", icon: Bell },
-  { id: "push-notifications", label: "Push Center", icon: Send },
-  { id: "promo-banner", label: "Banners", icon: Sparkles },
-  { id: "payment-settings", label: "Payment Settings", icon: Settings },
-  { id: "category-pricing", label: "Category Pricing", icon: Tag },
+const menuGroups = [
+  {
+    title: "Overview",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { id: "analytics", label: "Analytics", icon: BarChart3 },
+      { id: "live-map", label: "Live Map", icon: MapPin },
+    ]
+  },
+  {
+    title: "Management",
+    items: [
+      { id: "orders", label: "Orders", icon: ShoppingBag },
+      { id: "businesses", label: "Businesses", icon: Store },
+      { id: "riders", label: "Riders", icon: Bike },
+      { id: "users", label: "Users & Roles", icon: UserCog },
+      { id: "requests", label: "Rider Requests", icon: Users },
+    ]
+  },
+  {
+    title: "Finance",
+    items: [
+      { id: "earnings", label: "Rider Earnings", icon: DollarSign },
+      { id: "wallet-adjustments", label: "Cash Advances", icon: Wallet },
+      { id: "withdrawals", label: "Withdrawals", icon: Wallet },
+      { id: "category-pricing", label: "Pricing", icon: Tag },
+      { id: "payment-settings", label: "Settings", icon: Settings },
+    ]
+  },
+  {
+    title: "Support & Comms",
+    items: [
+      { id: "support", label: "Support Center", icon: Headphones },
+      { id: "chats", label: "All Chats", icon: MessageCircle },
+      { id: "notifications", label: "In-App Alerts", icon: Bell },
+      { id: "push-notifications", label: "Push Center", icon: Send },
+      { id: "promo-banner", label: "Banners", icon: Sparkles },
+    ]
+  }
 ];
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { signOut } = useAuth();
-  const { signOut: firebaseSignOut } = useFirebaseAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -66,10 +86,8 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
     setIsLoggingOut(true);
 
     try {
-      // signOut(navigate) now handles both Supabase and Firebase sign out
-      // and clears the cache/storage correctly while preserving non-auth flags.
       await signOut(navigate);
-      toast.success("لاگ آؤٹ ہو گیا");
+      toast.success("Logged out successfully");
     } catch (error) {
       console.error("[AdminSidebar] Logout error:", error);
       toast.error("Logout failed");
@@ -83,7 +101,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-card shadow-soft"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-[#1a1a1a] text-white shadow-lg border border-white/10"
       >
         {mobileOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -91,7 +109,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       {/* Overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -99,59 +117,87 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transition-transform duration-300 flex flex-col",
+          "fixed lg:static inset-y-0 left-0 z-40 w-72 bg-[#141414] border-r border-white/5 transition-transform duration-300 flex flex-col shadow-2xl",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Logo */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Bike className="w-6 h-6 text-primary-foreground" />
+        {/* Logo Area */}
+        <div className="p-6 pb-2">
+          <div className="flex items-center gap-4 bg-[#1a1a1a] p-4 rounded-2xl border border-white/5 shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+              <Bike className="w-5 h-5 text-orange-500" />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-foreground">Fast Haazir</h1>
-              <p className="text-xs text-muted-foreground">Admin Panel</p>
+              <h1 className="font-bold text-lg text-white tracking-tight leading-tight">Fast Haazir</h1>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Admin Workspace</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onTabChange(item.id);
-                  setMobileOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200",
-                  activeTab === item.id
-                    ? "gradient-primary text-primary-foreground shadow-elevated"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </button>
-            );
-          })}
+        <nav className="flex-1 px-4 py-4 space-y-6 overflow-y-auto scrollbar-hide">
+          {menuGroups.map((group) => (
+            <div key={group.title}>
+              <h3 className="px-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2 font-mono">
+                {group.title}
+              </h3>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onTabChange(item.id);
+                        setMobileOpen(false);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 group relative",
+                        isActive
+                          ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <Icon className={cn("w-4.5 h-4.5 transition-colors", isActive ? "text-white" : "text-gray-500 group-hover:text-white")} />
+                      <span className={cn("text-sm font-medium", isActive ? "font-semibold" : "")}>{item.label}</span>
+
+                      {isActive && (
+                        <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        {/* Logout */}
-        <div className="p-4 border-t border-border">
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
-          </Button>
+        {/* User / Logout */}
+        <div className="p-4 border-t border-white/5 bg-[#0a0a0a]">
+          <div className="bg-[#1a1a1a] rounded-xl p-1 border border-white/5">
+            <div className="flex items-center gap-3 p-2 mb-1">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 ring-2 ring-[#0a0a0a]"></div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-bold text-white truncate">Super Admin</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <p className="text-[10px] text-gray-400 truncate uppercase tracking-wider">Online</p>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full justify-center gap-2 h-8 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+              size="sm"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </Button>
+          </div>
         </div>
       </aside>
     </>

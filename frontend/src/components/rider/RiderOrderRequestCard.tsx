@@ -160,9 +160,23 @@ const RiderOrderRequestCard = ({
             </div>
 
             <div className="text-right">
-              <div className="flex items-center gap-1 justify-end">
-                <Banknote className="w-4 h-4 text-emerald-400" />
-                <p className="text-2xl font-bold text-emerald-400">₨{request.total}</p>
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-1 justify-end">
+                  <Banknote className="w-4 h-4 text-emerald-400" />
+                  <p className="text-2xl font-bold text-emerald-400">
+                    ₨{request.rider_earning ?? request.total}
+                  </p>
+                </div>
+                {(request.rider_earning && request.total > request.rider_earning) ? (
+                  <div className="flex flex-col items-end">
+                    <p className="text-xs text-white/50">Your Earning</p>
+                    <p className="text-xs font-semibold text-orange-400">Collect Cash: ₨{request.total}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-white/50">
+                    {request.rider_earning ? 'Your Earning' : 'Total Fare'}
+                  </p>
+                )}
               </div>
               {hasCoordinates && (
                 <p className="text-xs text-white/50 flex items-center gap-1 justify-end mt-1">

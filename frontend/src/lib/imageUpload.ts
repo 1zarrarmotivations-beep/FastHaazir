@@ -5,7 +5,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export type ImageBucket = 'profile-images' | 'business-images' | 'menu-images' | 'fasthaazirmanu';
+// Correct names matching Supabase Storage Buckets
+export type ImageBucket = 'profiles' | 'businesses' | 'menu-items' | 'banners' | 'riders';
+
+// Legacy mapping to support old code until fully refactored
+export const BUCKET_MAPPING: Record<string, ImageBucket> = {
+  'profile-images': 'profiles',
+  'business-images': 'businesses',
+  'menu-images': 'menu-items',
+  'fasthaazirmanu': 'banners',
+  'riders': 'riders',
+  'banners': 'banners'
+};
 
 export interface UploadResult {
   success: boolean;
@@ -14,7 +25,7 @@ export interface UploadResult {
 }
 
 export interface UploadOptions {
-  bucket: ImageBucket;
+  bucket: ImageBucket | string; // Allow string for legacy support
   folder?: string;
   maxSizeMB?: number;
   allowedTypes?: string[];
@@ -59,7 +70,7 @@ export function generateFilePath(userId: string, file: File, folder?: string): s
   const timestamp = Date.now();
   const randomSuffix = Math.random().toString(36).substring(2, 8);
   const fileName = `${userId}-${timestamp}-${randomSuffix}.${fileExt}`;
-  
+
   return folder ? `${folder}/${fileName}` : fileName;
 }
 
@@ -72,12 +83,15 @@ export async function uploadImage(
   userId: string,
   options: UploadOptions
 ): Promise<UploadResult> {
-  const { 
-    bucket, 
-    folder, 
-    maxSizeMB = DEFAULT_MAX_SIZE_MB, 
-    allowedTypes = DEFAULT_ALLOWED_TYPES 
+  const {
+    bucket,
+    folder,
+    maxSizeMB = DEFAULT_MAX_SIZE_MB,
+    allowedTypes = DEFAULT_ALLOWED_TYPES
   } = options;
+
+  // Resolve actual bucket name
+  const actualBucket = BUCKET_MAPPING[bucket as string] || bucket;
 
   // Validate file
   const validation = validateImageFile(file, maxSizeMB, allowedTypes);
@@ -91,7 +105,7 @@ export async function uploadImage(
   try {
     // Upload to Supabase Storage with upsert to handle re-uploads
     const { error: uploadError } = await supabase.storage
-      .from(bucket)
+      .from(actualBucket)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: true,
@@ -100,35 +114,35 @@ export async function uploadImage(
 
     if (uploadError) {
       console.error('[ImageUpload] Upload error:', uploadError);
-      return { 
-        success: false, 
-        error: uploadError.message || 'Upload failed' 
+      return {
+        success: false,
+        error: uploadError.message || 'Upload failed'
       };
     }
 
     // Get the public URL
     const { data: urlData } = supabase.storage
-      .from(bucket)
+      .from(actualBucket)
       .getPublicUrl(filePath);
 
     if (!urlData?.publicUrl) {
-      return { 
-        success: false, 
-        error: 'Failed to get public URL' 
+      return {
+        success: false,
+        error: 'Failed to get public URL'
       };
     }
 
     // Add cache-busting parameter to ensure fresh images
     const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-    console.log('[ImageUpload] Success:', { bucket, filePath, publicUrl });
+    console.log('[ImageUpload] Success:', { bucket: actualBucket, filePath, publicUrl });
     return { success: true, url: publicUrl };
 
   } catch (error) {
     console.error('[ImageUpload] Exception:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
@@ -138,26 +152,29 @@ export async function uploadImage(
  */
 export async function deleteImage(
   imageUrl: string,
-  bucket: ImageBucket
+  bucket: ImageBucket | string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Resolve actual bucket name
+    const actualBucket = BUCKET_MAPPING[bucket as string] || bucket;
+
     // Extract file path from URL
     const url = new URL(imageUrl.split('?')[0]); // Remove query params
     const pathParts = url.pathname.split('/');
-    const bucketIndex = pathParts.findIndex(part => part === bucket);
-    
+    const bucketIndex = pathParts.findIndex(part => part === actualBucket);
+
     if (bucketIndex === -1) {
       return { success: false, error: 'Invalid image URL' };
     }
 
     const filePath = pathParts.slice(bucketIndex + 1).join('/');
-    
+
     if (!filePath) {
       return { success: false, error: 'Could not extract file path' };
     }
 
     const { error } = await supabase.storage
-      .from(bucket)
+      .from(actualBucket)
       .remove([filePath]);
 
     if (error) {
@@ -169,9 +186,9 @@ export async function deleteImage(
 
   } catch (error) {
     console.error('[ImageUpload] Delete exception:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
@@ -181,12 +198,12 @@ export async function deleteImage(
  */
 export function ensureAbsoluteUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
-  
+
   // Already absolute
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  
+
   // Relative URL - this shouldn't happen with proper uploads
   console.warn('[ImageUpload] Received relative URL:', url);
   return undefined;
@@ -203,13 +220,13 @@ export function getOptimizedImageUrl(
 ): string | undefined {
   const absoluteUrl = ensureAbsoluteUrl(url);
   if (!absoluteUrl) return undefined;
-  
+
   // Remove existing query params and add fresh cache-bust if needed
   const baseUrl = absoluteUrl.split('?')[0];
-  
+
   if (cacheBust) {
     return `${baseUrl}?t=${Date.now()}`;
   }
-  
+
   return baseUrl;
 }

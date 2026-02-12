@@ -25,7 +25,10 @@ export interface RiderRequest {
   updated_at: string;
   business_name?: string;
   items?: any[];
+  rider_earning?: number;
+  commission?: number;
 }
+
 
 export interface RiderProfile {
   id: string;
@@ -127,7 +130,11 @@ export const usePendingRequests = () => {
       const formattedRiderRequests: RiderRequest[] = (riderRequests || []).map(req => ({
         ...req,
         type: 'rider_request' as const,
+        rider_earning: (req as any).rider_earning,
+        commission: (req as any).commission,
       }));
+
+
 
       // Transform business orders to match RiderRequest interface
       const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map(order => ({
@@ -150,7 +157,11 @@ export const usePendingRequests = () => {
         updated_at: order.updated_at,
         business_name: (order.businesses as any)?.name,
         items: Array.isArray(order.items) ? order.items : [],
+        rider_earning: (order as any).rider_earning,
+        commission: (order as any).commission,
       }));
+
+
 
       // Combine and sort by created_at
       const allRequests = [...formattedRiderRequests, ...formattedBusinessOrders].sort(
@@ -203,7 +214,11 @@ export const useMyActiveDeliveries = () => {
       const formattedRiderRequests: RiderRequest[] = (riderRequests || []).map(req => ({
         ...req,
         type: 'rider_request' as const,
+        rider_earning: (req as any).rider_earning,
+        commission: (req as any).commission,
       }));
+
+
 
       // Transform business orders
       const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map(order => ({
@@ -226,7 +241,11 @@ export const useMyActiveDeliveries = () => {
         updated_at: order.updated_at,
         business_name: (order.businesses as any)?.name,
         items: Array.isArray(order.items) ? order.items : [],
+        rider_earning: (order as any).rider_earning,
+        commission: (order as any).commission,
       }));
+
+
 
       // Combine and sort
       const allDeliveries = [...formattedRiderRequests, ...formattedBusinessOrders].sort(
@@ -704,23 +723,15 @@ export const useRegisterAsRider = () => {
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
-        .from('riders')
-        .insert({
-          user_id: user.id,
-          name: riderData.name,
-          phone: riderData.phone,
-          vehicle_type: riderData.vehicle_type,
-          cnic: riderData.cnic,
-          cnic_front: riderData.cnic_front,
-          cnic_back: riderData.cnic_back,
-          license_image: riderData.license_image,
-          is_active: false, // Inactive until admin verifies
-          is_online: false,
-          verification_status: 'pending'
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('register_rider', {
+        _name: riderData.name,
+        _phone: riderData.phone,
+        _vehicle_type: riderData.vehicle_type,
+        _cnic: riderData.cnic || null,
+        _cnic_front: riderData.cnic_front || null,
+        _cnic_back: riderData.cnic_back || null,
+        _license_image: riderData.license_image || null
+      });
 
       if (error) {
         console.error('Error registering as rider:', error);

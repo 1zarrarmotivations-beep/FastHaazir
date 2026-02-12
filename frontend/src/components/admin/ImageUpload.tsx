@@ -2,8 +2,8 @@ import { useState, useRef } from 'react';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { uploadImage, deleteImage, getOptimizedImageUrl } from '@/lib/imageUpload';
 
 interface ImageUploadProps {
   value?: string;
@@ -24,26 +24,12 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(value || null);
+  const [preview, setPreview] = useState<string | null>(getOptimizedImageUrl(value) || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Please select a valid image file (PNG, JPG, WEBP, GIF)');
-      return;
-    }
-
-    // Validate file size
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > maxSizeMB) {
-      toast.error(`Image size must be less than ${maxSizeMB}MB`);
-      return;
-    }
 
     setUploading(true);
 
@@ -52,48 +38,31 @@ export function ImageUpload({
       const localPreview = URL.createObjectURL(file);
       setPreview(localPreview);
 
-      // Create unique filename with user ID for organization
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const userId = user?.id || 'anonymous';
-      const timestamp = Date.now();
-      const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const fileName = `${folder}/${userId}-${timestamp}-${randomSuffix}.${fileExt}`;
+      // Upload using centralized utility
+      const result = await uploadImage(file, user?.id || 'anonymous', {
+        bucket,
+        folder,
+        maxSizeMB
+      });
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: file.type,
-        });
-
-      if (uploadError) {
-        console.error('[ImageUpload] Upload error:', uploadError);
-        toast.error('Failed to upload image: ' + uploadError.message);
-        setPreview(value || null);
+      if (!result.success) {
+        toast.error(result.error || 'Failed to upload image');
+        setPreview(getOptimizedImageUrl(value) || null);
         URL.revokeObjectURL(localPreview);
         return;
       }
 
-      // Get public URL with cache-busting
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
-
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-      
-      setPreview(publicUrl);
-      onChange(publicUrl);
+      setPreview(result.url!);
+      onChange(result.url!);
       toast.success('Image uploaded successfully');
-      
+
       // Revoke local preview
       URL.revokeObjectURL(localPreview);
 
     } catch (error) {
       console.error('[ImageUpload] Error:', error);
       toast.error('Failed to upload image');
-      setPreview(value || null);
+      setPreview(getOptimizedImageUrl(value) || null);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -106,18 +75,8 @@ export function ImageUpload({
     if (!preview) return;
 
     try {
-      // Extract file path from URL
-      const urlWithoutParams = preview.split('?')[0];
-      const url = new URL(urlWithoutParams);
-      const pathParts = url.pathname.split('/');
-      const bucketIndex = pathParts.findIndex(part => part === bucket);
-      
-      if (bucketIndex !== -1) {
-        const filePath = pathParts.slice(bucketIndex + 1).join('/');
-        if (filePath) {
-          // Delete from storage (don't block on failure)
-          await supabase.storage.from(bucket).remove([filePath]);
-        }
+      if (value) {
+        await deleteImage(value, bucket);
       }
     } catch (error) {
       console.error('[ImageUpload] Remove error:', error);

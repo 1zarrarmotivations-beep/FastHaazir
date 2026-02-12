@@ -7,8 +7,12 @@ export interface PaymentSettings {
   base_fee: number;
   per_km_rate: number;
   min_payment: number;
+  rider_base_earning: number;
+  max_delivery_radius_km: number;
+  min_order_value: number;
   is_active: boolean;
 }
+
 
 export interface RiderPayment {
   id: string;
@@ -49,21 +53,43 @@ export const calculateDistanceKm = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(R * c * 10) / 10;
 };
 
 // Calculate payment based on distance and settings
+// Calculate payment based on distance and settings - Returns detailed breakdown
 export const calculatePayment = (
   distanceKm: number,
   settings: PaymentSettings
-): number => {
-  const calculated = settings.base_fee + (distanceKm * settings.per_km_rate);
-  return Math.max(Math.round(calculated), settings.min_payment);
+): {
+  customerCharge: number;
+  riderEarning: number;
+  commission: number;
+} => {
+  // Customer Charge Calculation
+  const rawCharge = settings.base_fee + (distanceKm * settings.per_km_rate);
+  const customerCharge = Math.max(Math.round(rawCharge), settings.min_payment);
+
+  // Rider Earning Calculation
+  // Rider gets base earning + distance rate
+  const rawRiderEarning = settings.rider_base_earning + (distanceKm * settings.per_km_rate);
+  // Ensure rider earns at least a reasonable amount, but for now simple formula
+  const riderEarning = Math.round(rawRiderEarning);
+
+  // Commission is remainder
+  const commission = Math.max(0, customerCharge - riderEarning);
+
+  return {
+    customerCharge,
+    riderEarning,
+    commission
+  };
 };
+
 
 // Fetch payment settings
 export const usePaymentSettings = () => {
@@ -168,10 +194,14 @@ export const useUpdatePaymentSettings = () => {
           base_fee: settings.base_fee,
           per_km_rate: settings.per_km_rate,
           min_payment: settings.min_payment,
+          max_delivery_radius_km: settings.max_delivery_radius_km,
+          min_order_value: settings.min_order_value,
+          rider_base_earning: settings.rider_base_earning,
         })
         .eq('id', settings.id)
         .select()
         .single();
+
 
       if (error) throw error;
       return data;

@@ -9,6 +9,7 @@ export interface SupportTicket {
     id: string;
     user_id: string;
     order_id: string | null;
+    subject?: string;
     category: SupportCategory;
     status: 'open' | 'in_progress' | 'resolved';
     priority: 'low' | 'medium' | 'high';
@@ -76,6 +77,7 @@ export const useCreateTicket = () => {
                     user_id: user.id,
                     category,
                     order_id: orderId || null,
+                    subject: `Support Request: ${category.replace(/_/g, ' ')}`,
                     status: 'open'
                 })
                 .select()

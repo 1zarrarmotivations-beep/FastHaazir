@@ -147,15 +147,12 @@ export const useSetDefaultAddress = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase
-        .from("customer_addresses")
-        .update({ is_default: true })
-        .eq("id", id)
-        .select()
-        .single();
+      const { error } = await (supabase.rpc as any)('set_default_customer_address', {
+        p_address_id: id
+      });
 
       if (error) throw error;
-      return data;
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-addresses"] });

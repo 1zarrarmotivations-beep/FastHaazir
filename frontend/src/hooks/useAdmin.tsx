@@ -124,33 +124,61 @@ export const useAdminStats = () => {
       })
       .subscribe();
 
+    const withdrawalsChannel = supabase
+      .channel('admin-stats-withdrawals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawal_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
+    const adjustmentsChannel = supabase
+      .channel('admin-stats-adjustments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rider_wallet_adjustments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
+    const paymentsChannel = supabase
+      .channel('admin-stats-payments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rider_payments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      })
+      .subscribe();
+
     return () => {
       console.log('[useAdminStats] Cleaning up realtime subscriptions');
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(ridersChannel);
       supabase.removeChannel(businessesChannel);
       supabase.removeChannel(requestsChannel);
+      supabase.removeChannel(withdrawalsChannel);
+      supabase.removeChannel(adjustmentsChannel);
+      supabase.removeChannel(paymentsChannel);
     };
   }, [queryClient]);
 
   return useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
-      const [ordersRes, ridersRes, businessesRes, requestsRes] = await Promise.all([
+      const [ordersRes, ridersRes, businessesRes, requestsRes, withdrawalsRes, adjustmentsRes, paymentsRes] = await Promise.all([
         supabase.from("orders").select("id, total, status"),
         supabase.from("riders").select("id, is_active, is_online"),
         (supabase.from("businesses" as any).select("id, is_active, type, is_busy") as any),
         supabase.from("rider_requests").select("id, total, status"),
+        (supabase.from("withdrawal_requests" as any).select("amount, status") as any),
+        (supabase.from("rider_wallet_adjustments" as any).select("amount, status, adjustment_type") as any),
+        (supabase.from("rider_payments" as any).select("final_amount, status") as any)
       ]);
 
       const orders = ordersRes.data || [];
       const riders = ridersRes.data || [];
       const businesses = (businessesRes as any).data || [];
       const requests = requestsRes.data || [];
+      const withdrawals = (withdrawalsRes as any).data || [];
+      const adjustments = (adjustmentsRes as any).data || [];
+      const riderPayments = (paymentsRes as any).data || [];
 
       const totalOrders = orders.length + requests.length;
-      const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0) +
-        requests.reduce((sum, r) => sum + (r.total || 0), 0);
       const activeRiders = riders.filter(r => r.is_active).length;
       const onlineRiders = riders.filter(r => r.is_online).length;
       const activeBusinesses = businesses.filter((b: any) => b.is_active).length;
@@ -174,9 +202,27 @@ export const useAdminStats = () => {
       const cancelledOrdersCount = orders.filter(o => o.status === 'cancelled').length +
         requests.filter(r => r.status === 'cancelled').length;
 
+      // Finance calculations
+      const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0) +
+        requests.reduce((sum, r) => sum + (r.total || 0), 0);
+
+      const totalRiderEarnings = riderPayments.reduce((sum: number, p: any) => sum + (p.final_amount || 0), 0);
+      const pendingWithdrawals = withdrawals.filter((w: any) => w.status === 'pending').reduce((sum: number, w: any) => sum + Number(w.amount), 0);
+      const paidWithdrawals = withdrawals.filter((w: any) => w.status === 'paid').reduce((sum: number, w: any) => sum + Number(w.amount), 0);
+
+      const activeAdvances = adjustments.filter((a: any) => a.status === 'active' && a.adjustment_type === 'cash_advance').reduce((sum: number, a: any) => sum + Number(a.amount), 0);
+
+      // Admin profit (Balance)
+      const adminBalance = totalRevenue - totalRiderEarnings;
+
       return {
         totalOrders,
         totalRevenue,
+        totalRiderEarnings,
+        pendingWithdrawals,
+        paidWithdrawals,
+        activeAdvances,
+        adminBalance,
         activeRiders,
         onlineRiders,
         activeBusinesses,
@@ -193,7 +239,7 @@ export const useAdminStats = () => {
         onWayOrders: onWayOrdersCount,
         deliveredOrders: deliveredOrdersCount,
         cancelledOrders: cancelledOrdersCount,
-        newOrdersCount: pendingOrdersCount // Alias for clarity
+        newOrdersCount: pendingOrdersCount
       };
     },
   });
@@ -440,6 +486,7 @@ export const useCreateRider = () => {
       name: string;
       phone: string;
       email?: string;
+      password?: string;
       cnic?: string;
       vehicle_type?: string;
       commission_rate?: number;
@@ -447,14 +494,51 @@ export const useCreateRider = () => {
       // Normalize phone to digits only format for database
       const normalizedPhone = normalizePhoneDigits(riderData.phone);
 
-      console.log("[Admin] Creating rider:", {
+      let userId: string | null = null;
+
+      // If email and password provided, create Auth User via Edge Function
+      if (riderData.email && riderData.password) {
+        console.log("[Admin] Creating Auth User via Edge Function...");
+        try {
+          const { data: authData, error: authError } = await supabase.functions.invoke('create-user', {
+            body: {
+              email: riderData.email,
+              password: riderData.password,
+              phone: normalizedPhone,
+              role: 'rider',
+              userData: {
+                name: riderData.name,
+                vehicle_type: riderData.vehicle_type,
+              }
+            }
+          });
+
+          if (authError) {
+            console.error("Edge Function Error:", authError);
+            throw new Error(authError.message || "Failed to create user account");
+          }
+
+          if (!authData?.user?.id) {
+            throw new Error("Failed to retrieve user ID from creation service");
+          }
+
+          userId = authData.user.id;
+        } catch (err: any) {
+          console.error("Create User Error:", err);
+          throw new Error("Failed to create login credentials: " + err.message);
+        }
+      }
+
+      console.log("[Admin] Creating rider profile:", {
         phone: normalizedPhone,
         email: riderData.email || null,
+        user_id: userId
       });
 
       const { data, error } = await supabase
         .from("riders")
         .insert({
+          user_id: userId,
           name: riderData.name,
           phone: normalizedPhone,
           email: riderData.email?.trim() || null,
@@ -463,21 +547,91 @@ export const useCreateRider = () => {
           commission_rate: riderData.commission_rate || 10,
           is_active: true,
           is_online: false,
+          verification_status: 'verified' // Auto-verify if created by admin
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // If we created a user, ensure the role is set immediately
+      if (userId) {
+        await supabase.from('user_roles').insert({ user_id: userId, role: 'rider' }).maybeSingle();
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
-      toast.success("Rider created successfully! They can login with Phone OTP or Email/Google.");
+      toast.success("Rider created successfully! They can login with Phone OTP or Email/Password.");
     },
     onError: (error: Error) => {
       toast.error("Failed to create rider: " + error.message);
     },
+  });
+};
+
+// Update rider (Admin)
+export const useAdminUpdateRider = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (riderData: {
+      id: string; // Rider ID
+      userId?: string | null; // Auth User ID
+      name?: string;
+      phone?: string;
+      email?: string;
+      password?: string;
+      cnic?: string;
+      vehicle_type?: string;
+      commission_rate?: number;
+    }) => {
+      const updates: any = {};
+      if (riderData.name) updates.name = riderData.name;
+      if (riderData.phone) updates.phone = normalizePhoneDigits(riderData.phone);
+      if (riderData.email) updates.email = riderData.email;
+      if (riderData.cnic) updates.cnic = riderData.cnic;
+      if (riderData.vehicle_type) updates.vehicle_type = riderData.vehicle_type;
+      if (riderData.commission_rate) updates.commission_rate = riderData.commission_rate;
+
+      // update riders table
+      const { error: dbError } = await supabase
+        .from('riders')
+        .update(updates)
+        .eq('id', riderData.id);
+
+      if (dbError) throw dbError;
+
+      // If password or sensitive auth details changed, call Edge Function
+      if (riderData.password || (riderData.email && riderData.userId) || (riderData.phone && riderData.userId)) {
+        if (!riderData.userId) {
+          if (riderData.password) {
+            throw new Error("This rider does not have a linked account yet. Please recreate the rider to set a password.");
+          }
+          return; // Just updated profile
+        }
+
+        const { error: authError } = await supabase.functions.invoke('update-user', {
+          body: {
+            userId: riderData.userId,
+            password: riderData.password,
+            email: riderData.email,
+            phone: updates.phone
+          }
+        });
+
+        if (authError) throw new Error("Failed to update auth credentials: " + (authError.message || "Unknown error"));
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-riders"] });
+      toast.success("Rider updated successfully");
+    },
+    onError: (err: Error) => {
+      toast.error("Update failed: " + err.message);
+    }
   });
 };
 
@@ -1207,3 +1361,28 @@ export const useRejectOrder = () => {
   });
 };
 
+// Fetch recent orders for dashboard
+export const useRecentOrders = () => {
+  return useQuery({
+    queryKey: ['admin-recent-orders'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          created_at,
+          total_amount,
+          status,
+          customer:customer_id(phone),
+          rider:rider_id(name),
+          business:businesses(name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 10000,
+  });
+};

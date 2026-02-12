@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin, useAdminStats } from "@/hooks/useAdmin";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { EnhancedStatsCards } from "@/components/admin/EnhancedStatsCards";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import ModernAdminDashboard from "@/components/admin/ModernAdminDashboard";
 import { RidersManager } from "@/components/admin/RidersManager";
 import { BusinessesManager } from "@/components/admin/BusinessesManager";
 import { OrdersManager } from "@/components/admin/OrdersManager";
@@ -28,12 +28,23 @@ import AdminSupportNotificationBadge from "@/components/admin/AdminSupportNotifi
 import LanguageToggle from "@/components/LanguageToggle";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
-import { Loader2, ShieldX } from "lucide-react";
+import { Loader2, ShieldX, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Admin() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [selectedRiderId, setSelectedRiderId] = useState<string | null>(null);
+
+  const handleNavigate = (tab: string, riderId?: string) => {
+    setActiveTab(tab);
+    if (riderId) {
+      setSelectedRiderId(riderId);
+    } else if (tab !== 'wallet-adjustments' && tab !== 'withdrawals') {
+      // Clear selection if navigating elsewhere, unless it's a finance tab where we might want to keep it?
+      // Actually, better to only clear when expressly moving to a non-finance dashboard.
+    }
+  };
   const { user, loading: authLoading } = useAuth();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
   const { data: stats, isLoading: statsLoading } = useAdminStats();
@@ -50,249 +61,193 @@ export default function Admin() {
 
   if (authLoading || adminLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-[#141414]">
+        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-        <ShieldX className="w-16 h-16 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-        <p className="text-muted-foreground text-center mb-6">
-          You don't have permission to access the admin panel.
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#141414] text-white p-4 text-center">
+        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6 border border-red-500/20">
+          <ShieldX className="w-10 h-10 text-red-500" />
+        </div>
+        <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
+          Restricted Access
+        </h1>
+        <p className="text-gray-400 max-w-md mb-8">
+          This area is reserved for system administrators. If you believe this is an error, please contact support.
         </p>
-        <Button onClick={() => navigate("/")} className="gradient-primary text-primary-foreground">
-          Go Home
-        </Button>
+        <div className="flex gap-4">
+          <Button variant="outline" className="border-white/10" onClick={() => navigate("/")}>
+            Back to Home
+          </Button>
+          <Button className="bg-orange-500 hover:bg-orange-600" onClick={() => navigate("/auth")}>
+            Login Again
+          </Button>
+        </div>
       </div>
     );
   }
 
+
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
+        return <ModernAdminDashboard onNavigate={handleNavigate} />;
+
+      // --- Overview ---
+      case "analytics":
+        return <AnalyticsDashboard />;
+      case "live-map":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{t('admin.dashboard')}</h2>
-              <p className="text-muted-foreground">{t('admin.overview')}</p>
-            </div>
-            <EnhancedStatsCards stats={stats} isLoading={statsLoading} />
+            <LiveRidersMap />
           </div>
         );
-      case "chats":
+
+      // --- Management ---
+      case "orders":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Chat Monitoring</h2>
-              <p className="text-muted-foreground">View all customer ↔ rider conversations (read-only)</p>
-            </div>
-            <AdminChatsManager />
-          </div>
-        );
-      case "users":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{t('admin.users')}</h2>
-              <p className="text-muted-foreground">{t('admin.users')}</p>
-            </div>
-            <UsersManager />
-          </div>
-        );
-      case "riders":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{t('adminRiders.riderManagement')}</h2>
-              <p className="text-muted-foreground">Create and manage delivery riders</p>
-            </div>
-            <RidersManager />
-          </div>
-        );
-      case "earnings":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Rider Payments</h2>
-              <p className="text-muted-foreground">Manage payment settings and track all rider earnings</p>
-            </div>
-            <RiderPaymentsManager />
+            <OrdersManager />
           </div>
         );
       case "businesses":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Businesses Management</h2>
-              <p className="text-muted-foreground">Manage restaurants, grocery stores, and bakeries</p>
-            </div>
             <BusinessesManager />
           </div>
         );
-      case "orders":
+      case "riders":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Orders Management</h2>
-              <p className="text-muted-foreground">View and manage all customer orders</p>
-            </div>
-            <OrdersManager />
+            <RidersManager onNavigate={handleNavigate} />
+          </div>
+        );
+      case "users":
+        return (
+          <div className="space-y-6">
+            <UsersManager />
           </div>
         );
       case "requests":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Rider Requests</h2>
-              <p className="text-muted-foreground">Manage on-demand rider delivery requests</p>
-            </div>
             <RiderRequestsManager />
           </div>
         );
-      case "live-map":
+
+      // --- Finance ---
+      case "earnings":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Live Riders Map</h2>
-              <p className="text-muted-foreground">Real-time location of all riders</p>
-            </div>
-            <LiveRidersMap />
+            <RiderPaymentsManager />
+          </div>
+        );
+      case "wallet-adjustments":
+        return (
+          <div className="space-y-6">
+            <WalletAdjustmentsManager riderId={selectedRiderId || undefined} />
+          </div>
+        );
+      case "withdrawals":
+        return (
+          <div className="space-y-6">
+            <WithdrawalsManager />
+          </div>
+        );
+      case "category-pricing":
+        return (
+          <div className="space-y-6">
+            <CategoryPricingManager />
+          </div>
+        );
+      case "payment-settings":
+        return (
+          <div className="space-y-6">
+            <EnhancedPaymentSettings />
+          </div>
+        );
+
+      // --- Support & Comms ---
+      case "support":
+        return (
+          <div className="space-y-6">
+            <EnhancedSupportTicketsManager />
+          </div>
+        );
+      case "chats":
+        return (
+          <div className="space-y-6">
+            <AdminChatsManager />
           </div>
         );
       case "notifications":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">System Notifications</h2>
-              <p className="text-muted-foreground">Send notifications to customers</p>
-            </div>
             <SystemNotifications />
           </div>
         );
       case "push-notifications":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Push Notification Center</h2>
-              <p className="text-muted-foreground">Send real push notifications to users</p>
-            </div>
             <PushNotificationCenter />
-          </div>
-        );
-      case "payment-settings":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Payment Settings</h2>
-              <p className="text-muted-foreground">Configure delivery fees and rider earnings</p>
-            </div>
-            <EnhancedPaymentSettings />
-          </div>
-        );
-      case "withdrawals":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Withdrawal Requests</h2>
-              <p className="text-muted-foreground">Manage rider withdrawal requests and settlements</p>
-            </div>
-            <WithdrawalsManager />
-          </div>
-        );
-      case "wallet-adjustments":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Cash Advances & Adjustments</h2>
-              <p className="text-muted-foreground">Add money to rider wallets, manage advances and settlements</p>
-            </div>
-            <WalletAdjustmentsManager />
-          </div>
-        );
-      case "category-pricing":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Category Pricing</h2>
-              <p className="text-muted-foreground">Set different rates for each delivery category</p>
-            </div>
-            <CategoryPricingManager />
-          </div>
-        );
-      case "analytics":
-        return (
-          <div className="space-y-6">
-            <AnalyticsDashboard />
           </div>
         );
       case "promo-banner":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Banner Carousel</h2>
-              <p className="text-muted-foreground">Manage multiple promotional banners with scheduling</p>
-            </div>
             <BannersManager />
           </div>
         );
-      case "support":
+
+      default:
+        // Fallback or 404 within dashboard
         return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Support Center</h2>
-              <p className="text-muted-foreground">Manage customer and rider support tickets with live chat</p>
-            </div>
-            <EnhancedSupportTicketsManager />
+          <div className="flex flex-col items-center justify-center h-[50vh] text-gray-500">
+            <p>Module under construction: {activeTab}</p>
+            <Button variant="link" onClick={() => setActiveTab("dashboard")}>Go to Dashboard</Button>
           </div>
         );
-      default:
-        return null;
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+    <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {/* Sticky Top Bar - Dark Mode */}
+      <div className="sticky top-0 z-40 bg-[#141414]/90 backdrop-blur-md border-b border-white/5 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-white hidden md:block">
+            System Status
+          </h1>
 
-      <main className="flex-1 lg:ml-0 min-h-screen">
-        {/* Admin Top Bar with Language Toggle and Master Controls */}
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-semibold text-foreground">{t('admin.adminPanel')}</h1>
-
-            {/* Global Order Receiving Toggle */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
-              <div className={`w-2 h-2 rounded-full ${stats?.pendingOrders ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500'}`} />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Flow: <span className={stats?.pendingOrders ? 'text-orange-500' : 'text-emerald-500'}>
-                  {stats?.pendingOrders ? `${stats.pendingOrders} Active` : 'Stable'}
-                </span>
+          {/* Global Order Receiving Toggle */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+            <Activity className={`w-3 h-3 ${stats?.pendingOrders ? 'text-orange-500 animate-pulse' : 'text-emerald-500'}`} />
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+              Flow: <span className={stats?.pendingOrders ? 'text-orange-500' : 'text-emerald-500'}>
+                {stats?.pendingOrders ? `${stats.pendingOrders} Active` : 'Stable'}
               </span>
-            </div>
+            </span>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <AdminSupportNotificationBadge onTabChange={setActiveTab} />
             <AdminOrderNotificationBadge onTabChange={setActiveTab} />
+          </div>
+          <div className="h-6 w-px bg-white/10 mx-1"></div>
+          <div className="bg-white/5 p-1 rounded-lg">
             <LanguageToggle variant="admin" />
           </div>
         </div>
+      </div>
 
-        <div className="p-4 sm:p-6 lg:p-8">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderContent()}
-          </motion.div>
-        </div>
-      </main>
-    </div>
+      {renderContent()}
+    </AdminLayout>
   );
 }
+

@@ -194,6 +194,33 @@ const Index: React.FC = () => {
             onBusinessClick={id => navigate(`/restaurant/${id}`)}
           />
         )}
+
+        {/* Become a Rider Banner */}
+        <section className="px-4 py-6 mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 text-white relative overflow-hidden">
+            <div className="relative z-10">
+              <h2 className="text-xl font-bold mb-2">{t('home.becomeRider', 'Become a Rider')}</h2>
+              <p className="text-sm text-blue-100 mb-4 max-w-[200px]">
+                {t('home.earnMoney', 'Earn money by delivering food with Fast Haazir.')}
+              </p>
+              <Button
+                onClick={() => navigate('/rider/register')}
+                className="bg-white text-blue-700 hover:bg-white/90 border-0"
+              >
+                {t('common.joinNow', 'Join Now')}
+              </Button>
+            </div>
+            <div className="absolute right-[-20px] bottom-[-20px] opacity-20 rotate-12">
+              <img
+                src="https://images.unsplash.com/photo-1617788138017-80ad40651399?w=400"
+                alt="Delivery"
+                className="w-40 h-40 object-cover rounded-full"
+              />
+            </div>
+            {/* Decoratiive circle */}
+            <div className="absolute top-[-20px] right-[-20px] w-24 h-24 bg-white/10 rounded-full blur-xl" />
+          </div>
+        </section>
       </main>
 
       {/* Search Overlay */}

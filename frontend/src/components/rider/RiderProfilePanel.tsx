@@ -139,7 +139,7 @@ const RiderProfilePanel = ({
                   value={riderProfile.image}
                   onChange={handleImageChange}
                   userId={user.id}
-                  bucket="profile-images"
+                  bucket="profiles"
                   folder="riders"
                   maxSizeMB={2}
                   variant="avatar"
@@ -228,8 +228,8 @@ const RiderProfilePanel = ({
                         <p className="font-medium text-foreground">{item.label}</p>
                         {item.value && typeof item.value === 'string' && (
                           <p className={`text-xs ${item.status === 'success' ? 'text-accent' :
-                              item.status === 'warning' ? 'text-yellow-500' :
-                                'text-muted-foreground'
+                            item.status === 'warning' ? 'text-yellow-500' :
+                              'text-muted-foreground'
                             }`}>
                             {item.value}
                           </p>

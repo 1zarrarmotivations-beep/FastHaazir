@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Plus, 
-  Trash2, 
-  ToggleLeft, 
+import {
+  Plus,
+  Trash2,
+  ToggleLeft,
   ToggleRight,
   Star,
   Package
@@ -15,11 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { 
-  useBusinessMenuItems, 
-  useCreateMenuItem, 
+import {
+  useBusinessMenuItems,
+  useCreateMenuItem,
   useDeleteMenuItem,
-  useToggleMenuItemAvailability 
+  useToggleMenuItemAvailability
 } from "@/hooks/useAdmin";
 import { ImageUpload } from "./ImageUpload";
 
@@ -45,7 +45,7 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
 
   const handleCreateItem = () => {
     if (!newItem.name || newItem.price <= 0) return;
-    
+
     createItem.mutate({
       business_id: businessId,
       ...newItem,
@@ -73,7 +73,7 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
     <div className="space-y-6">
       {/* Add Item Form */}
       {!showForm ? (
-        <Button 
+        <Button
           onClick={() => setShowForm(true)}
           className="gradient-primary text-primary-foreground gap-2"
         >
@@ -129,7 +129,7 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
               <ImageUpload
                 value={newItem.image}
                 onChange={handleImageChange}
-                bucket="menu-images"
+                bucket="menu-items"
                 folder="items"
                 label="Upload Item Image"
                 maxSizeMB={5}
@@ -144,7 +144,7 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
               <Label htmlFor="is-popular" className="text-sm font-normal">Mark as popular item</Label>
             </div>
             <div className="flex gap-2">
-              <Button 
+              <Button
                 onClick={handleCreateItem}
                 className="gradient-primary text-primary-foreground"
                 disabled={createItem.isPending || !newItem.name || newItem.price <= 0}
@@ -188,8 +188,8 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
                   <CardContent className="p-4">
                     <div className="flex gap-4">
                       {item.image ? (
-                        <img 
-                          src={item.image} 
+                        <img
+                          src={item.image}
                           alt={item.name}
                           className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                         />
@@ -228,10 +228,10 @@ export function MenuItemsManager({ businessId }: MenuItemsManagerProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggleAvailability.mutate({ 
-                            itemId: item.id, 
+                          onClick={() => toggleAvailability.mutate({
+                            itemId: item.id,
                             businessId,
-                            isAvailable: !item.is_available 
+                            isAvailable: !item.is_available
                           })}
                         >
                           {item.is_available ? (

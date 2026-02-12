@@ -84,11 +84,31 @@ const PrivacyPolicy = () => {
 
                     <section>
                         <h2 className="text-xl font-semibold mb-3 text-foreground">7. Contact Us</h2>
-                        <p>
-                            If you have any questions about this privacy policy or our privacy practices, please contact us at:
+                        <p className="mb-4">
+                            If you have any questions about this privacy policy or our privacy practices, please contact us via our support center or email:
                         </p>
-                        <p className="mt-2 font-medium">Email: 1zarrarmotivations@gmail.com</p>
-                        <p className="font-medium">Website: https://fasthaazir.com</p>
+
+                        <div className="space-y-4">
+                            <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                                <p className="font-medium text-sm text-foreground mb-1">Email</p>
+                                <a href="mailto:1zarrarmotivations@gmail.com" className="text-primary hover:underline break-all">
+                                    1zarrarmotivations@gmail.com
+                                </a>
+                            </div>
+
+                            <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                                <p className="font-medium text-sm text-foreground mb-1">Website</p>
+                                <a href="https://fasthaazir.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                    https://fasthaazir.com
+                                </a>
+                            </div>
+
+                            <Link to="/support" className="block">
+                                <Button className="w-full gradient-primary text-primary-foreground gap-2">
+                                    Visit Support Center
+                                </Button>
+                            </Link>
+                        </div>
                     </section>
                 </div>
             </div>

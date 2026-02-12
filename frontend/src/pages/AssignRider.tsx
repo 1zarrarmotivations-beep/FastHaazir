@@ -57,14 +57,14 @@ const AssignRider: React.FC = () => {
   const [itemDescription, setItemDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  
+
   // Request broadcasting state
   const [requestId, setRequestId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(REQUEST_TIMEOUT);
   const [assignedRider, setAssignedRider] = useState<{ id: string; name: string; phone: string; image: string | null; vehicle_type: string } | null>(null);
 
   // Calculate distance and charge based on selected locations using database settings
-  const { distance, deliveryCharge } = useMemo(() => {
+  const { distance, deliveryCharge, riderEarning, commission } = useMemo(() => {
     if (pickupLocation && dropoffLocation) {
       const dist = calculateDistance(
         pickupLocation.lat,
@@ -72,18 +72,36 @@ const AssignRider: React.FC = () => {
         dropoffLocation.lat,
         dropoffLocation.lng
       );
-      // Use database payment settings if available
-      const charge = paymentSettings 
-        ? calculatePayment(dist, paymentSettings)
-        : Math.max(80 + (dist * 30), 100); // Fallback formula
+
+      if (paymentSettings) {
+        // Use enhanced calculation
+        const { customerCharge, riderEarning, commission } = calculatePayment(dist, paymentSettings);
+        return {
+          distance: dist,
+          deliveryCharge: customerCharge,
+          riderEarning,
+          commission
+        };
+      }
+
+      // Fallback calculation
+      const fallbackCharge = Math.max(80 + (dist * 30), 100);
       return {
         distance: dist,
-        deliveryCharge: charge,
+        deliveryCharge: fallbackCharge,
+        riderEarning: Math.round(fallbackCharge * 0.7), // roughly 70% to rider
+        commission: Math.round(fallbackCharge * 0.3)
       };
     }
-    return { distance: 0, deliveryCharge: paymentSettings?.min_payment || 100 };
+    // Default zero state
+    return {
+      distance: 0,
+      deliveryCharge: paymentSettings?.min_payment || 100,
+      riderEarning: 0,
+      commission: 0
+    };
   }, [pickupLocation, dropoffLocation, paymentSettings]);
-  
+
   // Quetta coordinates
   const quettaCenter: L.LatLngTuple = [30.1798, 66.9750];
 
@@ -122,18 +140,18 @@ const AssignRider: React.FC = () => {
         },
         async (payload) => {
           const updated = payload.new as any;
-          
+
           // Check if rider was assigned
           if (updated.rider_id && updated.status !== 'placed') {
             console.log('Rider assigned:', updated.rider_id);
-            
+
             // Fetch rider details
             const { data: riderData } = await supabase
               .from('public_rider_info')
               .select('*')
               .eq('id', updated.rider_id)
               .single();
-            
+
             if (riderData) {
               setAssignedRider({
                 id: riderData.id!,
@@ -143,7 +161,7 @@ const AssignRider: React.FC = () => {
                 vehicle_type: riderData.vehicle_type || 'Bike',
               });
             }
-            
+
             setStep('assigned');
             toast.success('🎉 Rider Assigned!', {
               description: `${riderData?.name || 'A rider'} is on the way to pick up your item`,
@@ -160,14 +178,14 @@ const AssignRider: React.FC = () => {
 
   const handleRequestTimeout = async () => {
     if (!requestId) return;
-    
+
     // Update request status to cancelled/expired
     await supabase
       .from('rider_requests')
       .update({ status: 'cancelled' })
       .eq('id', requestId)
       .is('rider_id', null);
-    
+
     toast.error('No rider accepted', {
       description: 'All nearby riders are busy. Please try again.',
     });
@@ -175,7 +193,7 @@ const AssignRider: React.FC = () => {
 
   const handleRetryRequest = async () => {
     if (!pickupLocation || !dropoffLocation) return;
-    
+
     setCountdown(REQUEST_TIMEOUT);
     setRequestId(null);
     await handleBroadcastRequest();
@@ -189,23 +207,23 @@ const AssignRider: React.FC = () => {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`
       );
       const data = await response.json();
-      
+
       if (data.display_name) {
         // Get detailed address components
         const address = data.address || {};
         const parts = [];
-        
+
         // Build detailed address from specific to general
         if (address.house_number) parts.push(address.house_number);
         if (address.road) parts.push(address.road);
         if (address.neighbourhood || address.suburb) parts.push(address.neighbourhood || address.suburb);
         if (address.city || address.town || address.village) parts.push(address.city || address.town || address.village);
         if (address.state) parts.push(address.state);
-        
+
         // Return constructed address or full display_name
         return parts.length > 2 ? parts.join(', ') : data.display_name;
       }
-      
+
       return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     } catch (error) {
       console.error('Geocoding error:', error);
@@ -400,6 +418,9 @@ const AssignRider: React.FC = () => {
           item_description: itemDescription.trim(),
           status: 'placed',
           total: deliveryCharge,
+          rider_earning: riderEarning,
+          commission: commission,
+          distance_km: distance,
         })
         .select()
         .single();
@@ -409,16 +430,16 @@ const AssignRider: React.FC = () => {
       setRequestId(data.id);
       setStep('waiting');
       setCountdown(REQUEST_TIMEOUT);
-      
+
       toast.info('Request Sent!', {
         description: `Sent to ${riders?.length || 0} nearby riders. Waiting for acceptance...`,
       });
-      
+
       // Invalidate queries to refresh orders list
       queryClient.invalidateQueries({ queryKey: ['active-orders'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
-      
+
     } catch (error) {
       console.error('Error broadcasting request:', error);
       toast.error('Failed to send request', {
@@ -469,9 +490,8 @@ const AssignRider: React.FC = () => {
             {['pickup', 'dropoff', 'details', 'waiting'].map((s, i) => (
               <div
                 key={s}
-                className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                  i <= currentStepIndex ? 'gradient-primary' : 'bg-muted'
-                }`}
+                className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= currentStepIndex ? 'gradient-primary' : 'bg-muted'
+                  }`}
               />
             ))}
           </div>
@@ -509,9 +529,8 @@ const AssignRider: React.FC = () => {
             <Card variant="glass" className="p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    step === 'pickup' ? 'gradient-primary' : 'gradient-success'
-                  }`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${step === 'pickup' ? 'gradient-primary' : 'gradient-success'
+                    }`}
                 >
                   <MapPin className="w-5 h-5 text-primary-foreground" />
                 </div>
@@ -571,7 +590,7 @@ const AssignRider: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Distance and Price Info */}
             <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -607,9 +626,8 @@ const AssignRider: React.FC = () => {
           <Card variant="elevated" className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  onlineRiderCount > 0 ? 'bg-green-500/20' : 'bg-orange-500/20'
-                }`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${onlineRiderCount > 0 ? 'bg-green-500/20' : 'bg-orange-500/20'
+                  }`}>
                   <Users className={`w-5 h-5 ${onlineRiderCount > 0 ? 'text-green-500' : 'text-orange-500'}`} />
                 </div>
                 <div>
@@ -634,8 +652,8 @@ const AssignRider: React.FC = () => {
                   )}
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={() => queryClient.invalidateQueries({ queryKey: ['online-riders'] })}
                 disabled={loadingRiders}
@@ -645,9 +663,9 @@ const AssignRider: React.FC = () => {
             </div>
           </Card>
 
-          <Button 
-            className="w-full" 
-            disabled={!itemDescription.trim() || isSubmitting || onlineRiderCount === 0 || loadingRiders} 
+          <Button
+            className="w-full"
+            disabled={!itemDescription.trim() || isSubmitting || onlineRiderCount === 0 || loadingRiders}
             onClick={handleBroadcastRequest}
           >
             {isSubmitting ? (
@@ -657,7 +675,7 @@ const AssignRider: React.FC = () => {
             )}
             {isSubmitting ? 'Sending...' : `Request Rider • Rs. ${deliveryCharge}`}
           </Button>
-          
+
           {!loadingRiders && onlineRiderCount === 0 && (
             <div className="text-center p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900">
               <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
@@ -689,16 +707,16 @@ const AssignRider: React.FC = () => {
                 className="text-center"
               >
                 {/* Animated waiting indicator */}
-                <motion.div 
+                <motion.div
                   className="relative w-32 h-32 mx-auto mb-6"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
                   <div className="absolute inset-0 rounded-full border-4 border-muted" />
-                  <motion.div 
+                  <motion.div
                     className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent"
-                    style={{ 
-                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((countdown / REQUEST_TIMEOUT) * 2 * Math.PI)}% ${50 - 50 * Math.cos((countdown / REQUEST_TIMEOUT) * 2 * Math.PI)}%)` 
+                    style={{
+                      clipPath: `polygon(50% 50%, 50% 0%, ${50 + 50 * Math.sin((countdown / REQUEST_TIMEOUT) * 2 * Math.PI)}% ${50 - 50 * Math.cos((countdown / REQUEST_TIMEOUT) * 2 * Math.PI)}%)`
                     }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -710,7 +728,7 @@ const AssignRider: React.FC = () => {
                 <p className="text-muted-foreground mb-4">
                   Request sent to {onlineRiderCount} nearby riders
                 </p>
-                
+
                 {/* Pulsing dots */}
                 <div className="flex justify-center gap-2">
                   {[0, 1, 2].map((i) => (
@@ -743,7 +761,7 @@ const AssignRider: React.FC = () => {
                 <div className="w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-6">
                   <Clock className="w-10 h-10 text-destructive" />
                 </div>
-                
+
                 <h2 className="text-xl font-bold text-foreground mb-2">No Rider Accepted</h2>
                 <p className="text-muted-foreground mb-6">
                   All nearby riders are currently busy. Would you like to try again?
@@ -789,7 +807,7 @@ const AssignRider: React.FC = () => {
             <CheckCircle2 className="w-12 h-12 text-white" />
           </motion.div>
 
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -797,8 +815,8 @@ const AssignRider: React.FC = () => {
           >
             🎉 Rider Assigned!
           </motion.h2>
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}

@@ -101,7 +101,7 @@ const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
                 value={formData.profile_image}
                 onChange={handleImageChange}
                 userId={user.id}
-                bucket="profile-images"
+                bucket="profiles"
                 folder="customers"
                 maxSizeMB={2}
                 variant="avatar"
@@ -155,8 +155,8 @@ const EditProfileSheet = ({ open, onOpenChange }: EditProfileSheetProps) => {
           </div>
 
           {/* Save Button */}
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             className="w-full h-12 rounded-xl gap-2"
             disabled={isSaving}
           >
