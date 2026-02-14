@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { normalizePhoneDigits } from "@/lib/phoneUtils";
 import { useEffect } from "react";
+import { roleResolver, type RoleResolution } from "@/lib/roleResolver";
 
 // Check if user is admin
 export const useIsAdmin = () => {
@@ -38,7 +39,7 @@ export const useIsAdmin = () => {
 export const useUserRole = () => {
   const { user } = useAuth();
 
-  return useQuery({
+  return useQuery<RoleResolution | null>({
     queryKey: ["user-role", user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -46,45 +47,12 @@ export const useUserRole = () => {
         return null;
       }
 
-      console.log("[useUserRole] Checking role for user:", user.id);
-
-      // Use Promise.all for parallel checks
-      const [adminResult, riderResult, businessResult] = await Promise.all([
-        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' }),
-        supabase.from('riders').select('id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('businesses').select('id').eq('owner_user_id', user.id).maybeSingle(),
-      ]);
-
-      console.log("[useUserRole] Role check results:", {
-        admin: adminResult.data,
-        rider: !!riderResult.data,
-        business: !!businessResult.data,
-      });
-
-      // Check admin first
-      if (adminResult.data) {
-        console.log("[useUserRole] User is admin");
-        return 'admin';
-      }
-
-      // Check rider
-      if (riderResult.data) {
-        console.log("[useUserRole] User is rider");
-        return 'rider';
-      }
-
-      // Check business
-      if (businessResult.data) {
-        console.log("[useUserRole] User is business");
-        return 'business';
-      }
-
-      console.log("[useUserRole] User is customer (default)");
-      return 'customer';
+      console.log("[useUserRole] Fetching full role resolution for:", user.id);
+      return roleResolver(user.id, user.email || user.phone);
     },
     enabled: !!user?.id,
-    staleTime: 1 * 60 * 1000, // Cache role for 1 minute (reduced from 5)
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 5000,
+    gcTime: 5 * 60 * 1000,
   });
 };
 
@@ -482,83 +450,64 @@ export const useCreateRider = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (riderData: {
-      name: string;
-      phone: string;
-      email?: string;
-      password?: string;
-      cnic?: string;
-      vehicle_type?: string;
-      commission_rate?: number;
-    }) => {
-      // Normalize phone to digits only format for database
-      const normalizedPhone = normalizePhoneDigits(riderData.phone);
+    mutationFn: async (riderData: any) => {
+      let userId = null;
+      let createdRider = null;
 
-      let userId: string | null = null;
+      // Normalize phone: Ensure it starts with correct format
+      let normalizedPhone = (riderData.phone || '').replace(/\D/g, '');
+      // If local format (03...), convert to international? Or keep as is.
+      // Assuming Admin provides valid phone.
 
-      // If email and password provided, create Auth User via Edge Function
+      // 1. If email/password provided, create Auth User via Edge Function
       if (riderData.email && riderData.password) {
-        console.log("[Admin] Creating Auth User via Edge Function...");
-        try {
-          const { data: authData, error: authError } = await supabase.functions.invoke('create-user', {
-            body: {
-              email: riderData.email,
-              password: riderData.password,
+        console.log("[Admin] Creating rider with Auth via Edge Function...");
+        const { data: authData, error: authError } = await supabase.functions.invoke('create-user', {
+          body: {
+            email: riderData.email,
+            password: riderData.password,
+            phone: normalizedPhone,
+            role: 'rider',
+            userData: {
+              name: riderData.name,
+              vehicle_type: riderData.vehicle_type,
               phone: normalizedPhone,
-              role: 'rider',
-              userData: {
-                name: riderData.name,
-                vehicle_type: riderData.vehicle_type,
-              }
+              cnic: riderData.cnic,
+              commission_rate: Number(riderData.commission_rate),
+              is_active: true, // Admin created riders are active by default
+              verification_status: 'verified' // Admin created riders are verified
             }
-          });
-
-          if (authError) {
-            console.error("Edge Function Error:", authError);
-            throw new Error(authError.message || "Failed to create user account");
           }
+        });
 
-          if (!authData?.user?.id) {
-            throw new Error("Failed to retrieve user ID from creation service");
-          }
+        if (authError) throw authError;
+        if (!authData?.success) throw new Error(authData?.error || 'Failed to create user');
 
-          userId = authData.user.id;
-        } catch (err: any) {
-          console.error("Create User Error:", err);
-          throw new Error("Failed to create login credentials: " + err.message);
-        }
+        userId = authData.data.user.id;
+        console.log("[Admin] Rider Auth & Profile Created:", userId);
+        return { id: userId, ...riderData };
       }
 
-      console.log("[Admin] Creating rider profile:", {
-        phone: normalizedPhone,
-        email: riderData.email || null,
-        user_id: userId
-      });
-
+      // 2. If NO Auth provided (Manual/Ghost Rider), insert directly
+      // WARNING: This branches to a different flow if no email/pass provided.
+      console.log("[Admin] Creating manual rider entry (no auth)...");
       const { data, error } = await supabase
         .from("riders")
         .insert({
-          user_id: userId,
+          user_id: userId, // null
           name: riderData.name,
           phone: normalizedPhone,
-          email: riderData.email?.trim() || null,
-          cnic: riderData.cnic || null,
-          vehicle_type: riderData.vehicle_type || 'Bike',
-          commission_rate: riderData.commission_rate || 10,
+          vehicle_type: riderData.vehicle_type,
+          cnic: riderData.cnic,
+          commission_rate: Number(riderData.commission_rate || 10),
           is_active: true,
           is_online: false,
-          verification_status: 'verified' // Auto-verify if created by admin
+          verification_status: 'verified'
         })
         .select()
         .single();
 
       if (error) throw error;
-
-      // If we created a user, ensure the role is set immediately
-      if (userId) {
-        await supabase.from('user_roles').insert({ user_id: userId, role: 'rider' }).maybeSingle();
-      }
-
       return data;
     },
     onSuccess: () => {

@@ -91,7 +91,7 @@ export function EnhancedSupportTicketsManager() {
                     if (payload.eventType === 'INSERT') {
                         const ticket = payload.new as any;
                         toast.info('🎫 New support ticket', {
-                            description: `${ticket.category.replace('_', ' ')} - Priority: ${ticket.priority}`,
+                            description: `${(ticket.category || '').replace('_', ' ')} - Priority: ${ticket.priority || 'medium'}`,
                             action: {
                                 label: 'View',
                                 onClick: () => setSelectedTicketId(ticket.id)
@@ -144,9 +144,9 @@ export function EnhancedSupportTicketsManager() {
     const filteredTickets = useMemo(() => {
         return tickets?.filter(t => {
             const matchesSearch =
-                t.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
-                t.category.toLowerCase().includes(search.toLowerCase()) ||
-                t.id.includes(search);
+                (t as any).user_name?.toLowerCase().includes(search.toLowerCase()) ||
+                (t.category || '').toLowerCase().includes(search.toLowerCase()) ||
+                (t.id || '').includes(search);
             const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
             const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter;
             return matchesSearch && matchesStatus && matchesPriority;
@@ -329,25 +329,29 @@ export function EnhancedSupportTicketsManager() {
                                                 <Badge
                                                     variant="outline"
                                                     className={`text-[10px] uppercase font-bold tracking-wider rounded-md ${ticket.priority === 'high'
-                                                            ? 'border-red-500/30 bg-red-500/10 text-red-500'
-                                                            : ticket.priority === 'medium'
-                                                                ? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
-                                                                : 'border-gray-500/30 bg-gray-500/10 text-gray-500'
+                                                        ? 'border-red-500/30 bg-red-500/10 text-red-500'
+                                                        : ticket.priority === 'medium'
+                                                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
+                                                            : 'border-gray-500/30 bg-gray-500/10 text-gray-500'
                                                         }`}
                                                 >
                                                     {ticket.priority}
                                                 </Badge>
                                                 <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider rounded-md border-primary/20 bg-primary/5 text-primary">
-                                                    {ticket.category.replace('_', ' ')}
+                                                    {(ticket.category || '').replace('_', ' ')}
                                                 </Badge>
                                             </div>
                                             <span className="text-[10px] text-muted-foreground">
                                                 {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}
                                             </span>
                                         </div>
-                                        <h4 className="font-bold text-foreground truncate">{ticket.user?.name || 'Unknown User'}</h4>
+                                        <h4 className="font-bold text-foreground truncate">
+                                            {(ticket as any).user_name && (ticket as any).user_name !== 'Unknown'
+                                                ? (ticket as any).user_name
+                                                : `Customer ${(ticket as any).user_phone ? `(${(ticket as any).user_phone})` : ''}`}
+                                        </h4>
                                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                            {ticket.user?.phone && `📱 ${ticket.user.phone}`}
+                                            {(ticket as any).user_phone && `📱 ${(ticket as any).user_phone}`}
                                             {ticket.order_id && ` • Order: #${ticket.order_id.slice(-6)}`}
                                         </p>
                                         <div className="flex items-center gap-2 mt-3">
@@ -355,7 +359,7 @@ export function EnhancedSupportTicketsManager() {
                                                 ticket.status === 'in_progress' ? 'bg-blue-500' : 'bg-emerald-500'
                                                 }`} />
                                             <span className="text-[10px] font-bold uppercase text-muted-foreground">
-                                                {ticket.status.replace('_', ' ')}
+                                                {(ticket.status || '').replace('_', ' ')}
                                             </span>
                                         </div>
                                     </motion.button>
@@ -376,12 +380,16 @@ export function EnhancedSupportTicketsManager() {
                                         <User className="w-6 h-6 text-primary" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-lg">{selectedTicket.user?.name || 'Unknown'}</h3>
+                                        <h3 className="font-bold text-lg">
+                                            {(selectedTicket as any).user_name && (selectedTicket as any).user_name !== 'Unknown'
+                                                ? (selectedTicket as any).user_name
+                                                : `Customer ${(selectedTicket as any).user_phone ? `(${(selectedTicket as any).user_phone})` : ''}`}
+                                        </h3>
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            {selectedTicket.user?.phone && (
+                                            {(selectedTicket as any).user_phone && (
                                                 <span className="flex items-center gap-1">
                                                     <Phone className="w-3 h-3" />
-                                                    {selectedTicket.user.phone}
+                                                    {(selectedTicket as any).user_phone}
                                                 </span>
                                             )}
                                         </div>
@@ -422,20 +430,20 @@ export function EnhancedSupportTicketsManager() {
                             </div>
 
                             {/* Order Info Banner (if linked) */}
-                            {selectedTicket.order && (
+                            {selectedTicket.order_id && (
                                 <div className="px-4 md:px-6 py-3 bg-blue-500/5 border-b border-blue-500/10">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Package className="w-4 h-4 text-blue-500" />
                                             <span className="text-sm font-medium">
-                                                Order #{selectedTicket.order.id.slice(-6)}
+                                                Order #{selectedTicket.order_id.slice(-6)}
                                             </span>
                                             <Badge variant="outline" className="text-xs">
-                                                {selectedTicket.order.status}
+                                                {(selectedTicket as any).order_status}
                                             </Badge>
                                         </div>
                                         <span className="text-sm font-bold text-primary">
-                                            Rs. {selectedTicket.order.total_amount?.toLocaleString()}
+                                            Rs. {(selectedTicket as any).order_total?.toLocaleString()}
                                         </span>
                                     </div>
                                 </div>

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Plus, 
-  Search, 
-  Phone, 
+import {
+  Plus,
+  Search,
+  Phone,
   User,
   Shield,
   ShieldCheck,
@@ -113,7 +113,7 @@ export function UsersManager() {
           id: a.id,
           type: 'admin',
           name: 'Admin',
-          phone: a.phone,
+          phone: a.phone || '',
           is_active: a.is_active ?? true,
           created_at: a.created_at,
         });
@@ -124,8 +124,8 @@ export function UsersManager() {
         allUsers.push({
           id: r.id,
           type: 'rider',
-          name: r.name,
-          phone: r.phone,
+          name: r.name || 'Unknown',
+          phone: r.phone || '',
           is_active: r.is_active ?? true,
           created_at: r.created_at,
         });
@@ -146,7 +146,7 @@ export function UsersManager() {
       });
 
       // Sort by created_at
-      return allUsers.sort((a, b) => 
+      return allUsers.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     }
@@ -156,7 +156,7 @@ export function UsersManager() {
   const addUser = useMutation({
     mutationFn: async (data: { name: string; phone: string; role: RoleType }) => {
       const normalizedPhone = normalizePhoneNumber(data.phone);
-      
+
       if (data.role === 'admin') {
         const { error } = await supabase.from('admins').insert({
           phone: normalizedPhone,
@@ -168,6 +168,7 @@ export function UsersManager() {
           name: data.name,
           phone: normalizedPhone,
           is_active: true,
+          verification_status: 'verified',
         });
         if (error) throw error;
       } else if (data.role === 'business') {
@@ -212,6 +213,7 @@ export function UsersManager() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-riders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
+      queryClient.invalidateQueries({ queryKey: ['online-riders'] });
       toast.success("User removed successfully!");
     },
     onError: (error: any) => {
@@ -220,15 +222,16 @@ export function UsersManager() {
   });
 
   const filteredUsers = users?.filter((user) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery);
-    
+    const matchesSearch = (user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.phone || '').includes(searchQuery);
+
     if (!matchesSearch) return false;
     if (roleFilter === "all") return true;
     return user.type === roleFilter;
   });
 
-  const formatPhone = (phone: string) => {
+  const formatPhone = (phone: string | null | undefined) => {
+    if (!phone) return "N/A";
     const digits = phone.replace(/\D/g, "");
     if (digits.length <= 4) return digits;
     return `${digits.slice(0, 4)}-${digits.slice(4, 11)}`;
@@ -306,7 +309,7 @@ export function UsersManager() {
             <div>
               <h4 className="font-medium text-foreground">Role-Based Access Control</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                Add phone numbers with roles. When users login with these numbers, they'll be automatically redirected to their respective dashboards. 
+                Add phone numbers with roles. When users login with these numbers, they'll be automatically redirected to their respective dashboards.
                 Changes take effect on next login.
               </p>
             </div>
@@ -402,13 +405,13 @@ export function UsersManager() {
                 />
                 <p className="text-xs text-muted-foreground">
                   User will login with this number and access {
-                    newUser.role === 'admin' ? 'Admin' : 
-                    newUser.role === 'rider' ? 'Rider' : 'Business'
+                    newUser.role === 'admin' ? 'Admin' :
+                      newUser.role === 'rider' ? 'Rider' : 'Business'
                   } Dashboard
                 </p>
               </div>
-              <Button 
-                onClick={() => addUser.mutate(newUser)} 
+              <Button
+                onClick={() => addUser.mutate(newUser)}
                 className="w-full gradient-primary text-primary-foreground"
                 disabled={addUser.isPending || (newUser.role !== 'admin' && !newUser.name) || !newUser.phone}
               >
@@ -435,7 +438,7 @@ export function UsersManager() {
           {filteredUsers?.map((user, index) => {
             const Icon = roleIcons[user.type];
             const colorClass = roleColors[user.type];
-            
+
             return (
               <motion.div
                 key={`${user.type}-${user.id}`}

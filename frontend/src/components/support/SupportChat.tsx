@@ -83,6 +83,10 @@ export function SupportChat({ onClose, orderId }: SupportChatProps) {
         }
 
         if (option.action === 'escalate') {
+            await updateStatus.mutateAsync({
+                ticketId: activeTicket.id,
+                status: 'escalated'
+            });
             await sendMessage.mutateAsync({
                 ticketId: activeTicket.id,
                 message: "Requesting human agent takeover...",

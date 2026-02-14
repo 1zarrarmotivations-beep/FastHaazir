@@ -70,13 +70,31 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   // Check if user has an allowed role
-  const effectiveRole = userRole || 'customer';
+  const resolution = userRole as any;
+  const effectiveRole = resolution?.role || 'customer';
+
+  if (resolution?.isBlocked) {
+    console.log("[ProtectedRoute] User is blocked, redirecting to /auth");
+    return <Navigate to="/auth" state={{ error: "Account disabled" }} replace />;
+  }
+
+  // PHASE 3 & 4: Rider status validation
+  // Only force registration redirect if they are trying to access a restricted rider area
+  // AND the current route doesn't allow plain 'customer' access.
+  if (effectiveRole === 'rider' && !allowedRoles.includes('customer')) {
+    if (resolution.needsRegistration || resolution.riderStatus !== 'verified') {
+      console.log("[ProtectedRoute] Rider not verified accessing restricted area, redirecting to registration/pending");
+      return <Navigate to="/rider/register" replace />;
+    }
+  }
+
   const hasAccess = allowedRoles.includes(effectiveRole as AllowedRole);
 
   console.log("[ProtectedRoute] Access check:", {
     effectiveRole,
     allowedRoles,
     hasAccess,
+    riderStatus: resolution?.riderStatus
   });
 
   if (!hasAccess) {

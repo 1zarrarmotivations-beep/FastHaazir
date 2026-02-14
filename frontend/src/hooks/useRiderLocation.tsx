@@ -37,7 +37,6 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
         .update({
           current_location_lat: lat,
           current_location_lng: lng,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', riderId);
 

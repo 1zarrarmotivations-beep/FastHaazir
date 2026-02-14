@@ -27,9 +27,9 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -38,10 +38,10 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 const calculateETA = (distanceKm: number): { minutes: number; text: string } => {
   const avgSpeedKmH = 25; // Average speed in city traffic
   const bufferMinutes = 2; // Small buffer for traffic/stops
-  
+
   const travelTimeMinutes = (distanceKm / avgSpeedKmH) * 60;
   const totalMinutes = Math.ceil(travelTimeMinutes + bufferMinutes);
-  
+
   if (totalMinutes < 1) {
     return { minutes: 1, text: 'Arriving now' };
   } else if (totalMinutes === 1) {
@@ -158,7 +158,7 @@ const LiveRiderTrackingMap = ({
     queryKey: ['rider-location', riderId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('public_rider_info')
+        .from('riders')
         .select('current_location_lat, current_location_lng, name, is_online')
         .eq('id', riderId)
         .single();
@@ -179,7 +179,7 @@ const LiveRiderTrackingMap = ({
     // Determine destination based on status
     let destLat = deliveryLat;
     let destLng = deliveryLng;
-    
+
     // If status is preparing, rider goes to pickup first
     if (status === 'preparing' && pickupLat && pickupLng) {
       destLat = pickupLat;
@@ -335,7 +335,7 @@ const LiveRiderTrackingMap = ({
       </CardHeader>
       <CardContent className="p-0">
         <div ref={mapContainerRef} className="h-56 w-full" />
-        
+
         {/* Dynamic ETA Display */}
         <div className="p-3 bg-primary/10 border-t border-primary/20">
           <div className="flex items-center justify-between">
@@ -360,7 +360,7 @@ const LiveRiderTrackingMap = ({
             </p>
           )}
         </div>
-        
+
         {/* Legend */}
         <div className="p-3 bg-muted/30 flex items-center justify-between text-xs">
           <div className="flex items-center gap-3">

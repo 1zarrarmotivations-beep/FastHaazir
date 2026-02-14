@@ -97,7 +97,7 @@ const Profile: React.FC = () => {
   const { data: userRole, isLoading: roleLoading } = useUserRole();
 
   // Only fetch customer data if role is customer (or still loading role)
-  const isCustomer = !userRole || userRole === 'customer';
+  const isCustomer = !userRole || userRole.role === 'customer';
 
   // Conditional queries - only fetch if customer role
   const { data: profile, isLoading: profileLoading } = useCustomerProfile();
@@ -164,9 +164,17 @@ const Profile: React.FC = () => {
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10'
     },
+    business: {
+      label: 'Business Dashboard',
+      path: '/business',
+      icon: Store,
+      color: 'text-orange-500',
+      bgColor: 'bg-orange-500/10'
+    },
   };
 
-  const currentRoleConfig = userRole && userRole !== 'customer' ? roleConfig[userRole as keyof typeof roleConfig] : null;
+  const userRoleStr = userRole?.role || 'customer';
+  const currentRoleConfig = userRole && userRoleStr !== 'customer' ? roleConfig[userRoleStr as keyof typeof roleConfig] : null;
 
   // Memoized menu items - only show customer-specific items to customers
   const menuItems = useMemo(() => {
@@ -297,9 +305,9 @@ const Profile: React.FC = () => {
                 <h1 className="text-xl font-bold text-primary-foreground">
                   {user ? displayName : 'Guest User'}
                 </h1>
-                {user && userRole && userRole !== 'customer' && (
+                {user && userRole && userRole.role !== 'customer' && (
                   <Badge variant="secondary" className="text-xs bg-primary-foreground/20 text-primary-foreground border-0">
-                    {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                    {userRole.role.charAt(0).toUpperCase() + userRole.role.slice(1)}
                   </Badge>
                 )}
                 {user && (

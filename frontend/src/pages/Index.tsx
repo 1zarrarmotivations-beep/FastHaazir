@@ -34,16 +34,20 @@ const Index: React.FC = () => {
 
   // Redirect non-customer users to their respective dashboards
   useEffect(() => {
-    if (!authLoading && !roleLoading && user && userRole && !hasRedirected.current) {
-      if (userRole === 'admin') {
-        hasRedirected.current = true;
-        navigate('/admin', { replace: true });
-      } else if (userRole === 'rider') {
-        hasRedirected.current = true;
-        navigate('/rider', { replace: true });
-      }
+    // If we have a user and a resolved role, check redirection
+    if (user && userRole) {
+      const { role } = userRole as any;
+      console.log("[Index] Post-login check. Resolution:", userRole);
+
+
+      // Admin redirect removed to allow testing customer flow.
+      // Admin can access panel via profile or direct link.
+
+      // RIDERS & CUSTOMERS land here together.
+      // We no longer auto-redirect unverified riders to /rider/register here.
+      // They can land on the home page and browse as customers.
     }
-  }, [authLoading, roleLoading, user, userRole, navigate]);
+  }, [user, userRole, navigate]);
 
   const formatBusinessForCard = (business: any) => ({
     id: business.id,

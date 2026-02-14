@@ -30,28 +30,49 @@ const RouteTracker = () => {
   return null;
 };
 
-// Lazy load non-critical pages
-const Auth = lazy(() => import("./pages/Auth"));
-const AssignRider = lazy(() => import("./pages/AssignRider"));
-const RestaurantDetail = lazy(() => import("./pages/RestaurantDetail"));
-const Restaurants = lazy(() => import("./pages/Restaurants"));
-const Grocery = lazy(() => import("./pages/Grocery"));
-const Bakery = lazy(() => import("./pages/Bakery"));
-const Cart = lazy(() => import("./pages/Cart"));
-const Orders = lazy(() => import("./pages/Orders"));
-const History = lazy(() => import("./pages/History"));
-const Profile = lazy(() => import("./pages/Profile"));
-const RiderDashboard = lazy(() => import("./pages/RiderDashboard"));
-const Admin = lazy(() => import("./pages/Admin"));
-// Removed: BusinessDashboard (business role removed - admin controls all)
-const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
-const RiderRegistration = lazy(() => import("./pages/RiderRegistration"));
-const Onboarding = lazy(() => import("./components/onboarding/OnboardingFlow").then(module => ({ default: module.OnboardingFlow })));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Support = lazy(() => import("./pages/Support"));
+// Helper to retry lazy imports if they fail (chunk load error)
+const lazyWithRetry = (componentImport: () => Promise<any>) =>
+  lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error: any) {
+      console.error("Lazy load failed, retrying...", error);
+      if (error.message.includes("dynamically imported module")) {
+        // If chunk load error, force reload page once (handled by user usually, but we could automate)
+        // For now, let's just retry the fetch once after a delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return await componentImport().catch(() => {
+          window.location.reload(); // Last resort: reload page to get fresh index
+          throw error;
+        });
+      }
+      throw error;
+    }
+  });
 
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+// Lazy load non-critical pages using Retry wrapper
+const Auth = lazyWithRetry(() => import("./pages/Auth"));
+const AssignRider = lazyWithRetry(() => import("./pages/AssignRider"));
+const RestaurantDetail = lazyWithRetry(() => import("./pages/RestaurantDetail"));
+const Restaurants = lazyWithRetry(() => import("./pages/Restaurants"));
+const Grocery = lazyWithRetry(() => import("./pages/Grocery"));
+const Bakery = lazyWithRetry(() => import("./pages/Bakery"));
+const Cart = lazyWithRetry(() => import("./pages/Cart"));
+const Orders = lazyWithRetry(() => import("./pages/Orders"));
+const History = lazyWithRetry(() => import("./pages/History"));
+const Profile = lazyWithRetry(() => import("./pages/Profile"));
+const RiderDashboard = lazyWithRetry(() => import("./pages/RiderDashboard"));
+const Admin = lazyWithRetry(() => import("./pages/Admin"));
+// Removed: BusinessDashboard (business role removed - admin controls all)
+const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
+const RiderRegistration = lazyWithRetry(() => import("./pages/RiderRegistration"));
+const Onboarding = lazyWithRetry(() => import("./components/onboarding/OnboardingFlow").then(module => ({ default: module.OnboardingFlow })));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const Support = lazyWithRetry(() => import("./pages/Support"));
+
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
+
 
 // Loading fallback component
 const PageLoader = () => (
@@ -158,7 +179,9 @@ const App = () => {
                       <Route
                         path="/admin"
                         element={
-                          <Admin />
+                          <ProtectedRoute allowedRoles={["admin"]}>
+                            <Admin />
+                          </ProtectedRoute>
                         }
                       />
 

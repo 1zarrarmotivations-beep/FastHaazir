@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { createNotification } from "./useNotifications";
+import { toast } from "sonner";
 export type OrderStatus = 'placed' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
 
 export interface RiderRequest {
@@ -621,6 +622,8 @@ export const useUpdateDeliveryStatus = () => {
   });
 };
 
+
+
 export const useToggleOnlineStatus = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -635,7 +638,7 @@ export const useToggleOnlineStatus = () => {
         .from('riders')
         .update({
           is_online: isOnline,
-          updated_at: new Date().toISOString()
+          last_online_at: new Date().toISOString()
         })
         .eq('user_id', user.id)
         .select()
@@ -649,10 +652,15 @@ export const useToggleOnlineStatus = () => {
       console.log('[useToggleOnlineStatus] Rider online status updated:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, isOnline) => {
       queryClient.invalidateQueries({ queryKey: ['rider-profile'] });
       queryClient.invalidateQueries({ queryKey: ['online-riders'] });
+      toast.success(isOnline ? "You are now ONLINE" : "You are now OFFLINE");
     },
+    onError: (error: any) => {
+      console.error('[useToggleOnlineStatus] Failed:', error);
+      toast.error(error.message || "Failed to update status");
+    }
   });
 };
 

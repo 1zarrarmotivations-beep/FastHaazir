@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Search, X, ChevronDown } from 'lucide-react';
+import { MapPin, Search, X, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '../notifications/NotificationBell';
@@ -9,7 +9,9 @@ import LanguageToggle from '../LanguageToggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
+import { useUserRole } from '@/hooks/useAdmin';
 import fastHaazirLogo from '@/assets/fast-haazir-logo-optimized.webp';
+import { Bike } from 'lucide-react';
 
 interface CustomerHeaderProps {
   onSearchClick?: () => void;
@@ -20,6 +22,8 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: profile } = useCustomerProfile();
+  const { data: userRole } = useUserRole();
+  const role = userRole?.role || 'customer';
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Get greeting based on time of day
@@ -35,7 +39,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
 
   return (
     <>
-      <motion.header 
+      <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-50 customer-header-glass"
@@ -45,9 +49,9 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
           <div className="flex items-center justify-between">
             {/* Logo & Location */}
             <div className="flex items-center gap-3">
-              <motion.img 
-                src={fastHaazirLogo} 
-                alt="Fast Haazir" 
+              <motion.img
+                src={fastHaazirLogo}
+                alt="Fast Haazir"
                 className="w-11 h-11 object-contain rounded-xl shadow-soft"
                 width={44}
                 height={44}
@@ -65,9 +69,35 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
 
             {/* Right Side - Language, Notifications, Profile */}
             <div className="flex items-center gap-2">
+              {/* Switch to Rider Button - MORE PROMINENT */}
+              {role === 'rider' && (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => navigate('/rider')}
+                  className="px-4 py-2 bg-emerald-600 text-white text-xs font-black rounded-full shadow-glow-md hover:bg-emerald-500 transition-all border-2 border-emerald-400/30 flex items-center gap-2"
+                >
+                  <Bike className="w-4 h-4" />
+                  RIDER DASHBOARD
+                </motion.button>
+              )}
+
+              {/* Switch to Admin Button */}
+              {role === 'admin' && (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => navigate('/admin')}
+                  className="px-4 py-2 bg-purple-600 text-white text-xs font-black rounded-full shadow-glow-md hover:bg-purple-500 transition-all border-2 border-purple-400/30 flex items-center gap-2"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  ADMIN
+                </motion.button>
+              )}
+
               <LanguageToggle variant="compact" />
-              
-              <motion.div 
+
+              <motion.div
                 whileTap={{ scale: 0.9 }}
                 className="w-9 h-9 rounded-xl customer-glass-button flex items-center justify-center"
               >
@@ -94,7 +124,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
 
         {/* Greeting Section */}
         <div className="px-4 pb-2">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
@@ -110,7 +140,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
 
         {/* Search Bar */}
         <div className="px-4 pb-3">
-          <motion.div 
+          <motion.div
             className="relative"
             whileTap={{ scale: 0.98 }}
             onClick={onSearchClick}
@@ -127,9 +157,9 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
         </div>
       </motion.header>
 
-      <NotificationsSheet 
-        open={notificationsOpen} 
-        onOpenChange={setNotificationsOpen} 
+      <NotificationsSheet
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
       />
     </>
   );

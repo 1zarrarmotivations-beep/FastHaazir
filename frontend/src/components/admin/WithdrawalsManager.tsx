@@ -19,10 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { 
-  Wallet, 
-  Search, 
-  Loader2, 
+import {
+  Wallet,
+  Search,
+  Loader2,
   User,
   CheckCircle,
   XCircle,
@@ -33,10 +33,10 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { 
-  useAllWithdrawals, 
+import {
+  useAllWithdrawals,
   useProcessWithdrawal,
-  WithdrawalRequest 
+  WithdrawalRequest
 } from '@/hooks/useWithdrawals';
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -181,7 +181,7 @@ const WithdrawalsManager = () => {
               </div>
             ) : (
               filteredWithdrawals?.map((withdrawal, index) => {
-                const status = statusConfig[withdrawal.status];
+                const status = statusConfig[withdrawal.status] || statusConfig.pending;
                 const StatusIcon = status.icon;
 
                 return (

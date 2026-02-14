@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { normalizePhoneNumber, normalizePhoneDigits, isValidPakistaniMobile } from "@/lib/phoneUtils";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import fastHaazirLogo from "@/assets/fast-haazir-logo.png";
+import { roleResolver, type RoleResolution } from "@/lib/roleResolver";
 
 type AuthMethod = "select" | "phone" | "email" | "otp";
 
@@ -178,42 +179,22 @@ const checkRoleByPhone = async (
   session: Session,
   firebaseSignOut: () => Promise<void>
 ): Promise<{ success: boolean; error?: string }> => {
-  console.log("[Auth] Checking role by phone:", phoneDigits);
+  // PHASE 5 & 6: Async safety and debug logging
+  console.log("[Auth] Starting role validation for phone:", phoneDigits);
 
-  let data: { role: string; is_blocked: boolean }[] | null = null;
-  let error: Error | null = null;
+  // Small delay to ensure DB triggers (like user creation) have finished
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const result = await supabase.rpc("resolve_role_by_phone", { _phone: phoneDigits });
-    data = result.data;
-    error = result.error;
+  const resolution = await roleResolver(session.user.id, phoneDigits);
 
-    if (!error && data && data.length > 0) break;
-    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 500));
-  }
-
-  if (error?.message?.includes('phone_already_claimed')) {
-    await supabase.auth.signOut();
-    await firebaseSignOut();
-    clearAuthStorage();
-    return {
-      success: false,
-      error: "This phone number is linked to a different account. Contact support."
-    };
-  }
-
-  const result = data && data.length > 0 ? data[0] : null;
-  const role = result?.role || "customer";
-  const isBlocked = !!result?.is_blocked;
-
-  if (isBlocked) {
+  if (resolution.isBlocked) {
     await supabase.auth.signOut();
     await firebaseSignOut();
     clearAuthStorage();
     return { success: false, error: "Your account is disabled. Contact admin." };
   }
 
-  return redirectByRole(role, navigate, queryClient);
+  return redirectByRole(resolution, navigate, queryClient);
 };
 
 /**
@@ -226,74 +207,62 @@ const checkRoleByEmail = async (
   session: Session,
   firebaseSignOut: () => Promise<void>
 ): Promise<{ success: boolean; error?: string }> => {
-  console.log("[Auth] Checking role by email:", email);
+  // PHASE 5 & 6: Async safety and debug logging
+  console.log("[Auth] Starting role validation for email:", email);
 
-  let data: { role: string; is_blocked: boolean }[] | null = null;
-  let error: Error | null = null;
+  // Small delay for consistency
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const result = await supabase.rpc("resolve_role_by_email", { _email: email });
-    data = result.data;
-    error = result.error;
+  const resolution = await roleResolver(session.user.id, email);
 
-    if (!error && data && data.length > 0) break;
-    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 500));
-  }
-
-  if (error?.message?.includes('email_already_claimed')) {
-    await supabase.auth.signOut();
-    await firebaseSignOut();
-    clearAuthStorage();
-    return {
-      success: false,
-      error: "This email is linked to a different account. Contact support."
-    };
-  }
-
-  const result = data && data.length > 0 ? data[0] : null;
-  const role = result?.role || "customer";
-  const isBlocked = !!result?.is_blocked;
-
-  if (isBlocked) {
+  if (resolution.isBlocked) {
     await supabase.auth.signOut();
     await firebaseSignOut();
     clearAuthStorage();
     return { success: false, error: "Your account is disabled. Contact admin." };
   }
 
-  return redirectByRole(role, navigate, queryClient);
+  return redirectByRole(resolution, navigate, queryClient);
 };
 
 /**
  * Redirect based on role
  */
 const redirectByRole = (
-  role: string,
+  resolution: RoleResolution,
   navigate: ReturnType<typeof useNavigate>,
   queryClient: ReturnType<typeof useQueryClient>
 ): { success: boolean } => {
+  const { role, riderStatus, needsRegistration } = resolution;
+
   queryClient.invalidateQueries({ queryKey: ["user-role"] });
   queryClient.invalidateQueries({ queryKey: ["is-admin"] });
 
-  const redirectPath = (() => {
-    switch (role) {
-      case "admin": return "/admin";
-      case "rider": return "/rider";
-      case "business": return "/business";
-      default: return "/";
-    }
-  })();
+  // PHASE 4 & 5: Determine correct path after validation completes
+  let redirectPath = "/";
+  let welcomeMessage = "Welcome to Fast Haazir!";
 
-  const welcomeMessage = (() => {
-    switch (role) {
-      case "admin": return "Welcome Admin!";
-      case "rider": return "Welcome Rider!";
-      case "business": return "Welcome Business Owner!";
-      default: return "Welcome to Fast Haazir!";
+  if (role === 'admin') {
+    redirectPath = "/admin";
+    welcomeMessage = "Welcome Admin!";
+  } else if (role === 'rider') {
+    // PHASE 3: Rider status check
+    if (needsRegistration) {
+      redirectPath = "/rider/register";
+      welcomeMessage = "Please complete your rider registration.";
+    } else if (riderStatus !== 'verified') {
+      redirectPath = "/rider/register"; // This page shows the pending screen in our app
+      welcomeMessage = "Your rider application is still being reviewed.";
+    } else {
+      redirectPath = "/rider";
+      welcomeMessage = "Welcome back to the Rider Dashboard!";
     }
-  })();
+  } else {
+    redirectPath = "/";
+    welcomeMessage = "Welcome to Fast Haazir!";
+  }
 
-  console.log("[Auth] Redirecting to:", redirectPath);
+  console.log(`[Auth] Final Redirecting to: ${redirectPath} for role: ${role}`);
   toast.success(welcomeMessage);
   navigate(redirectPath, { replace: true });
   return { success: true };

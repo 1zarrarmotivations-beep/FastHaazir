@@ -95,7 +95,7 @@ const WalletAdjustmentsManager = ({ riderId }: WalletAdjustmentsManagerProps) =>
       setNewRiderId(riderId);
       // Optional: search for the rider to show their adjustments
       const rider = riders?.find(r => r.id === riderId);
-      if (rider) {
+      if (rider && rider.name) {
         setSearchQuery(rider.name);
       }
     }
@@ -281,7 +281,7 @@ const WalletAdjustmentsManager = ({ riderId }: WalletAdjustmentsManagerProps) =>
             ) : (
               filteredAdjustments?.map((adjustment, index) => {
                 const type = typeConfig[adjustment.adjustment_type] || typeConfig.cash_advance;
-                const status = statusConfig[adjustment.status];
+                const status = statusConfig[adjustment.status] || statusConfig.active;
                 const TypeIcon = type.icon;
                 const StatusIcon = status.icon;
 

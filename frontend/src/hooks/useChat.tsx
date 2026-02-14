@@ -171,7 +171,6 @@ export const useSendMessage = () => {
       voiceDuration?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
-      if (senderType === 'admin') throw new Error('Admins cannot send chat messages');
       if (messageType === 'text' && !message.trim()) throw new Error('Message cannot be empty');
       if (messageType === 'voice' && !voiceUrl) throw new Error('Voice URL is required');
 
@@ -280,8 +279,9 @@ export const useUploadVoiceNote = () => {
       const timestamp = Date.now();
       const fileName = `${timestamp}_${user.id}.${extension}`;
       const filePath = `${contextId}/${fileName}`;
+      const roundedDuration = Math.round(duration);
 
-      console.log('[useUploadVoiceNote] Uploading voice note:', { filePath, duration, size: audioBlob.size, mimeType });
+      console.log('[useUploadVoiceNote] Uploading voice note:', { filePath, duration: roundedDuration, size: audioBlob.size, mimeType });
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -300,7 +300,7 @@ export const useUploadVoiceNote = () => {
       // A signed URL is generated when fetching messages for playback.
       return {
         path: filePath,
-        duration,
+        duration: roundedDuration,
       };
     },
   });

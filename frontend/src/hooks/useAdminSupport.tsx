@@ -8,15 +8,16 @@ export const useAdminSupportTickets = () => {
         queryKey: ['admin-support-tickets'],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from('support_tickets' as any)
-                .select(`
-            *,
-            user:profiles!support_tickets_user_id_fkey(id, name, phone),
-            order:orders(id, created_at, total_amount, status)
-        `)
+                .from('admin_support_tickets_view' as any)
+                .select('*')
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            return (data as unknown) as (SupportTicket & { user: any, order: any })[];
+            return (data as unknown) as (SupportTicket & {
+                user_name: string,
+                user_phone: string,
+                order_status: string,
+                order_total: number
+            })[];
         },
     });
 };

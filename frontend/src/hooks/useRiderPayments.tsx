@@ -103,7 +103,7 @@ export const usePaymentSettings = () => {
         .single();
 
       if (error) throw error;
-      return data as PaymentSettings;
+      return data as unknown as PaymentSettings;
     },
   });
 };
@@ -302,12 +302,19 @@ export const useRiderEarningsSummary = (riderId?: string) => {
 
       const { data, error } = await supabase
         .from('rider_payments')
-        .select('final_amount, status, distance_km')
+        .select('final_amount, status, distance_km, created_at')
         .eq('rider_id', riderId);
 
       if (error) throw error;
 
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
       const totalEarnings = data.reduce((sum, p) => sum + (p.final_amount || 0), 0);
+      const todayEarnings = data
+        .filter(p => new Date(p.created_at).getTime() >= startOfDay)
+        .reduce((sum, p) => sum + (p.final_amount || 0), 0);
+
       const paidEarnings = data.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0);
       const pendingEarnings = data.filter(p => p.status !== 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0);
       const totalDistance = data.reduce((sum, p) => sum + (p.distance_km || 0), 0);
@@ -315,6 +322,7 @@ export const useRiderEarningsSummary = (riderId?: string) => {
 
       return {
         totalEarnings,
+        todayEarnings,
         paidEarnings,
         pendingEarnings,
         totalDistance,

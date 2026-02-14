@@ -235,8 +235,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           </div>
         </div>
 
-        {/* Delivery OTP - Show when order is on the way and has OTP */}
-        {order.status === 'on_way' && order.delivery_otp && (
+        {/* Delivery OTP - Show as soon as rider is assigned and has OTP */}
+        {hasRider && order.status !== 'delivered' && order.status !== 'cancelled' && order.delivery_otp && (
           <div className="mb-4">
             <DeliveryOTPDisplay
               otp={order.delivery_otp}

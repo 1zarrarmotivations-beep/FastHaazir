@@ -46,7 +46,7 @@ const BUILD_VERSION = 'PROD-v5.0';
 const BUILD_HASH = 'b5f3a7c2e9d1' + Date.now().toString(36);
 const BUILD_TIMESTAMP = '2026-01-26T14:00:00Z';
 const BUILD_VERIFIED = true;
-console.log('🔥 RIDER PROD BUILD v4.0 ACTIVE 🔥');
+console.log('🔥 RIDER PROD BUILD v5.0 ACTIVE 🔥');
 console.log('🔥 PRODUCTION BUILD MARKER:', BUILD_VERSION, BUILD_HASH);
 console.log('🔥 TIMESTAMP:', BUILD_TIMESTAMP);
 console.log('🔥 SOURCE: src/pages/RiderDashboard.tsx');
@@ -118,12 +118,13 @@ const RiderDashboard = () => {
 
   /* ===== AUTO OFFLINE IF LOCATION DISABLED ===== */
   useEffect(() => {
-    if (riderProfile?.is_online && (!isLocationEnabled || permissionStatus !== 'granted')) {
-      // If rider is online but location is disabled, auto-offline
-      toggleOnline.mutate(false);
-      toast.error('You were set offline because location access was lost');
+    // Only warn, don't force offline immediately as it causes toggle instability
+    if (riderProfile?.is_online && (isLocationEnabled === false || (permissionsReady && permissions.location !== 'granted'))) {
+      toast.error('Location access required', {
+        description: 'Please enable GPS and grant location permission to receive nearby orders.'
+      });
     }
-  }, [isLocationEnabled, permissionStatus, riderProfile?.is_online, toggleOnline]);
+  }, [isLocationEnabled, permissions.location, permissionsReady, riderProfile?.is_online]);
 
   /* ===== AUTO OFFLINE INACTIVITY ===== */
   const resetInactivityTimer = useCallback(() => {
@@ -338,9 +339,15 @@ const RiderDashboard = () => {
             toggleOnline.mutate(v);
           }}
           isToggling={toggleOnline.isPending}
-          todayEarnings={earningsSummary?.totalEarnings || 0}
+          todayEarnings={(earningsSummary as any)?.todayEarnings || 0}
           walletBalance={earningsSummary?.pendingEarnings || 0}
-          completedToday={completedDeliveries.length}
+          completedToday={completedDeliveries.filter(d => {
+            const date = new Date(d.created_at);
+            const now = new Date();
+            return date.getDate() === now.getDate() &&
+              date.getMonth() === now.getMonth() &&
+              date.getFullYear() === now.getFullYear();
+          }).length}
           activeDeliveriesCount={activeDeliveries.length}
         />
 

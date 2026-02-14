@@ -56,6 +56,52 @@ interface RidersManagerProps {
   onNavigate?: (tab: string, riderId?: string) => void;
 }
 
+function RiderBalanceBadge({ riderId }: { riderId: string }) {
+  const { data: balance, isLoading } = useRiderAvailableBalance(riderId);
+
+  if (isLoading) return <div className="h-4 w-16 bg-muted animate-pulse rounded mt-2" />;
+
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <Badge variant="outline" className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[10px] py-0 h-5">
+        Rs {balance?.available?.toLocaleString() || 0} Available
+      </Badge>
+      {balance?.pending > 0 && (
+        <Badge variant="outline" className="bg-orange-500/5 text-orange-600 border-orange-500/20 text-[10px] py-0 h-5">
+          Rs {balance.pending.toLocaleString()} Pending
+        </Badge>
+      )}
+    </div>
+  );
+}
+
+function DocumentPreview({ label, url }: { label: string, url?: string }) {
+  if (!url) return (
+    <div className="space-y-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div className="h-40 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed">
+        <AlertTriangle className="w-5 h-5 text-muted-foreground mr-2" />
+        <span className="text-xs text-muted-foreground">Missing Document</span>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <div
+        className="h-40 rounded-lg overflow-hidden border border-border cursor-pointer group relative"
+        onClick={() => window.open(url, '_blank')}
+      >
+        <img src={url} alt={label} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <Eye className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RidersManager({ onNavigate }: RidersManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -131,8 +177,8 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
     });
   };
 
-  const formatPhone = (phone: string) => {
-    // Format: 03XX-XXXXXXX
+  const formatPhone = (phone: string | null | undefined) => {
+    if (!phone) return "N/A";
     const digits = phone.replace(/\D/g, "");
     if (digits.length <= 4) return digits;
     return `${digits.slice(0, 4)}-${digits.slice(4, 11)}`;
@@ -665,48 +711,4 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
 
 
 
-function RiderBalanceBadge({ riderId }: { riderId: string }) {
-  const { data: balance, isLoading } = useRiderAvailableBalance(riderId);
 
-  if (isLoading) return <div className="h-4 w-16 bg-muted animate-pulse rounded mt-2" />;
-
-  return (
-    <div className="flex items-center gap-2 mt-2">
-      <Badge variant="outline" className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[10px] py-0 h-5">
-        Rs {balance?.available?.toLocaleString() || 0} Available
-      </Badge>
-      {balance?.pending > 0 && (
-        <Badge variant="outline" className="bg-orange-500/5 text-orange-600 border-orange-500/20 text-[10px] py-0 h-5">
-          Rs {balance.pending.toLocaleString()} Pending
-        </Badge>
-      )}
-    </div>
-  );
-}
-
-function DocumentPreview({ label, url }: { label: string, url?: string }) {
-  if (!url) return (
-    <div className="space-y-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="h-40 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed">
-        <AlertTriangle className="w-5 h-5 text-muted-foreground mr-2" />
-        <span className="text-xs text-muted-foreground">Missing Document</span>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div
-        className="h-40 rounded-lg overflow-hidden border border-border cursor-pointer group relative"
-        onClick={() => window.open(url, '_blank')}
-      >
-        <img src={url} alt={label} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <Eye className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}

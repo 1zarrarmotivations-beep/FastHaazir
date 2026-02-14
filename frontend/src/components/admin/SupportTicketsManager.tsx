@@ -68,7 +68,7 @@ export function SupportTicketsManager() {
     };
 
     const filteredTickets = tickets?.filter(t =>
-        t.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        (t as any).user_name?.toLowerCase().includes(search.toLowerCase()) ||
         t.category.toLowerCase().includes(search.toLowerCase()) ||
         t.id.includes(search)
     );
@@ -108,13 +108,13 @@ export function SupportTicketsManager() {
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider rounded-md border-primary/20 bg-primary/5 text-primary">
-                                            {ticket.category.replace('_', ' ')}
+                                            {(ticket.category || '').replace('_', ' ')}
                                         </Badge>
                                         <span className="text-[10px] text-muted-foreground">
                                             {format(new Date(ticket.created_at), 'MMM d, HH:mm')}
                                         </span>
                                     </div>
-                                    <h4 className="font-bold text-foreground truncate">{ticket.user?.name}</h4>
+                                    <h4 className="font-bold text-foreground truncate">{(ticket as any).user_name || 'Unknown User'}</h4>
                                     <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                                         Order: {ticket.order_id ? `#${ticket.order_id.slice(-6)}` : 'None'}
                                     </p>
@@ -123,7 +123,7 @@ export function SupportTicketsManager() {
                                             ticket.status === 'in_progress' ? 'bg-blue-500' : 'bg-emerald-500'
                                             }`} />
                                         <span className="text-[10px] font-bold uppercase text-muted-foreground">
-                                            {ticket.status.replace('_', ' ')}
+                                            {(ticket.status || '').replace('_', ' ')}
                                         </span>
                                     </div>
                                 </button>
@@ -144,8 +144,8 @@ export function SupportTicketsManager() {
                                     <User className="w-6 h-6 text-primary" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-lg">{selectedTicket.user?.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{selectedTicket.user?.phone}</p>
+                                    <h3 className="font-bold text-lg">{(selectedTicket as any).user_name || 'Unknown User'}</h3>
+                                    <p className="text-sm text-muted-foreground">{(selectedTicket as any).user_phone || 'No Phone'}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
