@@ -118,7 +118,7 @@ export const usePendingRequests = () => {
       // Fetch business orders that need a rider
       const { data: businessOrders, error: ordersError } = await supabase
         .from('orders')
-        .select('*, businesses(name)')
+        .select('*, businesses(name), customer_profiles!inner(phone)')
         .in('status', ['placed', 'preparing'])
         .is('rider_id', null)
         .order('created_at', { ascending: false });
@@ -128,39 +128,38 @@ export const usePendingRequests = () => {
       }
 
       // Transform rider requests
-      const formattedRiderRequests: RiderRequest[] = (riderRequests || []).map(req => ({
+      const formattedRiderRequests: RiderRequest[] = (riderRequests || []).map((req: any) => ({
         ...req,
         type: 'rider_request' as const,
-        rider_earning: (req as any).rider_earning,
-        commission: (req as any).commission,
+        rider_earning: req.rider_earning,
+        commission: req.commission,
       }));
 
-
-
       // Transform business orders to match RiderRequest interface
-      const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map(order => ({
+      const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map((order: any) => ({
         id: order.id,
         type: 'order' as const,
         customer_id: order.customer_id,
-        customer_phone: order.customer_phone,
+        customer_phone: order.customer_profiles?.phone || null,
         rider_id: order.rider_id,
-        status: order.status,
-        pickup_address: order.pickup_address || (order.businesses as any)?.name || 'Business',
+        status: order.status as OrderStatus,
+        pickup_address: order.businesses?.name || order.pickup_address || 'Business',
         dropoff_address: order.delivery_address || 'Customer Location',
         pickup_lat: order.pickup_lat,
         pickup_lng: order.pickup_lng,
         dropoff_lat: order.delivery_lat,
         dropoff_lng: order.delivery_lng,
-        item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${(order.businesses as any)?.name || 'Business'}` : 'Food Order',
+        item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${order.businesses?.name || 'Business'}` : 'Food Order',
         item_image: null,
         total: order.total,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        business_name: (order.businesses as any)?.name,
+        business_name: order.businesses?.name,
         items: Array.isArray(order.items) ? order.items : [],
-        rider_earning: (order as any).rider_earning,
-        commission: (order as any).commission,
+        rider_earning: order.rider_earning,
+        commission: order.commission,
       }));
+
 
 
 
@@ -202,7 +201,7 @@ export const useMyActiveDeliveries = () => {
       // Fetch business orders assigned to this rider
       const { data: businessOrders, error: ordersError } = await supabase
         .from('orders')
-        .select('*, businesses(name)')
+        .select('*, businesses(name), customer_profiles!inner(phone)')
         .eq('rider_id', riderProfile.id)
         .in('status', ['placed', 'preparing', 'on_way'])
         .order('created_at', { ascending: false });
@@ -212,39 +211,45 @@ export const useMyActiveDeliveries = () => {
       }
 
       // Transform rider requests
-      const formattedRiderRequests: RiderRequest[] = (riderRequests || []).map(req => ({
+      const formattedRiderRequests: RiderRequest[] = (riderRequests as any[] || []).map(req => ({
         ...req,
         type: 'rider_request' as const,
-        rider_earning: (req as any).rider_earning,
-        commission: (req as any).commission,
+        status: req.status as OrderStatus,
+        pickup_address: req.pickup_address || '',
+        dropoff_address: req.dropoff_address || '',
+        total: Number(req.total || 0),
+        created_at: req.created_at || new Date().toISOString(),
+        updated_at: req.updated_at || new Date().toISOString(),
+        rider_earning: Number(req.rider_earning || 0),
+        commission: Number(req.commission || 0),
       }));
 
 
-
       // Transform business orders
-      const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map(order => ({
+      const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map((order: any) => ({
         id: order.id,
         type: 'order' as const,
         customer_id: order.customer_id,
-        customer_phone: order.customer_phone,
+        customer_phone: order.customer_profiles?.phone || null,
         rider_id: order.rider_id,
-        status: order.status,
-        pickup_address: order.pickup_address || (order.businesses as any)?.name || 'Business',
+        status: order.status as OrderStatus,
+        pickup_address: order.businesses?.name || order.pickup_address || 'Business',
         dropoff_address: order.delivery_address || 'Customer Location',
         pickup_lat: order.pickup_lat,
         pickup_lng: order.pickup_lng,
         dropoff_lat: order.delivery_lat,
         dropoff_lng: order.delivery_lng,
-        item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${(order.businesses as any)?.name || 'Business'}` : 'Food Order',
+        item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${order.businesses?.name || 'Business'}` : 'Food Order',
         item_image: null,
-        total: order.total,
+        total: Number(order.total || 0),
         created_at: order.created_at,
         updated_at: order.updated_at,
-        business_name: (order.businesses as any)?.name,
+        business_name: order.businesses?.name,
         items: Array.isArray(order.items) ? order.items : [],
-        rider_earning: (order as any).rider_earning,
-        commission: (order as any).commission,
+        rider_earning: Number(order.rider_earning || 0),
+        commission: Number(order.commission || 0),
       }));
+
 
 
 
@@ -285,7 +290,7 @@ export const useMyCompletedDeliveries = () => {
       // Fetch completed business orders
       const { data: businessOrders, error: ordersError } = await supabase
         .from('orders')
-        .select('*, businesses(name)')
+        .select('*, businesses(name), customer_profiles!inner(phone)')
         .eq('rider_id', riderProfile.id)
         .eq('status', 'delivered')
         .order('created_at', { ascending: false })
@@ -296,33 +301,41 @@ export const useMyCompletedDeliveries = () => {
       }
 
       // Transform rider requests
-      const formattedRiderRequests: RiderRequest[] = (riderRequests || []).map(req => ({
+      const formattedRiderRequests: RiderRequest[] = (riderRequests as any[] || []).map(req => ({
         ...req,
         type: 'rider_request' as const,
+        status: req.status as OrderStatus,
+        pickup_address: req.pickup_address || '',
+        dropoff_address: (req as any).dropoff_address || '',
+        total: Number(req.total || 0),
+        created_at: req.created_at || new Date().toISOString(),
+        updated_at: req.updated_at || new Date().toISOString(),
       }));
 
+
       // Transform business orders
-      const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map(order => ({
+      const formattedBusinessOrders: RiderRequest[] = (businessOrders || []).map((order: any) => ({
         id: order.id,
         type: 'order' as const,
         customer_id: order.customer_id,
-        customer_phone: order.customer_phone,
+        customer_phone: order.customer_profiles?.phone || null,
         rider_id: order.rider_id,
-        status: order.status,
-        pickup_address: order.pickup_address || (order.businesses as any)?.name || 'Business',
+        status: order.status as OrderStatus,
+        pickup_address: order.pickup_address || order.businesses?.name || 'Business',
         dropoff_address: order.delivery_address || 'Customer Location',
         pickup_lat: order.pickup_lat,
         pickup_lng: order.pickup_lng,
         dropoff_lat: order.delivery_lat,
         dropoff_lng: order.delivery_lng,
-        item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${(order.businesses as any)?.name || 'Business'}` : 'Food Order',
+        item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${order.businesses?.name || 'Business'}` : 'Food Order',
         item_image: null,
-        total: order.total,
+        total: Number(order.total || 0),
         created_at: order.created_at,
         updated_at: order.updated_at,
-        business_name: (order.businesses as any)?.name,
+        business_name: order.businesses?.name,
         items: Array.isArray(order.items) ? order.items : [],
       }));
+
 
       // Combine and sort
       const allDeliveries = [...formattedRiderRequests, ...formattedBusinessOrders].sort(
@@ -363,16 +376,17 @@ export const useAcceptRequest = () => {
         }
 
         // Try to claim the order atomically
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('orders')
           .update({
             rider_id: riderProfile.id,
-            status: 'preparing' // Changed from 'on_way' to 'preparing' for pickup flow
-          })
+            status: 'preparing'
+          } as any)
           .eq('id', requestId)
-          .is('rider_id', null) // Ensure no one else claimed it
+          .is('rider_id', null)
           .select()
-          .single();
+          .single() as any);
+
 
         if (error || !data) {
           console.error('Error accepting order:', error);
@@ -412,17 +426,18 @@ export const useAcceptRequest = () => {
         }
 
         // Try to claim the request atomically
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('rider_requests')
           .update({
             rider_id: riderProfile.id,
             status: 'preparing'
-          })
+          } as any)
           .eq('id', requestId)
           .eq('status', 'placed')
-          .is('rider_id', null) // Ensure no one else claimed it
+          .is('rider_id', null)
           .select()
-          .single();
+          .single() as any);
+
 
         if (error || !data) {
           console.error('Error accepting request:', error);
@@ -486,13 +501,14 @@ export const useUpdateDeliveryStatus = () => {
 
         customerId = order?.customer_id || null;
 
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('orders')
-          .update({ status })
+          .update({ status } as any)
           .eq('id', requestId)
           .eq('rider_id', riderProfile.id)
           .select()
-          .single();
+          .single() as any);
+
 
         if (error) {
           console.error('Error updating order status:', error);
@@ -514,13 +530,14 @@ export const useUpdateDeliveryStatus = () => {
               message = 'Your order has been delivered successfully';
               // Create payment record using secure RPC
               try {
-                await supabase.rpc('create_rider_payment', {
+                await supabase.rpc('create_rider_payment' as any, {
                   _order_id: requestId,
                   _rider_request_id: null,
-                });
+                } as any);
               } catch (paymentError) {
                 console.log('Payment creation:', paymentError);
               }
+
               break;
             case 'cancelled':
               title = '❌ Order Cancelled';
@@ -551,13 +568,14 @@ export const useUpdateDeliveryStatus = () => {
 
         customerId = request?.customer_id || null;
 
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
           .from('rider_requests')
-          .update({ status })
+          .update({ status } as any)
           .eq('id', requestId)
           .eq('rider_id', riderProfile.id)
           .select()
-          .single();
+          .single() as any);
+
 
         if (error) {
           console.error('Error updating delivery status:', error);
@@ -579,13 +597,14 @@ export const useUpdateDeliveryStatus = () => {
               message = 'Your package has been delivered successfully';
               // Create payment record using secure RPC
               try {
-                await supabase.rpc('create_rider_payment', {
+                await supabase.rpc('create_rider_payment' as any, {
                   _order_id: null,
                   _rider_request_id: requestId,
-                });
+                } as any);
               } catch (paymentError) {
                 console.log('Payment creation:', paymentError);
               }
+
               break;
             case 'cancelled':
               title = '❌ Delivery Cancelled';
@@ -634,15 +653,16 @@ export const useToggleOnlineStatus = () => {
 
       console.log('[useToggleOnlineStatus] Setting rider online status:', isOnline);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('riders')
         .update({
           is_online: isOnline,
           last_online_at: new Date().toISOString()
-        })
+        } as any)
         .eq('user_id', user.id)
         .select()
-        .single();
+        .single() as any);
+
 
       if (error) {
         console.error('[useToggleOnlineStatus] Error toggling online status:', error);
@@ -731,7 +751,7 @@ export const useRegisterAsRider = () => {
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('register_rider', {
+      const { data, error } = await supabase.rpc('register_rider' as any, {
         _name: riderData.name,
         _phone: riderData.phone,
         _vehicle_type: riderData.vehicle_type,
@@ -739,7 +759,8 @@ export const useRegisterAsRider = () => {
         _cnic_front: riderData.cnic_front || null,
         _cnic_back: riderData.cnic_back || null,
         _license_image: riderData.license_image || null
-      });
+      } as any);
+
 
       if (error) {
         console.error('Error registering as rider:', error);
@@ -768,12 +789,13 @@ export const useUpdateRiderProfile = () => {
     }) => {
       if (!riderProfile) throw new Error('Rider profile not found');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('riders')
-        .update(updates)
+        .update(updates as any)
         .eq('id', riderProfile.id)
         .select()
-        .single();
+        .single() as any);
+
 
       if (error) {
         console.error('Error updating rider profile:', error);

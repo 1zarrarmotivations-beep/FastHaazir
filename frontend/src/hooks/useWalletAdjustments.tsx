@@ -84,7 +84,7 @@ export const useCreateWalletAdjustment = () => {
       linkedRiderRequestId?: string;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       if (!userData.user?.id) {
         throw new Error('Not authenticated');
       }
@@ -234,31 +234,53 @@ export const useRiderWalletSummary = (riderId?: string) => {
 
       if (withdrawalsError) throw withdrawalsError;
 
-      // Calculate earnings
-      const totalEarnings = payments?.reduce((sum, p) => sum + (p.final_amount || 0), 0) || 0;
-      const completedEarnings = payments?.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.final_amount || 0), 0) || 0;
-      const paidEarnings = payments?.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0) || 0;
+      // Calculate earnings: Completed = earned but not necessarily paid yet. Paid = already transferred.
+      const completedEarnings = payments?.filter(p => p.status === 'completed' || p.status === 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0) || 0;
+      const alreadyPaidEarnings = payments?.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0) || 0;
+
+      // Get ALL adjustments that are not cancelled
+      const { data: allAdjustments, error: adjError } = await supabase
+        .from('rider_wallet_adjustments')
+        .select('amount, adjustment_type, status')
+        .eq('rider_id', riderId)
+        .neq('status', 'cancelled');
+
+      if (adjError) throw adjError;
 
       // Calculate adjustments
-      const cashAdvances = adjustments?.filter(a => a.adjustment_type === 'cash_advance').reduce((sum, a) => sum + a.amount, 0) || 0;
-      const bonuses = adjustments?.filter(a => a.adjustment_type === 'bonus').reduce((sum, a) => sum + a.amount, 0) || 0;
-      const deductions = adjustments?.filter(a => a.adjustment_type === 'deduction' || a.adjustment_type === 'settlement').reduce((sum, a) => sum + a.amount, 0) || 0;
+      // Improvements: Anything effectively giving money to rider (+), anything taking (-).
+      const totalBonuses = allAdjustments?.filter(a => ['bonus', 'cash_advance', 'correction'].includes(a.adjustment_type) && a.amount > 0).reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+      const totalDeductions = allAdjustments?.filter(a => (['deduction', 'settlement'].includes(a.adjustment_type) || a.amount < 0)).reduce((sum, a) => sum + Math.abs(Number(a.amount)), 0) || 0;
 
-      // Calculate pending withdrawals
-      const pendingWithdrawals = withdrawals?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
+      // Get all non-rejected withdrawals
+      const { data: allWithdrawals, error: withError } = await supabase
+        .from('withdrawal_requests')
+        .select('amount, status')
+        .eq('rider_id', riderId)
+        .neq('status', 'rejected');
 
-      // Net balance = completed earnings + cash advances + bonuses - deductions - pending withdrawals
-      const netBalance = completedEarnings + cashAdvances + bonuses - deductions - pendingWithdrawals;
+      if (withError) throw withError;
+
+      const pendingWithdrawals = allWithdrawals?.filter(w => ['pending', 'approved'].includes(w.status)).reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
+      const totalPaidWithdrawals = allWithdrawals?.filter(w => w.status === 'paid').reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
+
+      // Net balance (available for future withdrawal) = (All Earnings + Bonuses) - (Deductions + All (Pending+Paid) Withdrawals)
+      // Note: We include everything in the calculation to ensure history is preserved.
+      const totalCredit = completedEarnings + totalBonuses;
+      const totalDebit = totalDeductions + pendingWithdrawals + totalPaidWithdrawals;
+      const netBalance = totalCredit - totalDebit;
 
       return {
-        totalEarnings,
+        totalEarnings: completedEarnings,
         completedEarnings,
-        paidEarnings,
-        cashAdvances,
-        bonuses,
-        deductions,
+        paidEarnings: alreadyPaidEarnings + totalPaidWithdrawals,
+        cashAdvances: totalBonuses,
+        bonuses: totalBonuses,
+        deductions: totalDeductions,
         pendingWithdrawals,
         netBalance: Math.max(0, netBalance),
+        totalCredit,
+        totalDebit
       };
     },
     enabled: !!riderId,

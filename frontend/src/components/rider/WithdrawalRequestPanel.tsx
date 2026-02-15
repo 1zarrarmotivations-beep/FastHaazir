@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowUpRight, 
-  X, 
+import {
+  ArrowUpRight,
+  X,
   Wallet,
   Clock,
   CheckCircle,
@@ -17,10 +17,10 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
-import { 
-  useRiderWithdrawals, 
-  useCreateWithdrawal, 
-  useRiderAvailableBalance 
+import {
+  useRiderWithdrawals,
+  useCreateWithdrawal,
+  useRiderAvailableBalance
 } from '@/hooks/useWithdrawals';
 import { useRiderEarningsSummary } from '@/hooks/useRiderPayments';
 
@@ -44,14 +44,15 @@ const WithdrawalRequestPanel = ({ riderId, isOpen, onClose }: WithdrawalRequestP
   const { data: summary } = useRiderEarningsSummary(riderId);
   const createWithdrawal = useCreateWithdrawal();
 
-  const availableBalance = summary?.pendingEarnings || 0;
+  const withdrawableAmount = balance?.available || 0;
   const pendingWithdrawals = balance?.pending || 0;
-  const withdrawableAmount = Math.max(0, availableBalance - pendingWithdrawals);
+  const totalEarnings = summary?.totalEarnings || 0;
+  const alreadyWithdrawn = balance?.withdrawn || 0;
 
   const handleSubmit = () => {
     const numAmount = Number(amount);
     if (numAmount <= 0 || numAmount > withdrawableAmount) return;
-    
+
     createWithdrawal.mutate({
       riderId,
       amount: numAmount,
@@ -97,7 +98,7 @@ const WithdrawalRequestPanel = ({ riderId, isOpen, onClose }: WithdrawalRequestP
           <p className="text-sm opacity-80 mb-1">Available for Withdrawal</p>
           <p className="text-4xl font-bold mb-2">Rs {withdrawableAmount}</p>
           <div className="flex items-center gap-4 text-sm opacity-80">
-            <span>Total Pending: Rs {availableBalance}</span>
+            <span>Total Earnings: Rs {totalEarnings}</span>
             {pendingWithdrawals > 0 && (
               <span className="text-yellow-200">Processing: Rs {pendingWithdrawals}</span>
             )}
@@ -112,7 +113,7 @@ const WithdrawalRequestPanel = ({ riderId, isOpen, onClose }: WithdrawalRequestP
             <Wallet className="w-4 h-4 text-primary" />
             New Withdrawal Request
           </h3>
-          
+
           {withdrawableAmount <= 0 ? (
             <div className="text-center py-6 text-muted-foreground">
               <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />

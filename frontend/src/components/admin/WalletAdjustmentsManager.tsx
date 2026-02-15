@@ -89,18 +89,6 @@ const WalletAdjustmentsManager = ({ riderId }: WalletAdjustmentsManagerProps) =>
   const [newType, setNewType] = useState<WalletAdjustment['adjustment_type']>('cash_advance');
   const [newReason, setNewReason] = useState('');
 
-  // Handle incoming riderId
-  useEffect(() => {
-    if (riderId) {
-      setNewRiderId(riderId);
-      // Optional: search for the rider to show their adjustments
-      const rider = riders?.find(r => r.id === riderId);
-      if (rider && rider.name) {
-        setSearchQuery(rider.name);
-      }
-    }
-  }, [riderId, riders]);
-
   // Fetch riders for dropdown
   const { data: riders } = useQuery({
     queryKey: ['all-riders-simple'],
@@ -114,6 +102,18 @@ const WalletAdjustmentsManager = ({ riderId }: WalletAdjustmentsManagerProps) =>
       return data as RiderOption[];
     },
   });
+
+  // Handle incoming riderId
+  useEffect(() => {
+    if (riderId) {
+      setNewRiderId(riderId);
+      // Optional: search for the rider to show their adjustments
+      const rider = riders?.find(r => r.id === riderId);
+      if (rider && rider.name) {
+        setSearchQuery(rider.name);
+      }
+    }
+  }, [riderId, riders]);
 
   const filteredAdjustments = adjustments?.filter((a) => {
     const matchesSearch = a.rider?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||

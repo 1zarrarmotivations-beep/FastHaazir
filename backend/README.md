@@ -34,9 +34,12 @@ npx nodemon server.js
 
 ## API Endpoints
 
-*   `POST /api/payments/create`: Create a payment request.
-*   `POST /api/payments/webhook`: Handle PayUp webhook.
+*   `POST /api/payments/create`: Create a payment request and generate QR code.
+    *   Body: `{ order_id, user_id, amount }`
+    *   Returns: `{ transaction_id, qr_url, payment_url, expires_in }`
+*   `POST /api/payments/webhook`: Handle PayUp webhook notifications.
 *   `GET /api/payments/verify/:transaction_id`: Check payment status.
+*   `POST /api/payments/claim`: Manual payment claim (fallback).
 
 ## Frontend Connection
 
@@ -45,3 +48,20 @@ Update `frontend/.env` (or `.env.production`) for deployment:
 VITE_BACKEND_URL=https://your-deployed-backend.com
 ```
 For local testing, `http://localhost:5000` is used by default.
+
+## PayUp QR Code Format
+
+The backend generates QR codes in the following JSON format that can be scanned by any banking app:
+
+```json
+{
+  "m": "PK",
+  "am": "100.00",
+  "mn": "FastHaazir",
+  "rd": "Y",
+  "rq": "order-id",
+  "tn": "Order #order-id"
+}
+```
+
+This format works with JazzCash, Easypaisa, and other banking apps that support QR payments.

@@ -19,7 +19,10 @@ import {
   Tag,
   BarChart3,
   Headphones,
-  FileText
+  FileText,
+  ArrowUpCircle,
+  TrendingUp,
+  CreditCard
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -56,10 +59,10 @@ const menuGroups = [
   {
     title: "Finance",
     items: [
-      { id: "earnings", label: "Rider Earnings", icon: DollarSign },
-      { id: "wallet-adjustments", label: "Cash Advances", icon: Wallet },
-      { id: "withdrawals", label: "Withdrawals", icon: Wallet },
-      { id: "category-pricing", label: "Pricing", icon: Tag },
+      { id: "earnings", label: "Rider Earnings", icon: TrendingUp },
+      { id: "wallet-adjustments", label: "Cash Advances", icon: ArrowUpCircle },
+      { id: "withdrawals", label: "Withdrawals", icon: CreditCard },
+      { id: "category-pricing", label: "Pricing", icon: DollarSign },
       { id: "payment-settings", label: "Settings", icon: Settings },
     ]
   },

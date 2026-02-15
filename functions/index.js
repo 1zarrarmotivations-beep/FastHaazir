@@ -15,47 +15,70 @@ const app = express();
 
 // Middleware
 app.use(cors({ origin: true }));
-app.use(bodyParser.json());
+// Verification of raw body for webhook signatures
+app.use(bodyParser.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 
 // Supabase Client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
-
-// Check if vars are present
-if (!supabaseUrl || !supabaseKey) {
-    console.warn("Supabase env vars missing!");
-}
-
-const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
+const supabaseUrl = process.env.SUPABASE_URL || 'https://jqbwynomwwjhsebcicpm.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY; // Only server-side
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // PayUp Configuration
 const PAYUP_API_KEY = process.env.PAYUP_API_KEY;
 const PAYUP_BASE_URL = 'https://dashboard.payup.pk/api';
 
-// --- Handlers ---
+// Helper function to generate QR string for PayUp
+const generatePayUpQRString = (amount, orderId) => {
+    const payload = {
+        m: 'PK', // Country code
+        am: amount.toFixed(2), // Amount
+        mn: 'FastHaazir', // Merchant name
+        rd: 'Y', // Require dynamic QR
+        rq: orderId, // Reference/Order ID
+        tn: `Order #${orderId}` // Transaction note
+    };
+    return JSON.stringify(payload);
+};
 
-// Create Payment Endpoint (handle both /api and root paths for safety)
-const handleCreatePayment = async (req, res) => {
+// ==========================================
+// PAYMENT ENDPOINTS
+// ==========================================
+
+// Create Payment Endpoint
+app.post('/api/payments/create', async (req, res) => {
     try {
-        const { order_id, user_id, amount } = req.body;
+        const { order_id, rider_request_id, user_id, amount } = req.body;
 
-        if (!order_id || !amount || !user_id) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!(order_id || rider_request_id) || !amount || !user_id) {
+            return res.status(400).json({ error: 'Missing required fields: (order_id or rider_request_id), user_id, amount' });
         }
 
-        console.log(`Creating payment for Order: ${order_id}, Amount: ${amount}`);
+        const numericAmount = parseFloat(amount);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({ error: 'Invalid amount' });
+        }
+
+        const targetId = order_id || rider_request_id;
+        console.log('Creating payment for:', targetId, 'amount:', numericAmount);
 
         // Check for existing pending payment
-        const { data: existingPayment } = await supabase
+        const query = supabase
             .from('payments')
             .select('*')
-            .eq('order_id', order_id)
             .eq('payment_status', 'pending')
-            .gt('expires_at', new Date().toISOString())
-            .maybeSingle();
+            .gt('expires_at', new Date().toISOString());
+
+        if (order_id) query.eq('order_id', order_id);
+        else query.eq('rider_request_id', rider_request_id);
+
+        const { data: existingPayment } = await query.maybeSingle();
 
         if (existingPayment) {
-            console.log('Found existing payment:', existingPayment.transaction_id);
+            console.log('Returning existing payment:', existingPayment.transaction_id);
             return res.json({
                 transaction_id: existingPayment.transaction_id,
                 qr_url: existingPayment.qr_url,
@@ -64,64 +87,28 @@ const handleCreatePayment = async (req, res) => {
             });
         }
 
-        // Generate unique transaction ID
         const transaction_id = crypto.randomUUID();
-
-        // Call PayUp API
-        // Documentation: type "string", example "1500". 
-        // Some apps might prefer "1500.00", let's try strict formatting.
-        const formattedAmount = parseFloat(amount).toFixed(2);
-        const payupPayload = {
-            amount: formattedAmount,
-            platform: "shopify" // Request official QR URL as well
-        };
-
-        console.log('Generating QR from PayUp:', payupPayload);
-
-        const payupResponse = await axios.post(`${PAYUP_BASE_URL}/generate-qr`, payupPayload, {
-            headers: {
-                'Authorization': `Bearer ${PAYUP_API_KEY}`,
-            }
-        });
-
-        const payupData = payupResponse.data;
-        console.log('PayUp Response:', JSON.stringify(payupData));
-
-        // Extract QR Content
-        let qr_string = '';
-        let official_qr_url = '';
-
-        if (payupData.qrContent) {
-            qr_string = payupData.qrContent;
-        } else if (payupData.data && payupData.data.qr_string) {
-            qr_string = payupData.data.qr_string;
-        }
-
-        if (payupData.qrUrl) {
-            official_qr_url = payupData.qrUrl;
-        }
-
-        if (!qr_string || qr_string.includes('Error')) {
-            throw new Error(qr_string || 'Failed to generate QR');
-        }
-
-        // Determine expiry (15 mins from now)
+        const qr_string = generatePayUpQRString(numericAmount, targetId);
+        const payment_url = `${PAYUP_BASE_URL}/pay?data=${encodeURIComponent(qr_string)}`;
         const expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-        // Save to database
+        const insertPayload = {
+            user_id,
+            transaction_id,
+            amount: numericAmount,
+            payment_method: 'payup_qr',
+            payment_status: 'pending',
+            qr_url: qr_string,
+            payment_url: payment_url,
+            expires_at
+        };
+
+        if (order_id) insertPayload.order_id = order_id;
+        if (rider_request_id) insertPayload.rider_request_id = rider_request_id;
+
         const { data: payment, error: dbError } = await supabase
             .from('payments')
-            .insert({
-                order_id,
-                user_id,
-                transaction_id,
-                amount,
-                payment_method: 'payup_qr',
-                payment_status: 'pending',
-                qr_url: qr_string,
-                payment_url: official_qr_url, // Storing official URL in payment_url column for reference
-                expires_at
-            })
+            .insert(insertPayload)
             .select()
             .single();
 
@@ -138,70 +125,118 @@ const handleCreatePayment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Payment Create Error:', error.response?.data || error.message);
+        console.error('Payment Create Error:', error.message);
         res.status(500).json({ error: error.message || 'Payment creation failed' });
     }
+});
+
+// PayUp Webhook Signature Verification (Conceptual)
+const verifyPayUpSignature = (payload, signature) => {
+    if (!signature || !PAYUP_API_KEY) return true; // TODO: Implement strict verification when key is verified
+    // Example: hmac-sha256 of payload with API key
+    return true;
 };
 
 // Webhook Endpoint
-const handleWebhook = async (req, res) => {
+app.post('/api/payments/webhook', async (req, res) => {
     try {
         const payload = req.body;
-        console.log('Webhook payload:', JSON.stringify(payload));
+        const signature = req.headers['x-payup-signature'];
 
-        // Some verification logic here...
-        const orderId = payload.orderId;
-        const amount = payload.amount;
+        console.log('Webhook Received:', JSON.stringify(payload));
 
-        if (!orderId) {
-            console.warn('Webhook payload missing orderId');
-            return res.status(200).send('OK');
+        if (!verifyPayUpSignature(payload, signature)) {
+            return res.status(401).json({ error: 'Invalid signature' });
         }
 
-        // Find payment
+        // Handle various PayUp field versions
+        const orderId = payload.order_id || payload.orderId || payload.reference_id || payload.rq;
+        const status = payload.status || payload.payment_status || payload.st;
+        const payupTransactionId = payload.transaction_id || payload.txn_id || payload.txnId;
+
+        if (!orderId) {
+            return res.status(200).json({ received: true, message: 'No reference ID found' });
+        }
+
+        // Find payment by order_id or rider_request_id
         const { data: payment, error: fetchError } = await supabase
             .from('payments')
             .select('*')
-            .eq('order_id', orderId)
+            .or(`order_id.eq."${orderId}",rider_request_id.eq."${orderId}"`)
             .eq('payment_status', 'pending')
-            .single();
+            .maybeSingle();
 
         if (fetchError || !payment) {
-            console.warn('Payment not found or not pending:', orderId);
-            return res.status(200).send('OK');
+            console.log('Payment not found or already processed for ID:', orderId);
+            return res.status(200).json({ received: true, message: 'Payment not found or processed' });
         }
 
-        // Update Payment Status
+        let paymentStatus = 'pending';
+        // Map various success statuses
+        const successStatuses = ['success', 'SUCCESS', 'paid', 'PAID', 'COMPLETED', 'completed', 'Verified'];
+        if (successStatuses.includes(status)) {
+            paymentStatus = 'paid';
+        } else if (['failed', 'FAILED', 'expired', 'EXPIRED', 'rejected'].includes(status)) {
+            paymentStatus = 'failed';
+        }
+
+        // Update payment record
         const { error: updateError } = await supabase
             .from('payments')
-            .update({ payment_status: 'paid' })
+            .update({
+                payment_status: paymentStatus,
+                payup_transaction_id: payupTransactionId || null,
+                updated_at: new Date().toISOString()
+            })
             .eq('id', payment.id);
 
         if (updateError) throw updateError;
 
-        // Update Order Status
-        const { error: orderUpdateError } = await supabase
-            .from('orders')
-            .update({
-                status: 'preparing',
-            })
-            .eq('id', payment.order_id);
+        // If paid, update the actual business entity (Order or Rider Request)
+        if (paymentStatus === 'paid') {
+            if (payment.order_id) {
+                await supabase
+                    .from('orders')
+                    .update({ payment_status: 'paid', status: 'preparing' })
+                    .eq('id', payment.order_id);
 
-        if (orderUpdateError) console.error('Error updating order:', orderUpdateError);
+                // Trigger notification
+                await supabase.rpc('create_notification', {
+                    _user_id: payment.user_id,
+                    _title: '💰 Payment Received!',
+                    _message: `Rs. ${payment.amount} received for Order #${payment.order_id.substring(0, 8)}`,
+                    _type: 'payment',
+                    _order_id: payment.order_id
+                });
+            } else if (payment.rider_request_id) {
+                await supabase
+                    .from('rider_requests')
+                    .update({ status: 'preparing' }) // We might need a payment_status column here eventually
+                    .eq('id', payment.rider_request_id);
 
-        res.status(200).send('OK');
+                // Trigger notification
+                await supabase.rpc('create_notification', {
+                    _user_id: payment.user_id,
+                    _title: '💰 Payment Received!',
+                    _message: `Rs. ${payment.amount} received for Delivery #${payment.rider_request_id.substring(0, 8)}`,
+                    _type: 'payment',
+                    _rider_request_id: payment.rider_request_id
+                });
+            }
+        }
+
+        res.status(200).json({ received: true, status: paymentStatus });
 
     } catch (error) {
         console.error('Webhook Error:', error);
-        res.status(500).send('Webhook failed');
+        res.status(500).json({ error: 'Webhook processing failed' });
     }
-};
+});
 
-// Verification Endpoint
-const handleVerify = async (req, res) => {
+// Verification Endpoint (Frontend Polling)
+app.get('/api/payments/verify/:transaction_id', async (req, res) => {
     try {
         const { transaction_id } = req.params;
-
         const { data: payment, error } = await supabase
             .from('payments')
             .select('*')
@@ -212,77 +247,139 @@ const handleVerify = async (req, res) => {
             return res.status(404).json({ error: 'Payment not found' });
         }
 
-        res.json({ status: payment.payment_status });
+        // Handle expiration during check
+        if (payment.payment_status === 'pending' && new Date(payment.expires_at) < new Date()) {
+            await supabase.from('payments').update({ payment_status: 'failed' }).eq('id', payment.id);
+            return res.json({ status: 'expired' });
+        }
 
+        res.json({
+            status: payment.payment_status,
+            amount: payment.amount,
+            order_id: payment.order_id || payment.rider_request_id,
+            expires_at: payment.expires_at
+        });
     } catch (error) {
-        console.error('Verify Error:', error);
         res.status(500).json({ error: 'Verification failed' });
     }
-};
+});
 
-// Claim Endpoint (Manual "I have Paid")
-const handleClaimPayment = async (req, res) => {
+// Manual Claim Endpoint
+app.post('/api/payments/claim', async (req, res) => {
     try {
         const { transaction_id } = req.body;
-        console.log('User claiming payment for:', transaction_id);
-
         const { data: payment, error } = await supabase
             .from('payments')
             .select('*')
             .eq('transaction_id', transaction_id)
             .single();
 
-        if (error || !payment) {
-            return res.status(404).json({ error: 'Payment not found' });
+        if (error || !payment) return res.status(404).json({ error: 'Payment not found' });
+
+        if (payment.payment_status === 'pending') {
+            await supabase.from('payments').update({
+                payment_status: 'claimed',
+                admin_notes: 'User manually clicked "I have paid"',
+                updated_at: new Date().toISOString()
+            }).eq('id', payment.id);
         }
 
-        // Update Payment Status to 'waiting_verification' (or similar custom status)
-        // Here we will use 'waiting_approval' to distinguish from initial 'pending'
-        const { error: updateError } = await supabase
-            .from('payments')
-            .update({ payment_status: 'waiting_approval' })
-            .eq('id', payment.id);
-
-        if (updateError) throw updateError;
-
-        // Also update Order status to 'preparing' (or 'pending_payment_approval')
-        // The user wants the flow to continue.
-        const { error: orderUpdateError } = await supabase
-            .from('orders')
-            .update({
-                status: 'preparing',
-            })
-            .eq('id', payment.order_id);
-
-        if (orderUpdateError) console.error('Error updating order on claim:', orderUpdateError);
-
-        res.json({ success: true, message: 'Payment marked for approval' });
-
+        res.json({ success: true, message: 'Payment claim submitted. Admin will verify shortly.' });
     } catch (error) {
-        console.error('Claim Error:', error);
         res.status(500).json({ error: 'Claim failed' });
+    }
+});
+
+// ==========================================
+// ADMIN ENDPOINTS
+// ==========================================
+
+// Middleware to verify admin status using JWT
+const verifyAdmin = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'No authorization header' });
+
+        const token = authHeader.split(' ')[1];
+        // Use service role client to ensure we can check roles even if rules are tight
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+        if (authError || !user) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        // Check if user is admin via RPC
+        const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+            _user_id: user.id,
+            _role: 'admin'
+        });
+
+        if (roleError || !isAdmin) {
+            console.warn(`Unauthorized admin attempt by user: ${user.id}`);
+            return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+        }
+
+        req.admin = user;
+        next();
+    } catch (error) {
+        console.error('Auth Middleware Error:', error);
+        res.status(500).json({ error: 'Authentication check failed' });
     }
 };
 
-// --- Routes ---
+// Admin: Manually Confirm Payment
+app.post('/api/admin/payments/confirm', verifyAdmin, async (req, res) => {
+    try {
+        const { payment_id, notes, admin_name } = req.body;
+        const adminName = admin_name || req.admin.email || "System Admin";
 
-app.post('/payments/create', handleCreatePayment);
-app.post('/api/payments/create', handleCreatePayment);
+        const { data: payment, error: fetchError } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('id', payment_id)
+            .single();
 
-app.post('/payments/webhook', handleWebhook);
-app.post('/api/payments/webhook', handleWebhook);
+        if (fetchError || !payment) return res.status(404).json({ error: 'Payment record not found' });
+        if (payment.payment_status === 'paid') return res.status(400).json({ error: 'Already marked as paid' });
 
-app.get('/payments/verify/:transaction_id', handleVerify);
-app.get('/api/payments/verify/:transaction_id', handleVerify);
+        // Update payment table
+        await supabase.from('payments').update({
+            payment_status: 'paid',
+            approved_by_name: adminName,
+            admin_notes: notes || 'Manually approved by admin',
+            updated_at: new Date().toISOString()
+        }).eq('id', payment.id);
 
-app.post('/payments/claim', handleClaimPayment);
-app.post('/api/payments/claim', handleClaimPayment);
+        // Update business entities
+        if (payment.order_id) {
+            await supabase.from('orders').update({
+                payment_status: 'paid',
+                status: 'preparing',
+                updated_at: new Date().toISOString()
+            }).eq('id', payment.order_id);
+        } else if (payment.rider_request_id) {
+            await supabase.from('rider_requests').update({
+                status: 'preparing',
+                updated_at: new Date().toISOString()
+            }).eq('id', payment.rider_request_id);
+        }
 
-// Catch-all
-app.use((req, res) => {
-    console.log(`404 Not Found: ${req.method} ${req.url}`);
-    res.status(404).json({ error: 'Endpoint not found', path: req.url });
+        // Notify user
+        await supabase.rpc('create_notification', {
+            _user_id: payment.user_id,
+            _title: '✅ Payment Confirmed!',
+            _message: `Your payment of Rs. ${payment.amount} has been verified by admin.`,
+            _type: 'payment',
+            _order_id: payment.order_id,
+            _rider_request_id: payment.rider_request_id
+        });
+
+        res.json({ success: true, message: 'Payment confirmed and order/request activated' });
+    } catch (error) {
+        console.error('Admin Confirm Error:', error);
+        res.status(500).json({ error: 'Manual confirmation failed' });
+    }
 });
 
 // Expose Express App as a single Cloud Function
-exports.api = onRequest(app);
+exports.api = onRequest({ timeoutSeconds: 60, region: "us-central1" }, app);

@@ -7,1170 +7,291 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   public: {
     Tables: {
       admins: {
         Row: {
-          created_at: string
-          email: string | null
           id: string
-          is_active: boolean
-          phone: string
-          updated_at: string
           user_id: string | null
+          phone: string | null
+          is_super: boolean | null
+          created_at: string | null
+          name: string | null
+          is_active: boolean | null
+          email: string | null
+          updated_at: string | null
         }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          is_active?: boolean
-          phone: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          is_active?: boolean
-          phone?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
       }
       businesses: {
         Row: {
-          category: string | null
-          claimed: boolean | null
-          commission_rate: number | null
-          completion_rate: number | null
-          created_at: string
-          deleted_at: string | null
-          description: string | null
-          distance: string | null
-          eta: string | null
-          featured: boolean | null
           id: string
-          image: string | null
-          is_active: boolean | null
-          is_approved: boolean
-          is_blocked: boolean | null
           name: string
-          online_since: string | null
-          owner_email: string | null
+          type: string
+          image: string | null
+          rating: number | null
+          featured: boolean | null
+          is_active: boolean | null
+          is_approved: boolean | null
           owner_phone: string | null
           owner_user_id: string | null
-          ranking_score: number | null
-          rating: number | null
-          total_orders: number | null
-          type: Database["public"]["Enums"]["business_type"]
-          updated_at: string
-        }
-        Insert: {
-          category?: string | null
-          claimed?: boolean | null
-          commission_rate?: number | null
-          completion_rate?: number | null
-          created_at?: string
-          deleted_at?: string | null
-          description?: string | null
-          distance?: string | null
-          eta?: string | null
-          featured?: boolean | null
-          id?: string
-          image?: string | null
-          is_active?: boolean | null
-          is_approved?: boolean
-          is_blocked?: boolean | null
-          name: string
-          online_since?: string | null
-          owner_email?: string | null
-          owner_phone?: string | null
-          owner_user_id?: string | null
-          ranking_score?: number | null
-          rating?: number | null
-          total_orders?: number | null
-          type?: Database["public"]["Enums"]["business_type"]
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          claimed?: boolean | null
-          commission_rate?: number | null
-          completion_rate?: number | null
-          created_at?: string
-          deleted_at?: string | null
-          description?: string | null
-          distance?: string | null
-          eta?: string | null
-          featured?: boolean | null
-          id?: string
-          image?: string | null
-          is_active?: boolean | null
-          is_approved?: boolean
-          is_blocked?: boolean | null
-          name?: string
-          online_since?: string | null
-          owner_email?: string | null
-          owner_phone?: string | null
-          owner_user_id?: string | null
-          ranking_score?: number | null
-          rating?: number | null
-          total_orders?: number | null
-          type?: Database["public"]["Enums"]["business_type"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      chat_messages: {
-        Row: {
-          created_at: string
-          id: string
-          message: string
-          order_id: string | null
-          read_at: string | null
-          rider_request_id: string | null
-          sender_id: string
-          sender_type: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message: string
-          order_id?: string | null
-          read_at?: string | null
-          rider_request_id?: string | null
-          sender_id: string
-          sender_type: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message?: string
-          order_id?: string | null
-          read_at?: string | null
-          rider_request_id?: string | null
-          sender_id?: string
-          sender_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_messages_rider_request_id_fkey"
-            columns: ["rider_request_id"]
-            isOneToOne: false
-            referencedRelation: "rider_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      customer_addresses: {
-        Row: {
-          address_text: string
-          created_at: string
-          id: string
-          is_default: boolean
-          label: string
-          lat: number | null
-          lng: number | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          address_text: string
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          label?: string
-          lat?: number | null
-          lng?: number | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          address_text?: string
-          created_at?: string
-          id?: string
-          is_default?: boolean
-          label?: string
-          lat?: number | null
-          lng?: number | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      customer_profiles: {
-        Row: {
           address: string | null
+          latitude: number | null
+          longitude: number | null
           created_at: string
-          email: string | null
-          id: string
-          name: string | null
+          updated_at: string
+          owner_name: string | null
+          city: string | null
           phone: string | null
-          phone_verified: boolean | null
-          profile_image: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string | null
-          phone?: string | null
-          phone_verified?: boolean | null
-          profile_image?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          address?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string | null
-          phone?: string | null
-          phone_verified?: boolean | null
-          profile_image?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      menu_items: {
-        Row: {
-          business_id: string
-          category: string | null
-          created_at: string
           description: string | null
-          id: string
-          image: string | null
-          is_available: boolean | null
-          is_popular: boolean | null
-          name: string
-          price: number
+          category: string | null
+          eta: string | null
+          distance: string | null
+          commission_rate: number | null
+          claimed: boolean | null
+          location_address: string | null
+          location_lat: number | null
+          location_lng: number | null
+          owner_email: string | null
+          is_busy: boolean | null
+          update_at: string | null
+          deleted_at: string | null
+          total_ratings: number | null
         }
-        Insert: {
-          business_id: string
-          category?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          image?: string | null
-          is_available?: boolean | null
-          is_popular?: boolean | null
-          name: string
-          price: number
-        }
-        Update: {
-          business_id?: string
-          category?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          image?: string | null
-          is_available?: boolean | null
-          is_popular?: boolean | null
-          name?: string
-          price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "menu_items_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "menu_items_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "public_business_info"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_settings: {
-        Row: {
-          created_at: string
-          id: string
-          order_updates: boolean
-          promotions: boolean
-          rider_messages: boolean
-          system_alerts: boolean
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          order_updates?: boolean
-          promotions?: boolean
-          rider_messages?: boolean
-          system_alerts?: boolean
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          order_updates?: boolean
-          promotions?: boolean
-          rider_messages?: boolean
-          system_alerts?: boolean
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      notifications: {
-        Row: {
-          created_at: string
-          id: string
-          is_read: boolean
-          message: string
-          order_id: string | null
-          rider_request_id: string | null
-          title: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          message: string
-          order_id?: string | null
-          rider_request_id?: string | null
-          title: string
-          type?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          message?: string
-          order_id?: string | null
-          rider_request_id?: string | null
-          title?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_rider_request_id_fkey"
-            columns: ["rider_request_id"]
-            isOneToOne: false
-            referencedRelation: "rider_requests"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
       }
       orders: {
         Row: {
-          business_id: string | null
-          created_at: string
-          customer_id: string | null
-          customer_phone: string | null
-          delivery_address: string | null
-          delivery_fee: number
-          delivery_lat: number | null
-          delivery_lng: number | null
-          eta: string | null
           id: string
-          items: Json
-          notes: string | null
+          customer_id: string | null
+          rider_id: string | null
+          status: string | null
+          total_amount: number | null
+          created_at: string | null
+          delivery_otp: string | null
+          otp_verified: boolean | null
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
-          rider_id: string | null
-          status: Database["public"]["Enums"]["order_status"]
-          subtotal: number
-          total: number
-          updated_at: string
-        }
-        Insert: {
-          business_id?: string | null
-          created_at?: string
-          customer_id?: string | null
-          customer_phone?: string | null
-          delivery_address?: string | null
-          delivery_fee?: number
-          delivery_lat?: number | null
-          delivery_lng?: number | null
-          eta?: string | null
-          id?: string
-          items?: Json
-          notes?: string | null
-          pickup_address?: string | null
-          pickup_lat?: number | null
-          pickup_lng?: number | null
-          rider_id?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          subtotal?: number
-          total?: number
-          updated_at?: string
-        }
-        Update: {
-          business_id?: string | null
-          created_at?: string
-          customer_id?: string | null
-          customer_phone?: string | null
-          delivery_address?: string | null
-          delivery_fee?: number
-          delivery_lat?: number | null
-          delivery_lng?: number | null
-          eta?: string | null
-          id?: string
-          items?: Json
-          notes?: string | null
-          pickup_address?: string | null
-          pickup_lat?: number | null
-          pickup_lng?: number | null
-          rider_id?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          subtotal?: number
-          total?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "public_business_info"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_rider_id_fkey"
-            columns: ["rider_id"]
-            isOneToOne: false
-            referencedRelation: "riders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      public_businesses: {
-        Row: {
-          category: string | null
-          deleted_at: string | null
-          description: string | null
-          distance: string | null
+          distance_km: number | null
+          estimated_fare: number | null
+          actual_fare: number | null
+          rider_earning: number | null
+          commission: number | null
+          surge_multiplier: number | null
+          fare_quote_id: string | null
+          fare_locked_at: string | null
+          assigned_at: string | null
+          completed_at: string | null
+          zone: string | null
+          service_type: string | null
+          is_rated: boolean | null
+          rated_at: string | null
+          business_id: string | null
+          items: Json | null
+          subtotal: number | null
+          delivery_fee: number | null
+          total: number | null
+          delivery_address: string | null
+          delivery_lat: number | null
+          delivery_lng: number | null
           eta: string | null
-          featured: boolean
-          id: string
-          image: string | null
-          is_active: boolean
-          is_approved: boolean
-          name: string
-          rating: number | null
-          type: Database["public"]["Enums"]["business_type"]
-          updated_at: string
+          updated_at: string | null
+          payment_status: string | null
+          rejection_reason: string | null
         }
-        Insert: {
-          category?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          distance?: string | null
-          eta?: string | null
-          featured?: boolean
-          id: string
-          image?: string | null
-          is_active?: boolean
-          is_approved?: boolean
-          name: string
-          rating?: number | null
-          type: Database["public"]["Enums"]["business_type"]
-          updated_at?: string
-        }
-        Update: {
-          category?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          distance?: string | null
-          eta?: string | null
-          featured?: boolean
-          id?: string
-          image?: string | null
-          is_active?: boolean
-          is_approved?: boolean
-          name?: string
-          rating?: number | null
-          type?: Database["public"]["Enums"]["business_type"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      push_device_tokens: {
-        Row: {
-          created_at: string
-          device_token: string
-          id: string
-          platform: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          device_token: string
-          id?: string
-          platform?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          device_token?: string
-          id?: string
-          platform?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      push_notifications: {
-        Row: {
-          action_route: string | null
-          failure_count: number | null
-          id: string
-          message: string
-          sent_at: string
-          sent_by: string
-          success_count: number | null
-          target_role: string | null
-          target_user_id: string | null
-          title: string
-        }
-        Insert: {
-          action_route?: string | null
-          failure_count?: number | null
-          id?: string
-          message: string
-          sent_at?: string
-          sent_by: string
-          success_count?: number | null
-          target_role?: string | null
-          target_user_id?: string | null
-          title: string
-        }
-        Update: {
-          action_route?: string | null
-          failure_count?: number | null
-          id?: string
-          message?: string
-          sent_at?: string
-          sent_by?: string
-          success_count?: number | null
-          target_role?: string | null
-          target_user_id?: string | null
-          title?: string
-        }
-        Relationships: []
-      }
-      rider_payment_settings: {
-        Row: {
-          base_fee: number
-          created_at: string
-          id: string
-          is_active: boolean | null
-          min_payment: number
-          per_km_rate: number
-          updated_at: string
-        }
-        Insert: {
-          base_fee?: number
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          min_payment?: number
-          per_km_rate?: number
-          updated_at?: string
-        }
-        Update: {
-          base_fee?: number
-          created_at?: string
-          id?: string
-          is_active?: boolean | null
-          min_payment?: number
-          per_km_rate?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      rider_payments: {
-        Row: {
-          base_fee: number
-          bonus: number | null
-          calculated_amount: number
-          created_at: string
-          customer_lat: number | null
-          customer_lng: number | null
-          distance_km: number
-          final_amount: number
-          id: string
-          order_id: string | null
-          penalty: number | null
-          per_km_rate: number
-          rider_id: string
-          rider_lat: number | null
-          rider_lng: number | null
-          rider_request_id: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          base_fee?: number
-          bonus?: number | null
-          calculated_amount?: number
-          created_at?: string
-          customer_lat?: number | null
-          customer_lng?: number | null
-          distance_km?: number
-          final_amount?: number
-          id?: string
-          order_id?: string | null
-          penalty?: number | null
-          per_km_rate?: number
-          rider_id: string
-          rider_lat?: number | null
-          rider_lng?: number | null
-          rider_request_id?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          base_fee?: number
-          bonus?: number | null
-          calculated_amount?: number
-          created_at?: string
-          customer_lat?: number | null
-          customer_lng?: number | null
-          distance_km?: number
-          final_amount?: number
-          id?: string
-          order_id?: string | null
-          penalty?: number | null
-          per_km_rate?: number
-          rider_id?: string
-          rider_lat?: number | null
-          rider_lng?: number | null
-          rider_request_id?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rider_payments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rider_payments_rider_id_fkey"
-            columns: ["rider_id"]
-            isOneToOne: false
-            referencedRelation: "riders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rider_payments_rider_request_id_fkey"
-            columns: ["rider_request_id"]
-            isOneToOne: false
-            referencedRelation: "rider_requests"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
       }
       rider_requests: {
         Row: {
-          created_at: string
-          customer_id: string | null
-          customer_phone: string | null
-          dropoff_address: string
-          dropoff_lat: number | null
-          dropoff_lng: number | null
           id: string
-          item_description: string | null
-          item_image: string | null
-          pickup_address: string
+          order_id: string | null
+          rider_id: string | null
+          customer_id: string | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+          customer_phone: string | null
+          pickup_address: string | null
+          dropoff_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
-          rider_id: string | null
-          status: Database["public"]["Enums"]["order_status"]
-          total: number
-          updated_at: string
+          dropoff_lat: number | null
+          dropoff_lng: number | null
+          total: number | null
+          rider_earning: number | null
+          commission: number | null
+          distance_km: number | null
+          item_description: string | null
+          delivery_otp: string | null
+          otp_verified: boolean | null
         }
-        Insert: {
-          created_at?: string
-          customer_id?: string | null
-          customer_phone?: string | null
-          dropoff_address: string
-          dropoff_lat?: number | null
-          dropoff_lng?: number | null
-          id?: string
-          item_description?: string | null
-          item_image?: string | null
-          pickup_address: string
-          pickup_lat?: number | null
-          pickup_lng?: number | null
-          rider_id?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          total?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          customer_id?: string | null
-          customer_phone?: string | null
-          dropoff_address?: string
-          dropoff_lat?: number | null
-          dropoff_lng?: number | null
-          id?: string
-          item_description?: string | null
-          item_image?: string | null
-          pickup_address?: string
-          pickup_lat?: number | null
-          pickup_lng?: number | null
-          rider_id?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
-          total?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rider_requests_rider_id_fkey"
-            columns: ["rider_id"]
-            isOneToOne: false
-            referencedRelation: "riders"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
       }
       riders: {
         Row: {
-          claimed: boolean | null
-          cnic: string | null
-          commission_rate: number | null
-          created_at: string
+          id: string
+          user_id: string | null
+          name: string | null
+          phone: string | null
+          vehicle_type: string | null
+          is_online: boolean | null
+          created_at: string | null
+          verification_status: string | null
+          is_active: boolean | null
+          image: string | null
+          cnic_front: string | null
+          cnic_back: string | null
+          license_image: string | null
+          last_online_at: string | null
           current_location_lat: number | null
           current_location_lng: number | null
-          email: string | null
-          id: string
-          image: string | null
-          is_active: boolean | null
-          is_blocked: boolean | null
-          is_online: boolean | null
-          name: string
-          phone: string
           rating: number | null
           total_trips: number | null
-          updated_at: string
-          user_id: string | null
-          vehicle_type: string | null
+          commission_rate: number | null
+          cnic: string | null
         }
-        Insert: {
-          claimed?: boolean | null
-          cnic?: string | null
-          commission_rate?: number | null
-          created_at?: string
-          current_location_lat?: number | null
-          current_location_lng?: number | null
-          email?: string | null
-          id?: string
-          image?: string | null
-          is_active?: boolean | null
-          is_blocked?: boolean | null
-          is_online?: boolean | null
-          name: string
-          phone: string
-          rating?: number | null
-          total_trips?: number | null
-          updated_at?: string
-          user_id?: string | null
-          vehicle_type?: string | null
-        }
-        Update: {
-          claimed?: boolean | null
-          cnic?: string | null
-          commission_rate?: number | null
-          created_at?: string
-          current_location_lat?: number | null
-          current_location_lng?: number | null
-          email?: string | null
-          id?: string
-          image?: string | null
-          is_active?: boolean | null
-          is_blocked?: boolean | null
-          is_online?: boolean | null
-          name?: string
-          phone?: string
-          rating?: number | null
-          total_trips?: number | null
-          updated_at?: string
-          user_id?: string | null
-          vehicle_type?: string | null
-        }
-        Relationships: []
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
       }
-      user_roles: {
+      rider_payments: {
         Row: {
-          created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          rider_id: string | null
+          order_id: string | null
+          rider_request_id: string | null
+          amount: number | null
+          final_amount: number | null
+          status: string | null
+          created_at: string | null
+          distance_km: number | null
+          base_fee: number | null
+          per_km_rate: number | null
+          calculated_amount: number | null
+          rider_lat: number | null
+          rider_lng: number | null
+          customer_lat: number | null
+          customer_lng: number | null
+        }
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
+      }
+      payments: {
+        Row: {
+          id: string
+          order_id: string | null
+          rider_request_id: string | null
+          user_id: string | null
+          transaction_id: string | null
+          amount: number | null
+          payment_method: string | null
+          payment_status: string | null
+          qr_url: string | null
+          payment_url: string | null
+          expires_at: string | null
+          created_at: string | null
+          updated_at: string | null
+          approved_by_name: string | null
+          admin_notes: string | null
+          payup_transaction_id: string | null
+          claim_requested_at: string | null
+        }
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
+      }
+      withdrawal_requests: {
+        Row: {
+          id: string
+          rider_id: string
+          amount: number
+          status: string
+          admin_notes: string | null
+          processed_by: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
+      }
+      rider_wallet_adjustments: {
+        Row: {
+          id: string
+          rider_id: string
+          amount: number
+          adjustment_type: string
+          reason: string | null
+          status: string
+          created_at: string
+          processed_by: string | null
+        }
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
+      }
+      notifications: {
+        Row: {
+          id: string
           user_id: string
+          title: string
+          message: string
+          type: string
+          is_read: boolean
+          created_at: string
+          order_id: string | null
+          rider_request_id: string | null
         }
-        Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
+        Insert: { [key: string]: any }
+        Update: { [key: string]: any }
       }
     }
     Views: {
-      public_business_info: {
-        Row: {
-          category: string | null
-          description: string | null
-          distance: string | null
-          eta: string | null
-          featured: boolean | null
-          id: string | null
-          image: string | null
-          is_active: boolean | null
-          name: string | null
-          rating: number | null
-          type: Database["public"]["Enums"]["business_type"] | null
-        }
-        Insert: {
-          category?: string | null
-          description?: string | null
-          distance?: string | null
-          eta?: string | null
-          featured?: boolean | null
-          id?: string | null
-          image?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          rating?: number | null
-          type?: Database["public"]["Enums"]["business_type"] | null
-        }
-        Update: {
-          category?: string | null
-          description?: string | null
-          distance?: string | null
-          eta?: string | null
-          featured?: boolean | null
-          id?: string | null
-          image?: string | null
-          is_active?: boolean | null
-          name?: string | null
-          rating?: number | null
-          type?: Database["public"]["Enums"]["business_type"] | null
-        }
-        Relationships: []
-      }
-      public_rider_info: {
-        Row: {
-          current_location_lat: number | null
-          current_location_lng: number | null
-          id: string | null
-          image: string | null
-          is_online: boolean | null
-          name: string | null
-          rating: number | null
-          total_trips: number | null
-          vehicle_type: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      can_view_rider: { Args: { _rider_id: string }; Returns: boolean }
-      create_notification: {
-        Args: {
-          _message: string
-          _order_id?: string
-          _rider_request_id?: string
-          _title: string
-          _type?: string
-          _user_id: string
-        }
-        Returns: string
-      }
-      create_rider_payment: {
-        Args: { _order_id?: string; _rider_request_id?: string }
-        Returns: string
-      }
-      get_all_riders_for_map: {
-        Args: never
-        Returns: {
-          current_location_lat: number
-          current_location_lng: number
-          id: string
-          image: string
-          is_active: boolean
-          is_online: boolean
-          name: string
-          rating: number
-          total_trips: number
-          vehicle_type: string
-        }[]
-      }
-      get_online_riders: {
-        Args: never
-        Returns: {
-          current_location_lat: number
-          current_location_lng: number
-          id: string
-          image: string
-          is_online: boolean
-          name: string
-          rating: number
-          total_trips: number
-          vehicle_type: string
-        }[]
-      }
-      get_rider_public_info: {
-        Args: { rider_uuid: string }
-        Returns: {
-          current_location_lat: number
-          current_location_lng: number
-          id: string
-          image: string
-          is_online: boolean
-          name: string
-          rating: number
-          total_trips: number
-          vehicle_type: string
-        }[]
-      }
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
+          _role: string
         }
         Returns: boolean
       }
-      link_user_by_phone: {
-        Args: { _phone: string; _user_id: string }
-        Returns: undefined
-      }
-      normalize_pk_phone_digits: { Args: { _phone: string }; Returns: string }
-      resolve_role_by_email: {
-        Args: { _email: string }
-        Returns: {
-          is_blocked: boolean
-          role: string
-        }[]
-      }
-      register_rider: {
+      create_rider_payment: {
         Args: {
-          _name: string
-          _phone: string
-          _vehicle_type: string
-          _cnic?: string | null
-          _cnic_front?: string | null
-          _cnic_back?: string | null
-          _license_image?: string | null
+          _order_id?: string
+          _rider_request_id?: string
         }
-        Returns: Json
+        Returns: string
       }
-      resolve_role_by_phone: {
-        Args: { _phone: string }
-        Returns: {
-          is_blocked: boolean
-          role: string
-        }[]
+      create_notification: {
+        Args: {
+          _user_id: string
+          _title: string
+          _message: string
+          _type?: string
+          _order_id?: string
+          _rider_request_id?: string
+        }
+        Returns: string
       }
       send_system_notification: {
-        Args: { _message: string; _title: string; _user_ids?: string[] }
-        Returns: undefined
+        Args: {
+          _title: string
+          _message: string
+          _user_ids?: string[]
+        }
+        Returns: void
       }
     }
     Enums: {
-      app_role:
-      | "admin"
-      | "moderator"
-      | "user"
-      | "business"
-      | "rider"
-      | "customer"
-      business_type: "restaurant" | "bakery" | "grocery" | "shop"
-      order_status:
-      | "placed"
-      | "preparing"
-      | "on_way"
-      | "delivered"
-      | "cancelled"
+      app_role: "admin" | "rider" | "customer" | "business"
     }
     CompositeTypes: {
       [_ in never]: never
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
-
-export const Constants = {
-  public: {
-    Enums: {
-      app_role: ["admin", "moderator", "user", "business", "rider", "customer"],
-      business_type: ["restaurant", "bakery", "grocery", "shop"],
-      order_status: ["placed", "preparing", "on_way", "delivered", "cancelled"],
-    },
-  },
-} as const

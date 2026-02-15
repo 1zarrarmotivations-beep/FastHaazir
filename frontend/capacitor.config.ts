@@ -21,7 +21,7 @@ const config: CapacitorConfig = {
     // Capture all navigations (keep in app)
     captureInput: true,
     // Enable WebView debugging for troubleshooting (set to false for release)
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: false,
     // Build options
     buildOptions: {
       keystorePath: undefined,
@@ -66,7 +66,7 @@ const config: CapacitorConfig = {
   },
 
   // Logging configuration - use 'debug' for troubleshooting, 'production' for release
-  loggingBehavior: 'debug'
+  loggingBehavior: 'production'
 };
 
 export default config;

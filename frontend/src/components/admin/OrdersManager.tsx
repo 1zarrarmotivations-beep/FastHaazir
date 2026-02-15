@@ -24,7 +24,10 @@ import {
   XCircle,
   RefreshCw,
   MessageCircle,
-  Navigation
+  Navigation,
+  CreditCard,
+  ShieldCheck,
+  Info
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,12 +62,22 @@ import {
   useRejectOrder,
   useAssignRiderToOrder,
   useUpdateOrderStatus,
-  useOrderTimeline
+  useOrderTimeline,
+  useConfirmOrderPayment
 } from "@/hooks/useAdmin";
 import { format } from "date-fns";
 import AdminChatViewer from "./AdminChatViewer";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export function OrdersManager() {
   const { t } = useTranslation();
@@ -119,12 +132,27 @@ export function OrdersManager() {
   const rejectOrder = useRejectOrder();
   const updateStatus = useUpdateOrderStatus();
   const assignRider = useAssignRiderToOrder();
+  const confirmPayment = useConfirmOrderPayment();
 
-  const filteredOrders = orders?.filter((order) => {
+  const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null);
+  const [adminNotes, setAdminNotes] = useState("");
+  const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  const filteredOrders = orders?.filter((order: any) => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.delivery_address?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+
+    const hasClaimedPayment = order.payments?.some((p: any) =>
+      p.payment_status === 'claimed' || p.payment_status === 'waiting_approval'
+    );
+
+    if (statusFilter === "claimed_payment") {
+      return matchesSearch && hasClaimedPayment;
+    }
+
+    const matchesStatus = statusFilter === "all" ? true : order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -267,6 +295,7 @@ export function OrdersManager() {
               <SelectItem value="on_way">🟣 On the Way</SelectItem>
               <SelectItem value="delivered">🟢 Delivered</SelectItem>
               <SelectItem value="cancelled">🔴 Cancelled</SelectItem>
+              <SelectItem value="claimed_payment">💰 Claimed Payments</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" onClick={() => refetch()}>
@@ -289,7 +318,7 @@ export function OrdersManager() {
       ) : (
         <div className="space-y-4">
           <AnimatePresence mode="popLayout">
-            {filteredOrders?.map((order, index) => {
+            {filteredOrders?.map((order: any, index) => {
               const config = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.placed;
               const StatusIcon = config.icon;
               const assignedRider = riders?.find(r => r.id === order.rider_id);
@@ -374,6 +403,44 @@ export function OrdersManager() {
                             </div>
                           </div>
 
+                          {/* Payment Status */}
+                          {order.payments && order.payments.length > 0 && (
+                            <div className={`mt-3 p-3 rounded-lg border flex items-center justify-between ${order.payments[0].payment_status === 'paid' ? 'bg-green-500/5 border-green-500/20' :
+                              (order.payments[0].payment_status === 'claimed' || order.payments[0].payment_status === 'waiting_approval') ? 'bg-amber-500/10 border-amber-500/30 animate-pulse' : 'bg-slate-100 border-slate-200'
+                              }`}>
+                              <div className="flex items-center gap-2">
+                                <CreditCard className={`w-4 h-4 ${order.payments[0].payment_status === 'paid' ? 'text-green-600' : 'text-slate-500'}`} />
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-semibold text-foreground">
+                                    Payment: {(order.payments[0].payment_status === 'waiting_approval' ? 'CLAIMED' : order.payments[0].payment_status?.toUpperCase())}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                    Method: {order.payments[0].payment_method} • Amt: PKR {order.payments[0].amount}
+                                  </span>
+                                </div>
+                              </div>
+                              {order.payments[0].payment_status !== 'paid' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setAdminNotes(order.status === 'cancelled' ? "Restored from cancelled state after payment verification. " : "");
+                                    setConfirmingPaymentId(order.payments[0].id);
+                                  }}
+                                  className={`h-8 text-xs gap-1 ${order.status === 'cancelled' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-primary hover:bg-primary/90'}`}
+                                >
+                                  <ShieldCheck className="w-3 h-3" />
+                                  {order.status === 'cancelled' ? 'Restore & Confirm' : 'Confirm Manually'}
+                                </Button>
+                              )}
+                              {order.payments[0].payment_status === 'paid' && (
+                                <div className="flex items-center gap-1 text-green-600">
+                                  <Check className="w-4 h-4" />
+                                  <span className="text-xs font-bold uppercase">Verified</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {/* Items Summary */}
                           <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
                             <p className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -415,22 +482,35 @@ export function OrdersManager() {
                         {/* Action Panel */}
                         <div className="flex flex-col gap-2 lg:w-56 lg:border-l lg:pl-4 lg:ml-2 border-border">
                           {/* Accept/Reject for New Orders */}
+                          {/* Accept/Reject for New Orders */}
                           {order.status === 'placed' && (
-                            <div className="flex gap-2 mb-2">
+                            <div className="flex flex-col gap-2 mb-2">
+                              {order.payments?.[0]?.payment_method === 'payup_qr' && order.payments?.[0]?.payment_status !== 'paid' ? (
+                                <Button
+                                  className="w-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-md animate-pulse"
+                                  size="sm"
+                                  onClick={() => setConfirmingPaymentId(order.payments[0].id)}
+                                >
+                                  <ShieldCheck className="w-4 h-4 mr-1" />
+                                  Verify Payment First
+                                </Button>
+                              ) : (
+                                <Button
+                                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0"
+                                  size="sm"
+                                  onClick={() => acceptOrder.mutate(order.id)}
+                                  disabled={acceptOrder.isPending}
+                                >
+                                  <Check className="w-4 h-4 mr-1" />
+                                  Accept Order
+                                </Button>
+                              )}
+
                               <Button
-                                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0"
+                                variant="outline"
                                 size="sm"
-                                onClick={() => acceptOrder.mutate(order.id)}
-                                disabled={acceptOrder.isPending}
-                              >
-                                <Check className="w-4 h-4 mr-1" />
-                                Accept
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => rejectOrder.mutate({ orderId: order.id, reason: "Order rejected by admin" })}
+                                className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => setRejectingOrderId(order.id)}
                                 disabled={rejectOrder.isPending}
                               >
                                 <X className="w-4 h-4 mr-1" />
@@ -438,6 +518,24 @@ export function OrdersManager() {
                               </Button>
                             </div>
                           )}
+
+                          {/* Restore for Cancelled Orders */}
+                          {order.status === 'cancelled' && order.payments?.[0] &&
+                            (order.payments[0].payment_status === 'claimed' || order.payments[0].payment_status === 'waiting_approval') && (
+                              <div className="mb-2">
+                                <Button
+                                  className="w-full bg-orange-600 hover:bg-orange-700 text-white shadow-md"
+                                  size="sm"
+                                  onClick={() => {
+                                    setAdminNotes("Restoring order after customer payment claim verification.");
+                                    setConfirmingPaymentId(order.payments[0].id);
+                                  }}
+                                >
+                                  <RefreshCw className="w-4 h-4 mr-1" />
+                                  Restore & Confirm
+                                </Button>
+                              </div>
+                            )}
 
                           {/* Status Change */}
                           <DropdownMenu>
@@ -658,6 +756,116 @@ export function OrdersManager() {
           )}
         </motion.div>
       )}
+      {/* Manual Payment Confirmation Dialog */}
+      <Dialog open={!!confirmingPaymentId} onOpenChange={(open) => !open && setConfirmingPaymentId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              Manual Payment Approval
+            </DialogTitle>
+            <DialogDescription>
+              Mark this payment as PAID. Only do this if you have verified the transaction in your bank account or payment processor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-600 mt-0.5" />
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Confirming manually will move the order to "Preparing" status and notify the customer. This action is recorded in the audit logs.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Admin Notes</label>
+              <Textarea
+                placeholder="Enter transaction reference or reason for manual approval..."
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmingPaymentId(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-primary hover:bg-primary/90"
+              disabled={confirmPayment.isPending}
+              onClick={() => {
+                if (confirmingPaymentId) {
+                  confirmPayment.mutate({
+                    paymentId: confirmingPaymentId,
+                    notes: adminNotes
+                  }, {
+                    onSuccess: () => {
+                      setConfirmingPaymentId(null);
+                      setAdminNotes("");
+                    }
+                  });
+                }
+              }}
+            >
+              {confirmPayment.isPending ? "Confirming..." : "Approve Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={!!rejectingOrderId} onOpenChange={(open) => !open && setRejectingOrderId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-destructive" />
+              Order Rejection Reason
+            </DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this order. The customer will see this message.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Rejection Reason</label>
+              <Textarea
+                placeholder="e.g. Items out of stock, Outside delivery area, Payment not verified..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setRejectingOrderId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={rejectOrder.isPending}
+              onClick={() => {
+                if (rejectingOrderId) {
+                  rejectOrder.mutate({
+                    orderId: rejectingOrderId,
+                    reason: rejectionReason
+                  }, {
+                    onSuccess: () => {
+                      setRejectingOrderId(null);
+                      setRejectionReason("");
+                    }
+                  });
+                }
+              }}
+            >
+              {rejectOrder.isPending ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -19,15 +19,15 @@ android {
     signingConfigs {
         debug {
             storeFile file('fasthaazir-debug.keystore')
-            storePassword 'fasthaazir'
-            keyAlias 'fasthaazir'
-            keyPassword 'fasthaazir'
+            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: 'fasthaazir'
+            keyAlias System.getenv('ANDROID_KEY_ALIAS') ?: 'fasthaazir'
+            keyPassword System.getenv('ANDROID_KEY_PASSWORD') ?: 'fasthaazir'
         }
         release {
             storeFile file('fasthaazir-release.keystore')
-            storePassword 'fasthaazir'
-            keyAlias 'fasthaazir-release'
-            keyPassword 'fasthaazir'
+            storePassword System.getenv('ANDROID_RELEASE_KEYSTORE_PASSWORD') ?: 'fasthaazir'
+            keyAlias System.getenv('ANDROID_RELEASE_KEY_ALIAS') ?: 'fasthaazir-release'
+            keyPassword System.getenv('ANDROID_RELEASE_KEY_PASSWORD') ?: 'fasthaazir'
         }
     }
     buildTypes {

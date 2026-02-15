@@ -1,13 +1,20 @@
 import { motion } from 'framer-motion';
-import { 
-  Map, 
-  Flame, 
+import {
+  Map,
+  Flame,
   Navigation,
   Clock,
   Package,
   Zap,
   MapPin,
   Sparkles,
+  Phone,
+  HelpCircle,
+  Star,
+  Award,
+  TrendingUp,
+  DollarSign,
+  Clock3,
 } from 'lucide-react';
 
 interface RiderQuickActionsProps {
@@ -16,6 +23,10 @@ interface RiderQuickActionsProps {
   activeOrdersCount: number;
   pendingOrdersCount: number;
   currentStatus: 'idle' | 'on_delivery' | 'returning';
+  todayTrips?: number;
+  weeklyEarnings?: number;
+  onOpenSupport?: () => void;
+  onOpenEarnings?: () => void;
 }
 
 const RiderQuickActions = ({
@@ -23,30 +34,34 @@ const RiderQuickActions = ({
   onOpenNavigation,
   activeOrdersCount,
   pendingOrdersCount,
-  currentStatus
+  currentStatus,
+  todayTrips = 0,
+  weeklyEarnings = 0,
+  onOpenSupport,
+  onOpenEarnings,
 }: RiderQuickActionsProps) => {
   const statusConfig = {
-    idle: { 
-      label: 'Ready for Orders', 
-      icon: Sparkles, 
+    idle: {
+      label: 'Ready for Orders',
+      icon: Sparkles,
       color: 'text-emerald-400',
       bg: 'bg-emerald-500/10',
       borderColor: 'border-emerald-500/20',
       glow: 'glow-green',
       gradient: 'from-emerald-500/20 to-cyan-500/10'
     },
-    on_delivery: { 
-      label: 'On Delivery', 
-      icon: Package, 
+    on_delivery: {
+      label: 'On Delivery',
+      icon: Package,
       color: 'text-orange-400',
       bg: 'bg-orange-500/10',
       borderColor: 'border-orange-500/20',
       glow: 'glow-orange',
       gradient: 'from-orange-500/20 to-red-500/10'
     },
-    returning: { 
-      label: 'Returning', 
-      icon: Navigation, 
+    returning: {
+      label: 'Returning',
+      icon: Navigation,
       color: 'text-purple-400',
       bg: 'bg-purple-500/10',
       borderColor: 'border-purple-500/20',
@@ -69,13 +84,13 @@ const RiderQuickActions = ({
       >
         {/* Gradient Background */}
         <div className={`absolute inset-0 bg-gradient-to-br ${currentStatusConfig.gradient} opacity-50`} />
-        
+
         <div className="relative flex items-center gap-4">
           <motion.div
             className={`w-16 h-16 rounded-2xl ${currentStatusConfig.bg} flex items-center justify-center border border-white/5`}
-            animate={{ 
+            animate={{
               scale: activeOrdersCount > 0 ? [1, 1.05, 1] : 1,
-              boxShadow: activeOrdersCount > 0 
+              boxShadow: activeOrdersCount > 0
                 ? ['0 0 0 rgba(255,106,0,0)', '0 0 30px rgba(255,106,0,0.3)', '0 0 0 rgba(255,106,0,0)']
                 : 'none'
             }}
@@ -83,15 +98,15 @@ const RiderQuickActions = ({
           >
             <StatusIcon className={`w-8 h-8 ${currentStatusConfig.color}`} />
           </motion.div>
-          
+
           <div className="flex-1">
             <p className={`font-bold text-lg ${currentStatusConfig.color} tracking-tight`}>
               {currentStatusConfig.label}
             </p>
             <p className="text-white/40 text-sm font-medium">
-              {activeOrdersCount > 0 
+              {activeOrdersCount > 0
                 ? `${activeOrdersCount} active delivery${activeOrdersCount > 1 ? 's' : ''}`
-                : pendingOrdersCount > 0 
+                : pendingOrdersCount > 0
                   ? `${pendingOrdersCount} orders waiting`
                   : 'Waiting for orders...'
               }
@@ -102,7 +117,7 @@ const RiderQuickActions = ({
           {activeOrdersCount > 0 && (
             <motion.div
               className="relative"
-              animate={{ 
+              animate={{
                 scale: [1, 1.2, 1],
               }}
               transition={{ duration: 1.5, repeat: Infinity }}
@@ -110,7 +125,7 @@ const RiderQuickActions = ({
               <div className={`w-4 h-4 rounded-full ${currentStatusConfig.color.replace('text-', 'bg-')}`} />
               <motion.div
                 className={`absolute inset-0 rounded-full ${currentStatusConfig.color.replace('text-', 'bg-')}`}
-                animate={{ 
+                animate={{
                   scale: [1, 2],
                   opacity: [0.6, 0]
                 }}
@@ -159,6 +174,77 @@ const RiderQuickActions = ({
           </div>
         </motion.button>
       </div>
+
+      {/* Enhanced Quick Actions Row */}
+      <div className="grid grid-cols-4 gap-2">
+        <motion.button
+          className="glass-card rounded-xl p-3 flex flex-col items-center gap-1.5 active:scale-95 border border-white/5 hover:border-white/10"
+          whileTap={{ scale: 0.95 }}
+          onClick={onOpenEarnings}
+        >
+          <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <DollarSign className="w-5 h-5 text-green-400" />
+          </div>
+          <span className="text-[10px] text-white/60 font-medium">Earnings</span>
+        </motion.button>
+
+        <motion.button
+          className="glass-card rounded-xl p-3 flex flex-col items-center gap-1.5 active:scale-95 border border-white/5 hover:border-white/10"
+          whileTap={{ scale: 0.95 }}
+        >
+          <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+            <Star className="w-5 h-5 text-yellow-400" />
+          </div>
+          <span className="text-[10px] text-white/60 font-medium">Rating</span>
+        </motion.button>
+
+        <motion.button
+          className="glass-card rounded-xl p-3 flex flex-col items-center gap-1.5 active:scale-95 border border-white/5 hover:border-white/10"
+          whileTap={{ scale: 0.95 }}
+          onClick={onOpenSupport}
+        >
+          <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+            <HelpCircle className="w-5 h-5 text-blue-400" />
+          </div>
+          <span className="text-[10px] text-white/60 font-medium">Support</span>
+        </motion.button>
+
+        <motion.button
+          className="glass-card rounded-xl p-3 flex flex-col items-center gap-1.5 active:scale-95 border border-white/5 hover:border-white/10"
+          whileTap={{ scale: 0.95 }}
+        >
+          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+            <Award className="w-5 h-5 text-purple-400" />
+          </div>
+          <span className="text-[10px] text-white/60 font-medium">Awards</span>
+        </motion.button>
+      </div>
+
+      {/* Weekly Stats Card */}
+      <motion.div
+        className="glass-card-premium rounded-2xl p-4 border border-white/5"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm text-white/60 font-medium">This Week</p>
+          <div className="flex items-center gap-1 text-green-400">
+            <TrendingUp className="w-4 h-4" />
+            <span className="text-xs font-bold">+12%</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white/5 rounded-xl p-3">
+            <p className="text-2xl font-bold text-white">₨{weeklyEarnings.toLocaleString()}</p>
+            <p className="text-[10px] text-white/40">Total Earnings</p>
+          </div>
+          <div className="bg-white/5 rounded-xl p-3">
+            <p className="text-2xl font-bold text-white">{todayTrips * 7}</p>
+            <p className="text-[10px] text-white/40">Total Trips</p>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 };

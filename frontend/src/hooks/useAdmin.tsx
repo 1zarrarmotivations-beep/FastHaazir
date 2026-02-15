@@ -391,7 +391,7 @@ export const useAdminOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, riders(name, phone)")
+        .select("*, riders(name, phone), payments(*)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -1277,6 +1277,7 @@ export const useRejectOrder = () => {
         .from("orders")
         .update({
           status: 'cancelled',
+          rejection_reason: reason || 'Order rejected by admin',
           updated_at: new Date().toISOString()
         })
         .eq("id", orderId);
@@ -1306,6 +1307,53 @@ export const useRejectOrder = () => {
     },
     onError: (error: Error) => {
       toast.error("Failed to reject order: " + error.message);
+    },
+  });
+};
+
+// Confirm order payment manually (Admin)
+export const useConfirmOrderPayment = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { data: adminProfile } = useAdminList();
+
+  return useMutation({
+    mutationFn: async ({ paymentId, notes }: { paymentId: string; notes?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
+      const currentAdmin = adminProfile?.find((a: any) => a.user_id === user?.id) as any;
+      const adminName = currentAdmin?.name || user?.email || "Admin";
+
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+      const response = await fetch(`${backendUrl}/api/admin/payments/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          payment_id: paymentId,
+          notes,
+          admin_name: adminName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to confirm payment");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      toast.success("Payment confirmed and order updated to preparing!");
+    },
+    onError: (error: Error) => {
+      toast.error("Confirmation failed: " + error.message);
     },
   });
 };
