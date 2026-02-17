@@ -15,9 +15,11 @@ dependencies {
     implementation project(':capacitor-geolocation')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
+    implementation project(':capacitor-local-notifications')
     implementation project(':capacitor-push-notifications')
     implementation project(':capacitor-splash-screen')
     implementation project(':capacitor-status-bar')
+    implementation project(':codetrix-studio-capacitor-google-auth')
     implementation project(':capacitor-native-settings')
     implementation project(':capacitor-voice-recorder')
     implementation "com.onesignal:OneSignal:5.4.2"

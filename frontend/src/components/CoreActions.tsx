@@ -20,14 +20,14 @@ const baseActions: CategoryAction[] = [
     subtitleKey: 'home.onDemandDelivery',
     path: '/assign-rider',
     emoji: '🚴',
-    color: 'bg-blue-500',
+    color: 'from-blue-600 to-indigo-700',
   },
   {
     titleKey: 'home.orderFood',
     subtitleKey: 'home.restaurantsDining',
     path: '/restaurants',
     emoji: '🍔',
-    color: 'bg-orange-500',
+    color: 'from-orange-500 to-rose-600',
     type: 'restaurant',
   },
   {
@@ -35,7 +35,7 @@ const baseActions: CategoryAction[] = [
     subtitleKey: 'home.dailyEssentials',
     path: '/grocery',
     emoji: '🛒',
-    color: 'bg-emerald-500',
+    color: 'from-emerald-500 to-teal-700',
     type: 'grocery',
   },
 ];
@@ -43,7 +43,7 @@ const baseActions: CategoryAction[] = [
 const CoreActions: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  
+
   // Realtime-enabled business counts
   const { data: restaurants, isLoading: loadingRestaurants } = useBusinesses('restaurant');
   const { data: grocery, isLoading: loadingGrocery } = useBusinesses('grocery');
@@ -52,7 +52,7 @@ const CoreActions: React.FC = () => {
   // Calculate counts from realtime data
   const getCategoryCount = (type?: BusinessType): number | null => {
     if (!type) return null;
-    
+
     switch (type) {
       case 'restaurant':
         return restaurants?.length ?? 0;
@@ -107,11 +107,14 @@ const CoreActions: React.FC = () => {
               }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate(action.path)}
-              className={`relative flex items-center gap-4 p-5 rounded-2xl w-full text-left ${action.color} shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-200`}
+              className={`relative flex items-center gap-4 p-5 rounded-3xl w-full text-left bg-gradient-to-br ${action.color} shadow-lg hover:shadow-xl active:scale-[0.98] transition-all duration-300 border border-white/10 group overflow-hidden`}
             >
+              {/* Decorative light effect */}
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+
               {/* Emoji icon */}
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 bg-secondary">
-                <span className="text-4xl">{action.emoji}</span>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 bg-white/20 backdrop-blur-md border border-white/20 shadow-inner">
+                <span className="text-4xl drop-shadow-md">{action.emoji}</span>
               </div>
 
               {/* Text content */}

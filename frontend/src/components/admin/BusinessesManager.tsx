@@ -61,7 +61,9 @@ import {
   useToggleBusinessFeatured,
   useToggleBusinessApproval
 } from "@/hooks/useAdmin";
+import { safeLower } from "@/lib/utils";
 import { MenuItemsManager } from "./MenuItemsManager";
+import { BusinessMenuManager } from "./BusinessMenuManager";
 import { ImageUpload } from "./ImageUpload";
 
 const businessTypeIcons = {
@@ -85,6 +87,7 @@ export function BusinessesManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
+  const [showMenuManager, setShowMenuManager] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop" | "pharmacy">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending">("all");
   // Business role removed - Admin controls all, no owner phone/email needed
@@ -107,10 +110,10 @@ export function BusinessesManager() {
   const toggleFeatured = useToggleBusinessFeatured();
   const toggleApproval = useToggleBusinessApproval();
 
-  const filteredBusinesses = businesses?.filter((business) => {
-    const matchesSearch = business.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      business.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ((business as any).location_address && (business as any).location_address.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredBusinesses = (businesses as any[])?.filter((business) => {
+    const matchesSearch = safeLower(business.name).includes(safeLower(searchQuery)) ||
+      safeLower(business.type).includes(safeLower(searchQuery)) ||
+      safeLower((business as any).location_address).includes(safeLower(searchQuery));
 
     if (!matchesSearch) return false;
 
@@ -160,10 +163,10 @@ export function BusinessesManager() {
 
   // Stats
   const totalBusinesses = businesses?.length || 0;
-  const restaurantCount = businesses?.filter(b => b.type === 'restaurant').length || 0;
-  const groceryCount = businesses?.filter(b => b.type === 'grocery').length || 0;
-  const bakeryCount = businesses?.filter(b => b.type === 'bakery').length || 0;
-  const shopCount = businesses?.filter(b => b.type === 'shop').length || 0;
+  const restaurantCount = (businesses as any[])?.filter(b => b.type === 'restaurant').length || 0;
+  const groceryCount = (businesses as any[])?.filter(b => b.type === 'grocery').length || 0;
+  const bakeryCount = (businesses as any[])?.filter(b => b.type === 'bakery').length || 0;
+  const shopCount = (businesses as any[])?.filter(b => b.type === 'shop').length || 0;
 
   return (
     <div className="space-y-6">
@@ -414,17 +417,38 @@ export function BusinessesManager() {
         </Dialog>
       </div>
 
+      {/* Full Screen Menu Manager */}
+      {showMenuManager && selectedBusiness && (
+        <div className="fixed inset-0 bg-background z-50 overflow-auto">
+          <div className="container mx-auto p-6">
+            <Button
+              variant="ghost"
+              onClick={() => setShowMenuManager(false)}
+              className="mb-4"
+            >
+              ← Back to Businesses
+            </Button>
+            <BusinessMenuManager
+              businessId={selectedBusiness.id}
+              businessName={selectedBusiness.name}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Menu Items Dialog */}
-      <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Menu Items - {selectedBusiness?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedBusiness && (
-            <MenuItemsManager businessId={selectedBusiness.id} />
-          )}
-        </DialogContent>
-      </Dialog>
+      {!showMenuManager && (
+        <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Menu Items - {selectedBusiness?.name}</DialogTitle>
+            </DialogHeader>
+            {selectedBusiness && (
+              <MenuItemsManager businessId={selectedBusiness.id} />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Businesses Grid */}
       {isLoading ? (
@@ -530,9 +554,10 @@ export function BusinessesManager() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className="bg-orange-500/10 text-orange-500 border-orange-500/20 hover:bg-orange-500/20"
                           onClick={() => {
                             setSelectedBusiness({ id: business.id, name: business.name });
-                            setMenuDialogOpen(true);
+                            setShowMenuManager(true);
                           }}
                         >
                           <Menu className="w-4 h-4 mr-1" />

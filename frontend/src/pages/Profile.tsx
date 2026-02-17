@@ -36,6 +36,8 @@ import HelpSupportScreen from '@/components/profile/HelpSupportScreen';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import NotificationsSheet from '@/components/notifications/NotificationsSheet';
 import { SupportChat } from '@/components/support/SupportChat';
+import DeleteAccountDialog from '@/components/profile/DeleteAccountDialog';
+import { Trash2 } from 'lucide-react';
 
 type ScreenType = 'main' | 'addresses' | 'notifications' | 'help' | 'support';
 
@@ -107,6 +109,7 @@ const Profile: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('main');
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [notificationsSheetOpen, setNotificationsSheetOpen] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -234,6 +237,14 @@ const Profile: React.FC = () => {
         action: () => navigate('/privacy-policy'),
         color: 'text-pink-500',
         bgColor: 'bg-pink-500/10',
+        showFor: 'all' as const,
+      },
+      {
+        icon: Trash2,
+        label: 'Delete Account',
+        action: () => setDeleteAccountOpen(true),
+        color: 'text-destructive',
+        bgColor: 'bg-destructive/10',
         showFor: 'all' as const,
       },
     ];
@@ -514,6 +525,12 @@ const Profile: React.FC = () => {
       <NotificationsSheet
         open={notificationsSheetOpen}
         onOpenChange={setNotificationsSheetOpen}
+      />
+
+      {/* Delete Account Dialog */}
+      <DeleteAccountDialog
+        open={deleteAccountOpen}
+        onOpenChange={setDeleteAccountOpen}
       />
 
       <BottomNav />

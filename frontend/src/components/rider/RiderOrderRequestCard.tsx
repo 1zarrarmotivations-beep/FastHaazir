@@ -108,11 +108,11 @@ const RiderOrderRequestCard = ({
       exit={{ opacity: 0, x: -100 }}
       className="mb-4"
     >
-      <div className={`glass-card-dark rounded-3xl overflow-hidden transition-all duration-300 ${variant === 'new'
-        ? 'animate-pulse-glow ring-2 ring-orange-500/50'
+      <div className={`glass-card-dark rounded-3xl overflow-hidden transition-all duration-300 border ${variant === 'new'
+        ? 'animate-pulse-glow ring-2 ring-orange-500/50 border-orange-500/30'
         : variant === 'active'
-          ? 'ring-1 ring-emerald-500/30'
-          : 'ring-1 ring-white/5'
+          ? 'ring-1 ring-emerald-500/30 border-emerald-500/20'
+          : 'ring-1 ring-white/5 border-white/5'
         }`}>
         {/* Timer Bar for New Requests */}
         {variant === 'new' && (

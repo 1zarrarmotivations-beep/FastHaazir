@@ -10,8 +10,6 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithCredential,
   GoogleAuthProvider,
   PhoneAuthProvider,
@@ -83,61 +81,30 @@ interface FirebaseConfig {
 }
 
 /**
- * Fetch Firebase config from edge function (secrets stored securely)
- * Includes retry logic for APK network timing issues
+ * Fetch Firebase config - For Android APK builds, we ALWAYS use Android-specific config
+ * because this build is specifically for Android and must use the key linked to SHA fingerprints
  */
 export const fetchFirebaseConfig = async (): Promise<FirebaseConfig | null> => {
-  // 1. Try Environment Variables (Fastest & Most Reliable for Web)
-  const envConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  // Try environment variables first
+  const isNative = detectNativeApp();
+
+  // Use Android-specific API key if on native, fallback to Web key
+  const apiKey = isNative
+    ? (import.meta.env.VITE_FIREBASE_ANDROID_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyB0dz4tCtu1M-1OOjK0tbiA7J5bzNzxN_M')
+    : (import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDdz4AgqojNY_UMo1t6ahf5KCdJnEWxB0I');
+
+  const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'fast-haazir-786.firebaseapp.com';
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'fast-haazir-786';
+  const appId = import.meta.env.VITE_FIREBASE_APP_ID || '1:285845112968:web:ec5d0ffd9a3b8b6e21b73d';
+
+  console.log('[Firebase] Using API Key:', apiKey.substring(0, 10) + '...', isNative ? '(Android)' : '(Web)');
+
+  return {
+    apiKey,
+    authDomain,
+    projectId,
+    appId,
   };
-
-  if (envConfig.apiKey && envConfig.projectId && envConfig.authDomain) {
-    console.log('[Firebase] Using configuration from environment variables');
-    return envConfig as FirebaseConfig;
-  }
-
-  // 2. Fallback to Edge Function (For Secure/Dynamic Configs)
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-  while (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
-    configFetchAttempts++;
-
-    try {
-      console.log(`[Firebase] Fetching config from edge function (attempt ${configFetchAttempts}/${MAX_CONFIG_FETCH_ATTEMPTS})...`);
-
-      const { data, error } = await supabase.functions.invoke('get-firebase-config');
-
-      if (error) {
-        console.error('[Firebase] Config fetch error:', error);
-        if (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
-          await delay(1000 * configFetchAttempts);
-          continue;
-        }
-        return null;
-      }
-
-      if (!data?.success || !data?.isValid) {
-        console.error('[Firebase] Config not valid:', data);
-        return null;
-      }
-
-      console.log('[Firebase] Config fetched successfully from edge function ✓');
-      return data.config as FirebaseConfig;
-    } catch (err) {
-      console.error('[Firebase] Config fetch exception:', err);
-      if (configFetchAttempts < MAX_CONFIG_FETCH_ATTEMPTS) {
-        await delay(1000 * configFetchAttempts);
-        continue;
-      }
-      return null;
-    }
-  }
-
-  return null;
 };
 
 /**
@@ -272,8 +239,6 @@ export {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithCredential,
   GoogleAuthProvider,
   PhoneAuthProvider,

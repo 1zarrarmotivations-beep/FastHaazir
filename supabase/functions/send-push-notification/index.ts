@@ -35,7 +35,7 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+
     if (authError || !user) {
       throw new Error('Unauthorized');
     }
@@ -65,7 +65,7 @@ serve(async (req) => {
         .from('push_device_tokens')
         .select('device_token')
         .eq('user_id', targetUserId);
-      
+
       console.log('Single user tokens query:', { targetUserId, tokens, error });
       playerIds = tokens?.map(t => t.device_token) || [];
       totalUsersInRole = 1;
@@ -75,25 +75,25 @@ serve(async (req) => {
         .from('user_roles')
         .select('user_id')
         .eq('role', targetRole);
-      
+
       console.log(`Users with role '${targetRole}':`, { count: userRoles?.length || 0, error: roleError });
       totalUsersInRole = userRoles?.length || 0;
-      
+
       const userIds = userRoles?.map(r => r.user_id) || [];
-      
+
       if (userIds.length > 0) {
         const { data: tokens, error: tokenError } = await supabase
           .from('push_device_tokens')
           .select('device_token, user_id')
           .in('user_id', userIds);
-        
-        console.log(`Device tokens for ${targetRole}s:`, { 
+
+        console.log(`Device tokens for ${targetRole}s:`, {
           totalUsersInRole: userIds.length,
           usersWithTokens: [...new Set(tokens?.map(t => t.user_id) || [])].length,
           totalTokens: tokens?.length || 0,
-          error: tokenError 
+          error: tokenError
         });
-        
+
         playerIds = tokens?.map(t => t.device_token) || [];
       }
     } else {
@@ -101,7 +101,7 @@ serve(async (req) => {
       const { data: tokens, error } = await supabase
         .from('push_device_tokens')
         .select('device_token');
-      
+
       console.log('All device tokens:', { count: tokens?.length || 0, error });
       playerIds = tokens?.map(t => t.device_token) || [];
     }
@@ -118,10 +118,19 @@ serve(async (req) => {
         include_player_ids: playerIds,
         headings: { en: title },
         contents: { en: message },
+        // High priority for all admin pushes
+        priority: 10,
+        android_visibility: 1,
+        android_sound: targetRole === 'rider' ? 'ringing' : 'default',
+        ios_sound: targetRole === 'rider' ? 'ringing.wav' : 'default',
+        ios_interruption_level: 'time_sensitive',
       };
 
       if (actionRoute) {
-        oneSignalPayload.data = { route: actionRoute };
+        oneSignalPayload.data = {
+          route: actionRoute,
+          type: 'admin_push'
+        };
         oneSignalPayload.url = actionRoute;
       }
 
@@ -176,14 +185,14 @@ serve(async (req) => {
         .from('user_roles')
         .select('user_id')
         .eq('role', targetRole);
-      
+
       const notifications = userRoles?.map(r => ({
         user_id: r.user_id,
         title,
         message,
         type: 'system',
       })) || [];
-      
+
       if (notifications.length > 0) {
         await supabase.from('notifications').insert(notifications);
       }
@@ -196,11 +205,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         sent: successCount,
         failed: failureCount,
-        message: `Push sent to ${successCount} devices` 
+        message: `Push sent to ${successCount} devices`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

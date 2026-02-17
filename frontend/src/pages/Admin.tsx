@@ -23,6 +23,10 @@ import PushNotificationCenter from "@/components/admin/PushNotificationCenter";
 import AdminChatsManager from "@/components/admin/AdminChatsManager";
 import BannersManager from "@/components/admin/BannersManager";
 import { EnhancedSupportTicketsManager } from "@/components/admin/EnhancedSupportTicketsManager";
+import RiderSupportTicketsManager from "@/components/admin/RiderSupportTicketsManager";
+import { DeletionRequestsManager } from "@/components/admin/DeletionRequestsManager";
+import AdminRiderSupportNotificationBadge from "@/components/admin/AdminRiderSupportNotificationBadge";
+
 import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
 import AdminSupportNotificationBadge from "@/components/admin/AdminSupportNotificationBadge";
 import LanguageToggle from "@/components/LanguageToggle";
@@ -178,6 +182,19 @@ export default function Admin() {
             <EnhancedSupportTicketsManager />
           </div>
         );
+      case "rider-support":
+        return (
+          <div className="space-y-6">
+            <RiderSupportTicketsManager />
+          </div>
+        );
+      case "deletion-requests":
+        return (
+          <div className="space-y-6">
+            <DeletionRequestsManager />
+          </div>
+        );
+
       case "chats":
         return (
           <div className="space-y-6">
@@ -236,6 +253,7 @@ export default function Admin() {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
+            <AdminRiderSupportNotificationBadge onTabChange={setActiveTab} />
             <AdminSupportNotificationBadge onTabChange={setActiveTab} />
             <AdminOrderNotificationBadge onTabChange={setActiveTab} />
           </div>

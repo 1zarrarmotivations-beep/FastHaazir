@@ -21,7 +21,7 @@ const config: CapacitorConfig = {
     // Capture all navigations (keep in app)
     captureInput: true,
     // Enable WebView debugging for troubleshooting (set to false for release)
-    webContentsDebuggingEnabled: false,
+    webContentsDebuggingEnabled: true,
     // Build options
     buildOptions: {
       keystorePath: undefined,
@@ -62,11 +62,16 @@ const config: CapacitorConfig = {
     // HTTP configuration for API calls
     CapacitorHttp: {
       enabled: true
+    },
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: '285845112968-hka6a1e9cloia1p1pabcd01ejp6s5vld.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true,
     }
   },
 
   // Logging configuration - use 'debug' for troubleshooting, 'production' for release
-  loggingBehavior: 'production'
+  loggingBehavior: 'debug'
 };
 
 export default config;

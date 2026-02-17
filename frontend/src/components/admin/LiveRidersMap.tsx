@@ -45,29 +45,12 @@ export function LiveRidersMap() {
 
   const { data: riders, isLoading, refetch } = useAdminRiders();
 
-  // Real-time subscription for rider location updates
+  // Update timestamp when data changes (handled by useAdminRiders invalidation)
   useEffect(() => {
-    const channel = supabase
-      .channel('rider-locations')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'riders',
-        },
-        (payload) => {
-          console.log('Rider updated:', payload);
-          setLastUpdate(new Date());
-          refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetch]);
+    if (riders) {
+      setLastUpdate(new Date());
+    }
+  }, [riders]);
 
   // Initialize map
   useEffect(() => {
@@ -212,8 +195,8 @@ export function LiveRidersMap() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div 
-            ref={mapContainerRef} 
+          <div
+            ref={mapContainerRef}
             className="w-full h-[500px]"
             style={{ minHeight: "500px" }}
           />
@@ -231,7 +214,7 @@ export function LiveRidersMap() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {onlineRiders.map((rider) => (
-                <div 
+                <div
                   key={rider.id}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card"
                 >

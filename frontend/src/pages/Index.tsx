@@ -36,16 +36,32 @@ const Index: React.FC = () => {
   useEffect(() => {
     // If we have a user and a resolved role, check redirection
     if (user && userRole) {
-      const { role } = userRole as any;
+      const { role, needsRegistration, riderStatus } = userRole as any;
       console.log("[Index] Post-login check. Resolution:", userRole);
 
+      // Automated redirects only for admin
+      if (role === 'admin') {
+        navigate('/admin', { replace: true });
+        return;
+      }
 
-      // Admin redirect removed to allow testing customer flow.
-      // Admin can access panel via profile or direct link.
+      // For riders, automatically redirect based on status
+      if (role === 'rider') {
+        if (needsRegistration || riderStatus !== 'verified') {
+          console.log("[Index] Rider needs registration or is pending. Redirecting to register.");
+          navigate('/rider/register', { replace: true });
+        } else {
+          // Check if they preferred customer view this session
+          const pref = sessionStorage.getItem('preferred_view');
+          if (pref === 'customer') {
+            console.log("[Index] Rider prefers customer view this session. Staying here.");
+            return;
+          }
 
-      // RIDERS & CUSTOMERS land here together.
-      // We no longer auto-redirect unverified riders to /rider/register here.
-      // They can land on the home page and browse as customers.
+          console.log("[Index] Verified rider detected. Redirecting to dashboard.");
+          navigate('/rider', { replace: true });
+        }
+      }
     }
   }, [user, userRole, navigate]);
 
@@ -97,38 +113,48 @@ const Index: React.FC = () => {
               {featuredRestaurants.map((restaurant, index) => (
                 <motion.div
                   key={restaurant.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -5 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => navigate(`/restaurant/${restaurant.id}`)}
+                  className="group"
                 >
-                  <Card variant="elevated" className="overflow-hidden cursor-pointer customer-business-card">
-                    <div className="relative h-24">
+                  <Card className="premium-card overflow-hidden cursor-pointer h-full border-0 relative shadow-soft group-hover:shadow-elevated transition-all">
+                    <div className="relative h-28 overflow-hidden">
                       <img
                         src={restaurant.image || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop'}
                         alt={restaurant.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                      <div className="absolute bottom-2 left-2 right-2">
-                        <h3 className="font-semibold text-white text-sm truncate">{restaurant.name}</h3>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                      <div className="absolute top-2 right-2 bg-white/90 dark:bg-black/60 backdrop-blur-md rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        <span className="text-[10px] font-bold">{restaurant.rating?.toFixed(1)}</span>
                       </div>
-                      <div className="absolute top-2 right-2 bg-card/90 backdrop-blur-sm rounded-lg px-1.5 py-0.5 flex items-center gap-1">
-                        <Star className="w-3 h-3 text-primary fill-primary" />
-                        <span className="text-[10px] font-semibold">{restaurant.rating?.toFixed(1)}</span>
+
+                      {restaurant.featured && (
+                        <div className="absolute top-2 left-2 bg-primary/90 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Premium
+                        </div>
+                      )}
+
+                      <div className="absolute bottom-2 left-2 right-2">
+                        <h3 className="font-bold text-white text-sm truncate drop-shadow-md">{restaurant.name}</h3>
                       </div>
                     </div>
-                    <div className="p-2">
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span className="flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" />
-                          {restaurant.eta}
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <MapPin className="w-3 h-3" />
-                          {restaurant.distance}
-                        </span>
+                    <div className="p-3 bg-card">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-primary" />
+                          <span>{restaurant.eta}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-primary" />
+                          <span>{restaurant.distance}</span>
+                        </div>
                       </div>
                     </div>
                   </Card>

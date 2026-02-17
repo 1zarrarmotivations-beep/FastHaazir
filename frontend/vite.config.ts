@@ -6,8 +6,8 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  // Load .env from root project directory (parent of frontend)
-  envDir: path.resolve(__dirname, ".."),
+  // Load .env from current directory (frontend folder)
+  envDir: path.resolve(__dirname, "."),
   server: {
     host: "::",
     port: 3000,
@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "script-defer",
+      injectRegister: null, // Manually registered in main.tsx to avoid Capacitor errors
       includeAssets: ["favicon.ico", "icons/*.png"],
       manifest: {
         name: "Fast Haazir",

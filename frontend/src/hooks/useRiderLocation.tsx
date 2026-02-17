@@ -9,9 +9,24 @@ import { App } from '@capacitor/app';
 interface LocationUpdate {
   lat: number;
   lng: number;
+  speed?: number;
 }
 
 export type LocationPermissionStatus = 'prompt' | 'granted' | 'denied';
+export type TrackingStatus = 'idle' | 'tracking' | 'calibrating' | 'signal_lost' | 'permission_denied' | 'disabled';
+
+// Calculate distance between two coordinates in km
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
 
 // Hook to track and update rider's live location
 export const useRiderLocation = (riderId: string | undefined, isOnline: boolean) => {
@@ -19,15 +34,20 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
   const queryClient = useQueryClient();
   const watchIdRef = useRef<string | null>(null);
   const lastUpdateRef = useRef<number>(0);
+  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isTracking, setIsTracking] = useState(false);
   const [lastLocation, setLastLocation] = useState<LocationUpdate | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<LocationPermissionStatus>('prompt');
-  const [isLocationEnabled, setIsLocationEnabled] = useState(true); // Assume true initially
+  const [isLocationEnabled, setIsLocationEnabled] = useState(true);
+  const [trackingStatus, setTrackingStatus] = useState<TrackingStatus>('idle');
+  const [lastSignalTime, setLastSignalTime] = useState<number | null>(null);
+  const [currentSpeed, setCurrentSpeed] = useState<number>(0);
 
   const UPDATE_INTERVAL = 5000; // Update every 5 seconds for more real-time tracking
 
   const updateLocationMutation = useMutation({
-    mutationFn: async ({ lat, lng }: LocationUpdate) => {
+    mutationFn: async ({ lat, lng, speed }: LocationUpdate) => {
       if (!riderId) throw new Error('No rider ID');
 
       console.log('[useRiderLocation] Updating location:', { lat, lng, riderId });
@@ -37,6 +57,7 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
         .update({
           current_location_lat: lat,
           current_location_lng: lng,
+          current_speed: speed || 0,
         })
         .eq('id', riderId);
 
@@ -61,6 +82,8 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
   const handlePositionUpdate = useCallback(
     (position: any) => {
       const now = Date.now();
+      setLastSignalTime(now);
+      setTrackingStatus('tracking');
 
       // Throttle updates to prevent overwhelming the database
       if (now - lastUpdateRef.current < UPDATE_INTERVAL) return;
@@ -73,9 +96,35 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
       };
 
       console.log('[useRiderLocation] Position received:', newLocation);
-      updateLocationMutation.mutate(newLocation);
+
+      // Update current speed (m/s to km/h)
+      let speedKmH = 0;
+      if (position.coords.speed !== null && position.coords.speed !== undefined && position.coords.speed > 0) {
+        speedKmH = Math.round(position.coords.speed * 3.6);
+      } else if (lastLocation && lastUpdateRef.current > 0) {
+        // Fallback speed calculation based on distance and time
+        const timeDiff = (now - lastUpdateRef.current) / 1000; // seconds
+        if (timeDiff > 0 && timeDiff < 60) { // Only if update is recent
+          const distance = calculateDistance(
+            lastLocation.lat,
+            lastLocation.lng,
+            position.coords.latitude,
+            position.coords.longitude
+          );
+          speedKmH = Math.round((distance / (timeDiff / 3600))); // km / hours
+          // Limit unreasonable spikes
+          if (speedKmH > 150) speedKmH = 0;
+        }
+      }
+
+      setCurrentSpeed(speedKmH);
+
+      updateLocationMutation.mutate({
+        ...newLocation,
+        speed: speedKmH
+      });
     },
-    [updateLocationMutation]
+    [updateLocationMutation, lastLocation]
   );
 
   const checkPermissions = useCallback(async () => {
@@ -118,9 +167,11 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
 
   const startTracking = useCallback(async () => {
     try {
+      setTrackingStatus('calibrating');
       // First check permissions
       const perm = await checkPermissions();
       if (perm !== 'granted') {
+        setTrackingStatus('permission_denied');
         const newPerm = await requestPermissions();
         if (newPerm !== 'granted') {
           toast.error('Location permission required for rider tracking');
@@ -148,7 +199,10 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
             console.error('[useRiderLocation] Watch error:', err);
             if (err.message.includes('Location services are not enabled')) {
               setIsLocationEnabled(false);
+              setTrackingStatus('disabled');
               toast.error('Please enable GPS location');
+            } else {
+              setTrackingStatus('signal_lost');
             }
             return;
           }
@@ -162,13 +216,28 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
       watchIdRef.current = watchId;
       console.log('[useRiderLocation] Watch ID:', watchId);
 
+      // Heartbeat to detect signal loss
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      heartbeatRef.current = setInterval(() => {
+        const now = Date.now();
+        if (lastSignalTime && now - lastSignalTime > 15000) {
+          setTrackingStatus('signal_lost');
+        }
+      }, 5000);
+
     } catch (error) {
       console.error('[useRiderLocation] Error starting tracking:', error);
+      setTrackingStatus('disabled');
       toast.error('Failed to start location tracking');
     }
-  }, [checkPermissions, requestPermissions, handlePositionUpdate]);
+  }, [checkPermissions, requestPermissions, handlePositionUpdate, lastSignalTime]);
 
   const stopTracking = useCallback(async () => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+
     if (watchIdRef.current !== null) {
       console.log('[useRiderLocation] Stopping location tracking...');
       try {
@@ -176,23 +245,13 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
       } catch (ignore) { }
       watchIdRef.current = null;
       setIsTracking(false);
+      setTrackingStatus('idle');
     }
   }, []);
 
-  // Check permissions on mount
+  // Check permissions on mount only (not on every app resume to prevent notification flicker)
   useEffect(() => {
     checkPermissions();
-
-    // Re-check when app resumes
-    const listener = App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        checkPermissions();
-      }
-    });
-
-    return () => {
-      listener.then(l => l.remove());
-    };
   }, [checkPermissions]);
 
   // Start/stop tracking based on online status
@@ -211,9 +270,14 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
     lastLocation,
     permissionStatus,
     isLocationEnabled,
+    trackingStatus,
+    lastSignalTime,
     checkPermissions,
     requestPermissions,
+    startTracking,
+    stopTracking,
     updateLocation: updateLocationMutation.mutate,
+    currentSpeed,
   };
 };
 
@@ -274,6 +338,7 @@ export const useRiderCurrentLocation = (riderId: string | undefined) => {
         name: data[0].name,
         vehicle_type: data[0].vehicle_type,
         is_online: data[0].is_online,
+        current_speed: data[0].current_speed || 0,
       };
     },
     enabled: !!riderId,

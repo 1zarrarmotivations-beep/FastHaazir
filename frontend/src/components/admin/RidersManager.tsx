@@ -19,6 +19,7 @@ import {
   Wallet,
   ArrowRight
 } from "lucide-react";
+import { safeLower } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,8 +127,8 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
   const deleteRider = useDeleteRider();
 
   const filteredRiders = (riders as any[])?.filter((rider) => {
-    const matchesSearch = rider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rider.phone.includes(searchQuery);
+    const matchesSearch = safeLower(rider.name).includes(safeLower(searchQuery)) ||
+      safeLower(rider.phone).includes(safeLower(searchQuery));
 
     if (!matchesSearch) return false;
 

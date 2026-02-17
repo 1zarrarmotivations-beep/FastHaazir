@@ -172,16 +172,64 @@ const RiderRegistration = () => {
 
         setLoading(true);
         try {
+            // Helper function to upload base64 image to Supabase Storage
+            const uploadImageToStorage = async (base64Data: string, fileName: string): Promise<string> => {
+                try {
+                    // Convert base64 to blob
+                    const response = await fetch(base64Data);
+                    const blob = await response.blob();
+
+                    // Generate unique file path
+                    const timestamp = Date.now();
+                    const userId = user?.id || 'temp_' + timestamp;
+                    const filePath = `${userId}/${fileName}_${timestamp}.jpg`;
+
+                    // Upload to Supabase Storage
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('rider-documents')
+                        .upload(filePath, blob, {
+                            contentType: 'image/jpeg',
+                            upsert: true
+                        });
+
+                    if (uploadError) {
+                        console.error('Storage upload error:', uploadError);
+                        throw new Error(`Failed to upload ${fileName}: ${uploadError.message}`);
+                    }
+
+                    // Get public URL
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('rider-documents')
+                        .getPublicUrl(filePath);
+
+                    console.log(`✅ Uploaded ${fileName}:`, publicUrl);
+                    return publicUrl;
+                } catch (error: any) {
+                    console.error(`Error uploading ${fileName}:`, error);
+                    throw new Error(`Failed to upload ${fileName}: ${error.message}`);
+                }
+            };
+
+            // Upload all images to storage
+            console.log('📤 Uploading images to Supabase Storage...');
+            const [cnicFrontUrl, cnicBackUrl, licenseUrl] = await Promise.all([
+                uploadImageToStorage(formData.cnic_front, 'cnic_front'),
+                uploadImageToStorage(formData.cnic_back, 'cnic_back'),
+                uploadImageToStorage(formData.license_image, 'license')
+            ]);
+
+            console.log('✅ All images uploaded successfully');
+
             if (user) {
-                // User is logged in -> Use standard mutation
+                // User is logged in -> Use standard mutation with Storage URLs
                 await registerRider.mutateAsync({
                     name: formData.name,
                     phone: formData.phone,
                     vehicle_type: formData.vehicle_type,
                     cnic: formData.cnic,
-                    cnic_front: formData.cnic_front,
-                    cnic_back: formData.cnic_back,
-                    license_image: formData.license_image,
+                    cnic_front: cnicFrontUrl,
+                    cnic_back: cnicBackUrl,
+                    license_image: licenseUrl,
                 });
             } else {
                 // User NOT logged in -> Create Account via Edge Function
@@ -196,9 +244,9 @@ const RiderRegistration = () => {
                             name: formData.name,
                             vehicle_type: formData.vehicle_type,
                             cnic: formData.cnic,
-                            cnic_front: formData.cnic_front,
-                            cnic_back: formData.cnic_back,
-                            license_image: formData.license_image
+                            cnic_front: cnicFrontUrl,
+                            cnic_back: cnicBackUrl,
+                            license_image: licenseUrl
                         }
                     }
                 });
@@ -216,15 +264,16 @@ const RiderRegistration = () => {
 
                 if (loginError) {
                     toast.success('Account created! Please login.');
-                    navigate('/login');
+                    navigate('/auth');
                     return;
                 }
             }
 
+            toast.success('Registration submitted successfully!');
             setStep('pending');
         } catch (error: any) {
-            console.error(error);
-            toast.error(error.message || 'Registration failed');
+            console.error('❌ Registration error:', error);
+            toast.error(error.message || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -232,17 +281,21 @@ const RiderRegistration = () => {
 
     return (
         <div className="mobile-container bg-background min-h-screen pb-10">
-            <header className="sticky top-0 z-50 customer-header-glass px-4 py-4 flex items-center gap-4">
+            <header className="sticky top-0 z-50 customer-header-glass px-4 py-4 flex items-center gap-4 border-b border-primary/10">
                 {step !== 'pending' && (
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => step === 'personal' ? navigate(-1) : setStep(step === 'vehicle' ? 'personal' : 'vehicle')}
+                        className="hover:bg-primary/10"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                 )}
-                <h1 className="text-lg font-bold">Rider Registration</h1>
+                <div className="flex-1">
+                    <h1 className="text-lg font-bold">Rider Registration</h1>
+                    <p className="text-xs text-muted-foreground">Join our delivery network</p>
+                </div>
             </header>
 
             <main className="p-4">
@@ -256,7 +309,7 @@ const RiderRegistration = () => {
                             className="space-y-6"
                         >
                             <div className="text-center space-y-2 mb-6">
-                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
+                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto border border-primary/20">
                                     <Smartphone className="w-8 h-8 text-primary" />
                                 </div>
                                 <h2 className="text-xl font-bold">Personal Information</h2>

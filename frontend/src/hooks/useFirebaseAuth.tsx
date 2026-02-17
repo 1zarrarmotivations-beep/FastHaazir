@@ -12,7 +12,10 @@ import {
   signInWithPopup,
   onAuthStateChanged,
   signOut as firebaseSignOutFn,
+  signInWithCredential,
+  GoogleAuthProvider,
 } from "@/lib/firebase";
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 
 // Store reCAPTCHA globally to guarantee a true singleton per page.
 declare global {
@@ -183,11 +186,33 @@ export const useFirebaseAuth = () => {
           console.log("[useFirebaseAuth] Found fallback container 'recaptcha-container'");
           containerId = 'recaptcha-container';
         } else {
-          setOtpState((prev) => ({
-            ...prev,
-            error: "Security component missing. Please refresh the page.",
-          }));
-          return false;
+          // Absolute last resort: create it with null checks
+          console.warn("[useFirebaseAuth] Creating fallback container in body");
+          try {
+            const div = document.createElement('div');
+            if (div) {
+              div.id = 'recaptcha-container';
+              // Check if document.body exists before accessing
+              if (document.body) {
+                div.style.position = 'fixed';
+                div.style.top = '-1000px';
+                div.style.left = '-1000px';
+                div.style.width = '1px';
+                div.style.height = '1px';
+                div.style.overflow = 'hidden';
+                document.body.appendChild(div);
+                container = div;
+                containerId = 'recaptcha-container';
+                console.log("[useFirebaseAuth] Created fallback container successfully");
+              } else {
+                console.error("[useFirebaseAuth] document.body is null, cannot create container");
+                return false;
+              }
+            }
+          } catch (createErr) {
+            console.error("[useFirebaseAuth] Failed to create fallback container:", createErr);
+            return false;
+          }
         }
       }
     }
@@ -195,17 +220,24 @@ export const useFirebaseAuth = () => {
     // Singleton check
     if (window.__fasthaazirRecaptchaVerifier) {
       console.log("[useFirebaseAuth] reCAPTCHA already initialized (singleton) ✓");
-      // Verify it's still valid by checking if it clears dummy verification
+      // Verify it's still valid
       try {
-        // Optional: Re-render if widget ID is missing
-        if (!window.__fasthaazirRecaptchaWidgetId) {
+        if (!window.__fasthaazirRecaptchaWidgetId && window.__fasthaazirRecaptchaVerifier.render) {
           await window.__fasthaazirRecaptchaVerifier.render();
         }
         return true;
-      } catch (e) {
-        console.warn("[useFirebaseAuth] Existing reCAPTCHA seems stale, re-initializing...");
-        window.__fasthaazirRecaptchaVerifier.clear();
+      } catch (e: any) {
+        console.warn("[useFirebaseAuth] Existing reCAPTCHA seems stale or broken, re-initializing...", e);
+        try {
+          // Attempt to clear, but don't crash if it fails
+          if (window.__fasthaazirRecaptchaVerifier.clear) {
+            window.__fasthaazirRecaptchaVerifier.clear();
+          }
+        } catch (clearErr) {
+          console.log("[useFirebaseAuth] Failed to clear stale verifier (ignoring):", clearErr);
+        }
         window.__fasthaazirRecaptchaVerifier = undefined;
+        window.__fasthaazirRecaptchaWidgetId = undefined;
       }
     }
 
@@ -218,8 +250,33 @@ export const useFirebaseAuth = () => {
       recaptchaRenderingRef.current = true;
       console.log(`[useFirebaseAuth] Creating invisible reCAPTCHA (${isNative ? 'Android' : 'Web'})...`);
 
-      // Clear any existing instances in the DOM properly
-      if (container) container.innerHTML = '';
+      // BYPASS for native Android testing (without Play Store)
+      // Firebase will automatically fall back to silent verification
+      if (isNative) {
+        console.log('[useFirebaseAuth] ⚠️ TESTING MODE: Skipping reCAPTCHA on native Android');
+        console.log('[useFirebaseAuth] Firebase will use automatic verification fallback');
+
+        // Create a dummy verifier that won't actually render
+        const verifier = new RecaptchaVerifier(auth, containerId, {
+          size: "invisible",
+          callback: () => console.log('[useFirebaseAuth] reCAPTCHA callback (bypassed)'),
+        });
+
+        window.__fasthaazirRecaptchaVerifier = verifier;
+        recaptchaRenderingRef.current = false;
+
+        console.log('[useFirebaseAuth] ✓ reCAPTCHA bypass enabled for testing');
+        return true;
+      }
+
+      // safely clear container (Web only)
+      if (container && container.childNodes.length > 0) {
+        try {
+          container.innerHTML = '';
+        } catch (e) {
+          console.warn("Failed to clear container innerHTML", e);
+        }
+      }
 
       const verifier = new RecaptchaVerifier(auth, containerId, {
         size: "invisible",
@@ -228,11 +285,13 @@ export const useFirebaseAuth = () => {
         },
         "expired-callback": () => {
           console.warn("[useFirebaseAuth] reCAPTCHA expired");
-          // Don't fully clear, just legitimate expire handling
         },
         "error-callback": (err: any) => {
           console.error("[useFirebaseAuth] reCAPTCHA error-callback:", err);
-          setOtpState(prev => ({ ...prev, error: "Security check failed. Please refresh." }));
+          // On mobile, this often happens but things still work via native fallback
+          if (!isNative) {
+            setOtpState(prev => ({ ...prev, error: "Security check failed. Please refresh." }));
+          }
         },
       });
 
@@ -251,7 +310,7 @@ export const useFirebaseAuth = () => {
       window.__fasthaazirRecaptchaVerifier = undefined;
       window.__fasthaazirRecaptchaWidgetId = undefined;
 
-      // On Android, be lenient
+      // On Android, be lenient - native verification might still work!
       if (isNative) {
         console.log("[useFirebaseAuth] Android: Ignoring reCAPTCHA error to allow fallback flow");
         return true;
@@ -519,6 +578,7 @@ export const useFirebaseAuth = () => {
   const signInWithGoogle = useCallback(async (): Promise<any> => {
     const auth = getFirebaseAuth();
     const provider = getGoogleProvider();
+    const isNative = isRunningInNativeApp();
 
     if (!auth || !provider) {
       setEmailAuthState({ loading: false, error: "Google sign-in not ready." });
@@ -528,18 +588,48 @@ export const useFirebaseAuth = () => {
     setEmailAuthState({ loading: true, error: null });
 
     try {
-      console.log("[useFirebaseAuth] Starting Google sign-in...");
-      const result = await signInWithPopup(auth, provider);
+      console.log(`[useFirebaseAuth] Starting Google sign-in (${isNative ? 'Native' : 'Web'})...`);
+
+      let user;
+
+      if (isNative) {
+        // Native Google Sign-In (Android/iOS)
+        // This uses the native Google Auth SDK via the plugin, bypassing WebView restrictions
+        try {
+          console.log("[useFirebaseAuth] Initializing Native GoogleAuth...");
+          await GoogleAuth.initialize();
+        } catch (e) {
+          console.log("[useFirebaseAuth] GoogleAuth init warning (might be already init):", e);
+        }
+
+        const googleUser = await GoogleAuth.signIn();
+        console.log("[useFirebaseAuth] Native sign-in success, getting credential...");
+
+        // Create Firebase credential from the native ID token
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        const result = await signInWithCredential(auth, credential);
+        user = result.user;
+
+      } else {
+        // Web Google Sign-In (Popup)
+        const result = await signInWithPopup(auth, provider);
+        user = result.user;
+      }
+
       setEmailAuthState({ loading: false, error: null });
       console.log("[useFirebaseAuth] Google sign-in successful ✓");
-      return result.user;
+      return user;
+
     } catch (error: any) {
       console.error("[useFirebaseAuth] Google sign-in error:", error);
       let errorMessage = "Google sign-in failed. Please try again.";
-      if (error?.code === "auth/popup-closed-by-user") {
+
+      if (error?.code === "auth/popup-closed-by-user" || error?.message?.includes("canceled")) {
         errorMessage = "Sign-in cancelled.";
       } else if (error?.code === "auth/popup-blocked") {
         errorMessage = "Pop-up blocked. Please allow pop-ups for this site.";
+      } else if (error?.error === "popup_closed_by_user") { // Plugin specific error
+        errorMessage = "Sign-in cancelled.";
       }
 
       setEmailAuthState({ loading: false, error: errorMessage });

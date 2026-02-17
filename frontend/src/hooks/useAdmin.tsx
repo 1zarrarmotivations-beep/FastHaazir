@@ -36,11 +36,12 @@ export const useIsAdmin = () => {
 };
 
 // Check user role for routing - with caching
+// NOTE: Added cache busting to ensure fresh role data
 export const useUserRole = () => {
   const { user } = useAuth();
 
   return useQuery<RoleResolution | null>({
-    queryKey: ["user-role", user?.id],
+    queryKey: ["user-role", user?.id, 'v2'], // Versioned to bust cache
     queryFn: async () => {
       if (!user?.id) {
         console.log("[useUserRole] No user id, returning null");
@@ -48,11 +49,18 @@ export const useUserRole = () => {
       }
 
       console.log("[useUserRole] Fetching full role resolution for:", user.id);
-      return roleResolver(user.id, user.email || user.phone);
+      console.log("[useUserRole] User email:", user.email);
+      console.log("[useUserRole] User phone:", user.phone);
+
+      const result = await roleResolver(user.id, user.email || user.phone);
+      console.log("[useUserRole] Resolution result:", result);
+      return result;
     },
     enabled: !!user?.id,
-    staleTime: 5000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 0, // Always fetch fresh data - no stale time for role
+    gcTime: 0, // Don't cache role - always refetch
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -391,7 +399,7 @@ export const useAdminOrders = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, riders(name, phone), payments(*)")
+        .select("*, riders(name, phone), payments(*), customer:customer_profiles!orders_customer_profiles_fkey(name, phone)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -436,7 +444,7 @@ export const useAdminRiderRequests = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rider_requests")
-        .select("*, riders(name, phone, vehicle_type)")
+        .select("*, riders(name, phone, vehicle_type), customer:customer_profiles!rider_requests_customer_profiles_fkey(name, phone)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;

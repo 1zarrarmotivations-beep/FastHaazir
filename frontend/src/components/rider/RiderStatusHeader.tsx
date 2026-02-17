@@ -9,6 +9,7 @@ import {
   User,
   Zap,
   CheckCircle2,
+  Gauge,
 } from 'lucide-react';
 import { RiderProfile } from '@/hooks/useRiderDashboard';
 
@@ -21,6 +22,7 @@ interface RiderStatusHeaderProps {
   walletBalance: number;
   completedToday: number;
   activeDeliveriesCount?: number;
+  currentSpeed?: number;
 }
 
 const RiderStatusHeader = ({
@@ -31,7 +33,8 @@ const RiderStatusHeader = ({
   todayEarnings,
   walletBalance,
   completedToday,
-  activeDeliveriesCount = 0
+  activeDeliveriesCount = 0,
+  currentSpeed = 0
 }: RiderStatusHeaderProps) => {
   // Determine if offline toggle should be disabled
   const cannotGoOffline = isOnline && activeDeliveriesCount > 0;
@@ -65,32 +68,46 @@ const RiderStatusHeader = ({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="glass-card-premium rounded-3xl p-6 relative overflow-hidden"
+        className="glass-card-premium rounded-3xl p-6 relative overflow-hidden border border-white/10 shadow-2xl"
       >
-        {/* Animated Glow Effect when Online */}
+        {/* Animated Gradient Background */}
         {isOnline && (
           <>
-            <motion.div
-              className="absolute inset-0 rounded-3xl opacity-40"
+            <div
+              className="absolute inset-0 opacity-50"
               style={{
-                background: 'radial-gradient(circle at top right, rgba(16,185,129,0.2) 0%, transparent 50%)',
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,78,59,0.1) 50%, rgba(6,32,22,0.15) 100%)'
+              }}
+            />
+            <motion.div
+              className="absolute inset-0 rounded-3xl opacity-30"
+              style={{
+                background: 'radial-gradient(circle at top right, rgba(16,185,129,0.3) 0%, transparent 60%)',
               }}
               animate={{
-                opacity: [0.3, 0.5, 0.3],
+                opacity: [0.2, 0.4, 0.2],
               }}
               transition={{ duration: 3, repeat: Infinity }}
             />
             <motion.div
               className="absolute -top-20 -right-20 w-40 h-40 rounded-full"
               style={{
-                background: 'radial-gradient(circle, rgba(16,185,129,0.25) 0%, transparent 70%)',
+                background: 'radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)',
                 filter: 'blur(40px)',
               }}
               animate={{
                 scale: [1, 1.2, 1],
-                opacity: [0.4, 0.6, 0.4],
+                opacity: [0.3, 0.5, 0.3],
               }}
               transition={{ duration: 4, repeat: Infinity }}
+            />
+            {/* Subtle grid pattern */}
+            <div
+              className="absolute inset-0 opacity-5"
+              style={{
+                backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+                backgroundSize: '20px 20px'
+              }}
             />
           </>
         )}
@@ -202,7 +219,7 @@ const RiderStatusHeader = ({
         </div>
 
         {/* Premium Stats Grid */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <PremiumStatCard
             icon={<Wallet className="w-5 h-5" />}
             label="Today"
@@ -220,6 +237,12 @@ const RiderStatusHeader = ({
             label="Trips"
             value={completedToday.toString()}
             color="purple"
+          />
+          <PremiumStatCard
+            icon={<Gauge className="w-5 h-5" />}
+            label="Speed"
+            value={`${currentSpeed} km/h`}
+            color="cyan"
           />
         </div>
       </motion.div>

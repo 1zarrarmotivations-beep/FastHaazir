@@ -46,6 +46,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalizePhoneNumber } from "@/lib/phoneUtils";
+import { safeLower } from "@/lib/utils";
 
 type RoleType = 'rider' | 'business' | 'admin';
 
@@ -222,8 +223,8 @@ export function UsersManager() {
   });
 
   const filteredUsers = users?.filter((user) => {
-    const matchesSearch = (user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.phone || '').includes(searchQuery);
+    const matchesSearch = safeLower(user.name).includes(safeLower(searchQuery)) ||
+      safeLower(user.phone).includes(safeLower(searchQuery));
 
     if (!matchesSearch) return false;
     if (roleFilter === "all") return true;

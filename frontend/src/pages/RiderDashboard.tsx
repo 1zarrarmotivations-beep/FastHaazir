@@ -40,6 +40,7 @@ import RiderBottomNav, { RiderTab } from '@/components/rider/RiderBottomNav';
 import RiderHeatmap from '@/components/rider/RiderHeatmap';
 import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
+import SpeedMeter from '@/components/rider/SpeedMeter';
 
 /* ================= PRODUCTION BUILD MARKER ================= */
 const BUILD_VERSION = 'PROD-v5.0';
@@ -104,7 +105,8 @@ const RiderDashboard = () => {
     permissionStatus,
     isLocationEnabled,
     checkPermissions: checkLocPermissions,
-    requestPermissions: requestLocPermissions
+    requestPermissions: requestLocPermissions,
+    currentSpeed
   } = useRiderLocation(
     riderProfile?.id,
     riderProfile?.is_online || false
@@ -204,6 +206,24 @@ const RiderDashboard = () => {
           className="gradient-rider-primary text-white font-semibold px-8 py-3 rounded-2xl"
         >
           Login
+        </Button>
+      </div>
+    );
+  }
+
+  if (!riderProfile && !profileLoading) {
+    return (
+      <div className="min-h-screen rider-bg flex flex-col items-center justify-center gap-4 text-center px-4">
+        <AlertCircle className="w-16 h-16 text-destructive" />
+        <h2 className="text-2xl font-bold text-white">Rider Account Not Found</h2>
+        <p className="text-white/70">
+          Your account is not registered as a rider. Please contact support or register as a rider.
+        </p>
+        <Button
+          onClick={() => navigate('/')}
+          className="gradient-rider-primary text-white font-semibold px-8 py-3 rounded-2xl"
+        >
+          Go Home
         </Button>
       </div>
     );
@@ -349,6 +369,7 @@ const RiderDashboard = () => {
               date.getFullYear() === now.getFullYear();
           }).length}
           activeDeliveriesCount={activeDeliveries.length}
+          currentSpeed={currentSpeed}
         />
 
         <RiderQuickActions
@@ -363,7 +384,16 @@ const RiderDashboard = () => {
               ? 'on_delivery'
               : 'idle'
           }
+          onOpenSupport={() => navigate('/rider-support')}
+          onOpenEarnings={() => setActiveTab('earnings')}
         />
+
+        {/* Real-time Speed Meter - Show only during active deliveries */}
+        {activeDeliveries.length > 0 && (
+          <div className="px-4 mt-2">
+            <SpeedMeter isActive={riderProfile?.is_online} />
+          </div>
+        )}
 
         {/* Orders Section - Tab Content */}
         <div className="px-4 mt-4">

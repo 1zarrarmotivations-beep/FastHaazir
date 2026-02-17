@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { 
-  Search, 
+import {
+  Search,
   Package,
   Clock,
   MapPin,
@@ -11,6 +11,7 @@ import {
   ArrowRight,
   EyeOff
 } from "lucide-react";
+import { safeLower } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -62,16 +63,16 @@ export function RiderRequestsManager() {
   const updateStatus = useUpdateRiderRequestStatus();
   const assignRider = useAssignRiderToRequest();
 
-  const filteredRequests = requests?.filter((request) => {
-    const matchesSearch = 
-      request.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.pickup_address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.dropoff_address?.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredRequests = (requests as any[])?.filter((request) => {
+    const matchesSearch =
+      safeLower(request.id).includes(safeLower(searchQuery)) ||
+      safeLower(request.pickup_address).includes(safeLower(searchQuery)) ||
+      safeLower(request.dropoff_address).includes(safeLower(searchQuery));
     const matchesStatus = statusFilter === "all" || request.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const activeRiders = riders?.filter(r => r.is_active && r.is_online) || [];
+  const activeRiders = (riders as any[])?.filter(r => r.is_active && r.is_online) || [];
 
   return (
     <div className="space-y-6">
@@ -189,12 +190,24 @@ export function RiderRequestsManager() {
                         </div>
                       )}
 
-                      {/* Customer (privacy: do NOT show phone numbers) */}
-                      <div className="mt-3 flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          Customer #{request.id.slice(0, 6)}
-                        </span>
+                      {/* Customer Detail */}
+                      <div className="mt-3 p-3 bg-muted/50 rounded-lg flex items-start gap-3">
+                        <User className="w-4 h-4 text-primary mt-0.5" />
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Customer</p>
+                          <p className="text-sm font-medium text-foreground">
+                            {request.customer?.name || `Customer #${request.id.slice(0, 6)}`}
+                          </p>
+                          {request.customer?.phone && (
+                            <a
+                              href={`tel:${request.customer.phone}`}
+                              className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                            >
+                              <Phone className="w-3 h-3" />
+                              {request.customer.phone}
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -209,27 +222,27 @@ export function RiderRequestsManager() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => updateStatus.mutate({ requestId: request.id, status: 'placed' })}
                           >
                             Pending
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => updateStatus.mutate({ requestId: request.id, status: 'preparing' })}
                           >
                             Accepted
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => updateStatus.mutate({ requestId: request.id, status: 'on_way' })}
                           >
                             On the Way
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => updateStatus.mutate({ requestId: request.id, status: 'delivered' })}
                           >
                             Completed
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => updateStatus.mutate({ requestId: request.id, status: 'cancelled' })}
                             className="text-destructive"
                           >
@@ -255,7 +268,7 @@ export function RiderRequestsManager() {
                               </DropdownMenuItem>
                             ) : (
                               activeRiders.map((rider) => (
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   key={rider.id}
                                   onClick={() => {
                                     assignRider.mutate({ requestId: request.id, riderId: rider.id });
@@ -275,7 +288,7 @@ export function RiderRequestsManager() {
                         size="sm"
                         className="w-full mt-2 bg-slate-100 hover:bg-slate-200 border-slate-300"
                         onClick={() => {
-                          const assignedRider = riders?.find(r => r.id === request.rider_id);
+                          const assignedRider = (riders as any[])?.find(r => r.id === request.rider_id);
                           setViewingChatRequestId(request.id);
                           setChatRequestInfo({
                             customerLabel: `Customer #${request.id.slice(0, 6)}`,

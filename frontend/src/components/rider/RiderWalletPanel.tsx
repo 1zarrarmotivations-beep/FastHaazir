@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Wallet, 
-  TrendingUp, 
+import {
+  Wallet,
+  TrendingUp,
   TrendingDown,
   Calendar,
   DollarSign,
@@ -78,10 +78,10 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
 
   if (showWithdrawal) {
     return (
-      <WithdrawalRequestPanel 
-        riderId={riderId} 
-        isOpen={showWithdrawal} 
-        onClose={() => setShowWithdrawal(false)} 
+      <WithdrawalRequestPanel
+        riderId={riderId}
+        isOpen={showWithdrawal}
+        onClose={() => setShowWithdrawal(false)}
       />
     );
   }
@@ -93,8 +93,8 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
       exit={{ opacity: 0, y: '100%' }}
       className="fixed inset-0 z-50 bg-background overflow-y-auto"
     >
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-accent/20 via-accent/10 to-background p-4 pb-6">
+      {/* Header with gradient */}
+      <div className="sticky top-0 z-10 bg-gradient-to-b from-accent/30 via-accent/15 to-background p-4 pb-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center">
@@ -105,13 +105,13 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
               <p className="text-sm text-muted-foreground">Track your income</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-accent/10">
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Balance Card */}
-        <Card className="gradient-primary text-primary-foreground p-5 rounded-2xl shadow-elevated">
+        <Card className="gradient-primary text-primary-foreground p-5 rounded-2xl shadow-elevated border border-accent/20">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm opacity-80">Total Balance</p>
             {(walletSummary?.cashAdvances || 0) > 0 && (
@@ -143,7 +143,7 @@ const RiderWalletPanel = ({ riderId, isOpen, onClose }: RiderWalletPanelProps) =
 
       <div className="p-4 space-y-4">
         {/* Withdraw Button */}
-        <Button 
+        <Button
           onClick={() => setShowWithdrawal(true)}
           className="w-full bg-accent hover:bg-accent/90"
           size="lg"

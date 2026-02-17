@@ -199,7 +199,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     // Not authenticated - redirect to login
     if (!authState.authenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        return <Navigate to="/auth" state={{ from: location }} replace />;
     }
 
     // Authenticated but not authorized - redirect based on actual role
@@ -218,7 +218,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
         const destination = authState.user?.role
             ? roleRedirects[authState.user.role]
-            : '/login';
+            : '/auth';
 
         console.warn(
             `Unauthorized access attempt: User with role "${authState.user?.role}" ` +

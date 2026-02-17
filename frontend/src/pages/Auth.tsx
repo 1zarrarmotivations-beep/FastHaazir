@@ -16,6 +16,7 @@ import { normalizePhoneNumber, normalizePhoneDigits, isValidPakistaniMobile } fr
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import fastHaazirLogo from "@/assets/fast-haazir-logo.png";
 import { roleResolver, type RoleResolution } from "@/lib/roleResolver";
+import { sendWelcomeNotification } from "@/lib/notifications";
 
 type AuthMethod = "select" | "phone" | "email" | "otp";
 
@@ -264,6 +265,10 @@ const redirectByRole = (
 
   console.log(`[Auth] Final Redirecting to: ${redirectPath} for role: ${role}`);
   toast.success(welcomeMessage);
+
+  // Send welcome push notification
+  sendWelcomeNotification(role === 'admin' ? 'Admin' : role === 'rider' ? 'Rider' : undefined);
+
   navigate(redirectPath, { replace: true });
   return { success: true };
 };

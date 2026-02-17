@@ -10,6 +10,7 @@ import {
   X,
   DollarSign,
   UserCog,
+  UserX,
   Bell,
   Settings,
   Send,
@@ -31,6 +32,9 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { useAdminSupportTickets } from "@/hooks/useAdminSupport";
+import { useUnreadRiderTicketsCount } from "@/hooks/useAdminRiderSupport";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -47,33 +51,40 @@ const menuGroups = [
     ]
   },
   {
-    title: "Management",
+    title: "Operations",
     items: [
       { id: "orders", label: "Orders", icon: ShoppingBag },
       { id: "businesses", label: "Businesses", icon: Store },
-      { id: "riders", label: "Riders", icon: Bike },
       { id: "users", label: "Users & Roles", icon: UserCog },
-      { id: "requests", label: "Rider Requests", icon: Users },
+      { id: "deletion-requests", label: "Deletion Requests", icon: UserX },
     ]
   },
   {
-    title: "Finance",
+    title: "Rider Ecosystem",
     items: [
+      { id: "riders", label: "Riders", icon: Bike },
+      { id: "requests", label: "Registration", icon: Users },
+      { id: "rider-support", label: "Rider Support", icon: Headphones, badgeId: "rider-support" },
       { id: "earnings", label: "Rider Earnings", icon: TrendingUp },
+    ]
+  },
+  {
+    title: "Finance & Strategy",
+    items: [
       { id: "wallet-adjustments", label: "Cash Advances", icon: ArrowUpCircle },
       { id: "withdrawals", label: "Withdrawals", icon: CreditCard },
-      { id: "category-pricing", label: "Pricing", icon: DollarSign },
-      { id: "payment-settings", label: "Settings", icon: Settings },
+      { id: "category-pricing", label: "Global Pricing", icon: DollarSign },
+      { id: "payment-settings", label: "Finance Settings", icon: Settings },
     ]
   },
   {
-    title: "Support & Comms",
+    title: "Comms & Help",
     items: [
-      { id: "support", label: "Support Center", icon: Headphones },
-      { id: "chats", label: "All Chats", icon: MessageCircle },
-      { id: "notifications", label: "In-App Alerts", icon: Bell },
+      { id: "support", label: "Customer Support", icon: Headphones, badgeId: "support" },
+      { id: "chats", label: "Direct Messages", icon: MessageCircle },
+      { id: "notifications", label: "System Alerts", icon: Bell },
       { id: "push-notifications", label: "Push Center", icon: Send },
-      { id: "promo-banner", label: "Banners", icon: Sparkles },
+      { id: "promo-banner", label: "Marketing Banners", icon: Sparkles },
     ]
   }
 ];
@@ -97,6 +108,19 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
     } finally {
       setIsLoggingOut(false);
     }
+  };
+
+  const { data: supportTickets } = useAdminSupportTickets();
+  const { data: riderSupportCount } = useUnreadRiderTicketsCount();
+
+  const getBadgeCount = (badgeId?: string) => {
+    if (badgeId === "support") {
+      return supportTickets?.filter(t => t.status === "open").length || 0;
+    }
+    if (badgeId === "rider-support") {
+      return riderSupportCount || 0;
+    }
+    return 0;
   };
 
   return (
@@ -164,9 +188,21 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
                       )}
                     >
                       <Icon className={cn("w-4.5 h-4.5 transition-colors", isActive ? "text-white" : "text-gray-500 group-hover:text-white")} />
-                      <span className={cn("text-sm font-medium", isActive ? "font-semibold" : "")}>{item.label}</span>
+                      <span className={cn("text-sm font-medium flex-1", isActive ? "font-semibold" : "")}>{item.label}</span>
 
-                      {isActive && (
+                      {getBadgeCount(item.badgeId) > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className={cn(
+                            "h-5 min-w-5 flex items-center justify-center text-[10px] font-bold px-1.5 rounded-full border-2",
+                            isActive ? "bg-white text-orange-500 border-orange-500" : "bg-red-500 text-white border-[#141414]"
+                          )}
+                        >
+                          {getBadgeCount(item.badgeId)}
+                        </Badge>
+                      )}
+
+                      {isActive && !getBadgeCount(item.badgeId) && (
                         <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
                       )}
                     </button>

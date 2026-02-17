@@ -16,12 +16,11 @@ interface PushNotification {
   id: string;
   title: string;
   message: string;
-  target_role: string | null;
+  user_role: string | null;
   target_user_id: string | null;
-  action_route: string | null;
-  sent_at: string;
-  success_count: number;
-  failure_count: number;
+  status: string;
+  response_data: any;
+  created_at: string;
 }
 
 interface TokenStats {
@@ -45,28 +44,28 @@ const PushNotificationCenter = () => {
     queryFn: async () => {
       // Get all device tokens with their user roles
       const { data: tokens, error } = await supabase
-        .from('push_device_tokens')
+        .from('device_tokens')
         .select('user_id');
-      
+
       if (error) throw error;
-      
+
       const userIds = [...new Set(tokens?.map(t => t.user_id) || [])];
-      
+
       if (userIds.length === 0) {
         return { total: 0, customers: 0, riders: 0, businesses: 0, admins: 0 };
       }
-      
+
       // Get roles for these users
       const { data: roles } = await supabase
         .from('user_roles')
         .select('user_id, role')
         .in('user_id', userIds);
-      
+
       const roleMap = new Map<string, string>();
       roles?.forEach(r => roleMap.set(r.user_id, r.role));
-      
+
       const stats: TokenStats = { total: userIds.length, customers: 0, riders: 0, businesses: 0, admins: 0 };
-      
+
       userIds.forEach(uid => {
         const role = roleMap.get(uid) || 'customer';
         if (role === 'rider') stats.riders++;
@@ -74,7 +73,7 @@ const PushNotificationCenter = () => {
         else if (role === 'admin') stats.admins++;
         else stats.customers++;
       });
-      
+
       return stats;
     },
     refetchInterval: 30000, // Refresh every 30s
@@ -85,11 +84,11 @@ const PushNotificationCenter = () => {
     queryKey: ['push-notifications'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('push_notifications')
+        .from('notifications_log')
         .select('*')
-        .order('sent_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(50);
-      
+
       if (error) throw error;
       return data as PushNotification[];
     },
@@ -113,20 +112,30 @@ const PushNotificationCenter = () => {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error('Not authenticated');
 
-      const response = await supabase.functions.invoke('send-push-notification', {
-        body: {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://api-hcqvagallq-uc.a.run.app'}/api/push/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.session.access_token}`
+        },
+        body: JSON.stringify({
           title,
           message,
-          targetRole: targetRole === 'all' ? null : targetRole,
-          actionRoute: actionRoute || null,
-        },
+          target: targetRole === 'all' ? 'role' : 'role', // 'role' target type
+          target_role: targetRole,
+          link: actionRoute || null,
+        }),
       });
 
-      if (response.error) throw response.error;
-      return response.data;
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to send notification');
+      }
+
+      return await response.json();
     },
     onSuccess: (data) => {
-      toast.success(`Push sent to ${data.sent} devices`);
+      toast.success('Push notification sent successfully');
       setTitle('');
       setMessage('');
       setActionRoute('');
@@ -275,14 +284,14 @@ const PushNotificationCenter = () => {
             </Alert>
           )}
 
-          <Button 
-            onClick={handleSend} 
+          <Button
+            onClick={handleSend}
             disabled={sendMutation.isPending || targetCount === 0}
             className="w-full"
           >
             <Send className="h-4 w-4 mr-2" />
-            {sendMutation.isPending 
-              ? 'Sending...' 
+            {sendMutation.isPending
+              ? 'Sending...'
               : `Send to ${targetCount} device${targetCount !== 1 ? 's' : ''}`}
           </Button>
         </CardContent>
@@ -303,8 +312,8 @@ const PushNotificationCenter = () => {
           ) : (
             <div className="space-y-3">
               {notifications?.map((notif) => (
-                <div 
-                  key={notif.id} 
+                <div
+                  key={notif.id}
                   className="border rounded-lg p-3 space-y-2"
                 >
                   <div className="flex items-start justify-between">
@@ -313,24 +322,23 @@ const PushNotificationCenter = () => {
                       <p className="text-sm text-muted-foreground">{notif.message}</p>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="flex items-center gap-1 text-green-600">
-                        <CheckCircle className="h-3 w-3" />
-                        {notif.success_count}
-                      </span>
-                      {notif.failure_count > 0 && (
+                      {notif.response_data?.success !== undefined && (
+                        <span className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="h-3 w-3" />
+                          {notif.response_data.success}
+                        </span>
+                      )}
+                      {(notif.response_data?.failed || 0) > 0 && (
                         <span className="flex items-center gap-1 text-red-600">
                           <XCircle className="h-3 w-3" />
-                          {notif.failure_count}
+                          {notif.response_data.failed}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>To: {getTargetLabel(notif.target_role)}</span>
-                    <span>{format(new Date(notif.sent_at), 'MMM d, h:mm a')}</span>
-                    {notif.action_route && (
-                      <span>Route: {notif.action_route}</span>
-                    )}
+                    <span>To: {getTargetLabel(notif.user_role)}</span>
+                    <span>{format(new Date(notif.created_at), 'MMM d, h:mm a')}</span>
                   </div>
                 </div>
               ))}

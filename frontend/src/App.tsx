@@ -67,11 +67,12 @@ const Admin = lazyWithRetry(() => import("./pages/Admin"));
 const CompleteProfile = lazyWithRetry(() => import("./pages/CompleteProfile"));
 const RiderRegistration = lazyWithRetry(() => import("./pages/RiderRegistration"));
 const Onboarding = lazyWithRetry(() => import("./components/onboarding/OnboardingFlow").then(module => ({ default: module.OnboardingFlow })));
-const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
-const Support = lazyWithRetry(() => import("./pages/Support"));
-
+const Categories = lazyWithRetry(() => import("./pages/Categories"));
 const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
+const Support = lazyWithRetry(() => import("./pages/Support"));
+const RiderSupport = lazyWithRetry(() => import("./pages/RiderSupport"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 
 // Loading fallback component
@@ -99,6 +100,9 @@ const App = () => {
     if (Capacitor.isNativePlatform()) {
       SplashScreen.hide();
     }
+
+    // Show welcome notification if first time
+    import('@/lib/mobile').then(m => m.showWelcomeNotification());
   }, []);
 
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -154,9 +158,10 @@ const App = () => {
                       <Route path="/orders" element={<Orders />} />
                       <Route path="/history" element={<History />} />
                       <Route path="/profile" element={<Profile />} />
+                      <Route path="/onboarding" element={<Onboarding />} />
+                      <Route path="/categories" element={<Categories />} />
                       <Route path="/support" element={<Support />} />
                       <Route path="/rider/register" element={<RiderRegistration />} />
-                      <Route path="/onboarding" element={<Onboarding />} />
 
                       {/* Protected Dashboards */}
                       <Route
@@ -172,6 +177,16 @@ const App = () => {
                         element={
                           <ProtectedRoute allowedRoles={["rider"]}>
                             <RiderDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Rider Support - Protected for Riders Only */}
+                      <Route
+                        path="/rider-support"
+                        element={
+                          <ProtectedRoute allowedRoles={["rider"]}>
+                            <RiderSupport />
                           </ProtectedRoute>
                         }
                       />

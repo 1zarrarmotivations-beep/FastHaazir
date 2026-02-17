@@ -83,7 +83,24 @@ const RiderQuickActions = ({
         transition={{ duration: 0.4 }}
       >
         {/* Gradient Background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${currentStatusConfig.gradient} opacity-50`} />
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${currentStatusConfig.gradient} opacity-60`}
+          style={{
+            background: currentStatus === 'idle'
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.2) 0%, rgba(6,78,59,0.15) 50%, rgba(6,32,22,0.2) 100%)'
+              : currentStatus === 'on_delivery'
+                ? 'linear-gradient(135deg, rgba(249,115,22,0.2) 0%, rgba(220,38,38,0.15) 50%, rgba(127,29,29,0.2) 100%)'
+                : 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(88,28,135,0.15) 50%, rgba(46,10,56,0.2) 100%)'
+          }}
+        />
+        {/* Subtle grid pattern */}
+        <div
+          className="absolute inset-0 opacity-5"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            backgroundSize: '16px 16px'
+          }}
+        />
 
         <div className="relative flex items-center gap-4">
           <motion.div

@@ -8,6 +8,8 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Keyboard } from '@capacitor/keyboard';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { LocalNotifications } from '@capacitor/local-notifications';
+
 
 /**
  * Check if running on native mobile platform
@@ -94,7 +96,7 @@ export const takePicture = async (fromGallery: boolean = false): Promise<string 
 export const getCurrentLocation = async (): Promise<Position | null> => {
   try {
     const permission = await Geolocation.requestPermissions();
-    
+
     if (permission.location !== 'granted') {
       console.error('[Mobile] Location permission denied');
       return null;
@@ -177,7 +179,7 @@ export const registerPushNotifications = async (): Promise<string | null> => {
 
   try {
     const permission = await PushNotifications.requestPermissions();
-    
+
     if (permission.receive !== 'granted') {
       console.error('[Mobile] Push notification permission denied');
       return null;
@@ -241,8 +243,9 @@ export const hapticNotification = async (type: 'success' | 'warning' | 'error' =
   if (!isMobile()) return;
 
   try {
-    await Haptics.notification({ type });
+    await Haptics.notification({ type: type.toUpperCase() as any });
   } catch (error) {
+
     console.error('[Mobile] Haptic notification error:', error);
   }
 };
@@ -319,6 +322,37 @@ export const getAppInfo = async () => {
   return await App.getInfo();
 };
 
+/**
+ * Show a welcome notification for new users
+ */
+export const showWelcomeNotification = async () => {
+  if (!isMobile()) return;
+
+  try {
+    const hasBeenWelcomed = localStorage.getItem('fasthaazir_welcome_shown');
+    if (hasBeenWelcomed) return;
+
+    await LocalNotifications.requestPermissions();
+
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: 1,
+          title: 'Fast Haazir mein Khush Amdeed!',
+          body: 'Assalam-o-Alaikum! Quetta ki apni delivery service Fast Haazir tayyar hai. Behtareen zaiqa aur tez delivery ka maza lo. Abhi order karo!',
+          schedule: { at: new Date(Date.now() + 1000) }, // Show after 1 second
+          sound: 'default'
+        }
+      ]
+    });
+
+    localStorage.setItem('fasthaazir_welcome_shown', 'true');
+    console.log('[Mobile] Welcome notification scheduled ✓');
+  } catch (error) {
+    console.error('[Mobile] Welcome notification error:', error);
+  }
+};
+
 export default {
   isMobile,
   getPlatform,
@@ -336,5 +370,7 @@ export default {
   hideKeyboard,
   setupKeyboardListeners,
   exitApp,
-  getAppInfo
+  getAppInfo,
+  showWelcomeNotification
 };
+

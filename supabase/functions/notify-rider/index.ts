@@ -80,9 +80,9 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const requestData: NotifyRiderRequest = await req.json();
-    const { 
-      rider_id, 
-      order_id, 
+    const {
+      rider_id,
+      order_id,
       rider_request_id,
       notification_type = 'new_order',
       custom_title,
@@ -103,8 +103,8 @@ serve(async (req) => {
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
       console.error('OneSignal not configured');
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Push notifications not configured',
           details: 'OneSignal API credentials missing'
         }),
@@ -129,8 +129,8 @@ serve(async (req) => {
     if (!rider.user_id) {
       console.warn('Rider has no linked user_id');
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Rider has no linked user account',
           rider_id: rider_id
         }),
@@ -151,17 +151,17 @@ serve(async (req) => {
     console.log('Device tokens for rider:', {
       user_id: rider.user_id,
       token_count: deviceTokens?.length || 0,
-      tokens: deviceTokens?.map(t => ({ 
-        platform: t.platform, 
-        token_preview: t.device_token.substring(0, 20) + '...' 
+      tokens: deviceTokens?.map(t => ({
+        platform: t.platform,
+        token_preview: t.device_token.substring(0, 20) + '...'
       }))
     });
 
     if (!deviceTokens || deviceTokens.length === 0) {
       console.warn('No device tokens found for rider');
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'No registered devices for this rider',
           rider_id: rider_id,
           user_id: rider.user_id,
@@ -174,9 +174,9 @@ serve(async (req) => {
     // Get notification content
     const template = notificationTemplates[notification_type] || notificationTemplates.new_order;
     const title = custom_title || template.title;
-    const body = custom_body || template.body({ 
-      rider_id, 
-      order_id, 
+    const body = custom_body || template.body({
+      rider_id,
+      order_id,
       rider_request_id,
       notification_type,
       pickup_address,
@@ -186,28 +186,28 @@ serve(async (req) => {
 
     // Build OneSignal payload with HIGH PRIORITY for Android
     const playerIds = deviceTokens.map(t => t.device_token);
-    
+
     const oneSignalPayload: OneSignalNotification = {
       app_id: ONESIGNAL_APP_ID,
       include_player_ids: playerIds,
       headings: { en: title },
       contents: { en: body },
-      
+
       // CRITICAL: Android high-priority settings for background/locked sound
       priority: 10, // Highest priority (0-10)
       android_visibility: 1, // Public - show on lock screen
-      android_sound: 'default', // Play default notification sound
-      ios_sound: 'default',
+      android_sound: 'ringing', // Play custom 'ringing.mp3' from resources
+      ios_sound: 'ringing.wav',
       ios_interruption_level: 'time_sensitive', // iOS 15+ time-sensitive
-      
+
       // Android specific settings for wake and sound
       android_accent_color: 'FF00FF00', // Green accent
       android_led_color: 'FF00FF00', // Green LED
       android_vibration_pattern: '0,500,500,500', // Vibration pattern
-      
+
       // TTL - keep notification for 1 hour
       ttl: 3600,
-      
+
       // Data payload for app routing
       data: {
         type: notification_type,
@@ -278,8 +278,8 @@ serve(async (req) => {
           name: rider.name,
           user_id: rider.user_id,
         },
-        message: successCount > 0 
-          ? `Push notification sent to ${successCount} device(s)` 
+        message: successCount > 0
+          ? `Push notification sent to ${successCount} device(s)`
           : 'Notification queued but delivery pending',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -289,9 +289,9 @@ serve(async (req) => {
     console.error('Rider notification error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: errorMessage 
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

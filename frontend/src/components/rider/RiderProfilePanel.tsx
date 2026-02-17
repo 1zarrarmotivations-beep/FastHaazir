@@ -16,7 +16,8 @@ import {
   HelpCircle,
   LogOut,
   X,
-  Loader2
+  Loader2,
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -108,8 +109,8 @@ const RiderProfilePanel = ({
     {
       section: 'Support',
       items: [
-        { icon: HelpCircle, label: 'Help & Support', action: true },
-        { icon: Shield, label: 'Privacy Policy', action: true },
+        { icon: HelpCircle, label: 'Help & Support', action: true, onClick: () => { onClose(); navigate('/rider-support'); } },
+        { icon: Shield, label: 'Privacy Policy', action: true, onClick: () => { onClose(); navigate('/privacy-policy'); } },
       ]
     }
   ];
@@ -121,17 +122,17 @@ const RiderProfilePanel = ({
       exit={{ opacity: 0, x: '100%' }}
       className="fixed inset-0 z-50 bg-background overflow-y-auto"
     >
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-gradient-to-b from-primary/10 via-primary/5 to-background p-4 pb-8">
+      {/* Header with gradient background */}
+      <div className="sticky top-0 z-10 bg-gradient-to-b from-primary/20 via-primary/10 to-background p-4 pb-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-foreground">Profile</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-primary/10">
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Profile Card */}
-        <Card className="p-5 rounded-2xl shadow-card">
+        <Card className="p-5 rounded-2xl shadow-card border border-primary/10">
           <div className="flex items-center gap-4">
             <div className="relative">
               {user?.id ? (
@@ -218,7 +219,8 @@ const RiderProfilePanel = ({
                   <div
                     key={item.label}
                     className={`flex items-center justify-between p-4 ${itemIndex < section.items.length - 1 ? 'border-b border-border' : ''
-                      }`}
+                      } ${item.onClick ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                    onClick={item.onClick}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
@@ -250,6 +252,20 @@ const RiderProfilePanel = ({
             </Card>
           </div>
         ))}
+
+        {/* Switch to Customer App */}
+        <Button
+          variant="outline"
+          className="w-full h-14 text-primary border-primary/30 hover:bg-primary/10 mb-2"
+          onClick={() => {
+            sessionStorage.setItem('preferred_view', 'customer');
+            navigate('/');
+            onClose();
+          }}
+        >
+          <Home className="w-5 h-5 mr-2" />
+          Switch to Customer App
+        </Button>
 
         {/* Logout Button */}
         <Button

@@ -18,13 +18,15 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   indexedDBLocalPersistence,
-  initializeAuth
+  initializeAuth,
 } from 'firebase/auth';
+import { getMessaging } from 'firebase/messaging';
 import { supabase } from '@/integrations/supabase/client';
 
 // Use 'any' for Firebase instances to avoid complex type inference
 let firebaseApp: any = null;
 let firebaseAuth: any = null;
+let firebaseMessaging: any = null;
 let googleProvider: any = null;
 let configLoaded = false;
 let configValid = false;
@@ -81,37 +83,30 @@ interface FirebaseConfig {
 }
 
 /**
- * Fetch Firebase config - Prioritizes bundled environment variables for speed and reliability.
- * APK builds will have these baked in at compile time from the .env file.
+ * Fetch Firebase config - For Android APK builds, we ALWAYS use Android-specific config
+ * because this build is specifically for Android and must use the key linked to SHA fingerprints
  */
 export const fetchFirebaseConfig = async (): Promise<FirebaseConfig | null> => {
-  // 1. ALWAYS check local environment variables first (baked into the APK/Web build)
-  const bundledConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  // Try environment variables first
+  const isNative = detectNativeApp();
+
+  // Use Android-specific API key if on native, fallback to Web key
+  const apiKey = isNative
+    ? (import.meta.env.VITE_FIREBASE_ANDROID_API_KEY || import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyB0dz4tCtu1M-1OOjK0tbiA7J5bzNzxN_M')
+    : (import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDdz4AgqojNY_UMo1t6ahf5KCdJnEWxB0I');
+
+  const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'fast-haazir-786.firebaseapp.com';
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'fast-haazir-786';
+  const appId = import.meta.env.VITE_FIREBASE_APP_ID || '1:285845112968:web:ec5d0ffd9a3b8b6e21b73d';
+
+  console.log('[Firebase] Using API Key:', apiKey.substring(0, 10) + '...', isNative ? '(Android)' : '(Web)');
+
+  return {
+    apiKey,
+    authDomain,
+    projectId,
+    appId,
   };
-
-  if (bundledConfig.apiKey && bundledConfig.authDomain && bundledConfig.projectId) {
-    console.log('[Firebase] Using bundled configuration from .env');
-    return bundledConfig as FirebaseConfig;
-  }
-
-  // 2. Fallback to Supabase Edge Function (for remote updates without building new APK)
-  try {
-    console.log('[Firebase] Bundled config incomplete, falling back to Supabase...');
-    const { data, error } = await supabase.functions.invoke('get-firebase-config');
-
-    if (!error && data?.success && data?.isValid) {
-      console.log('[Firebase] Config fetched from Supabase ✓');
-      return data.config as FirebaseConfig;
-    }
-  } catch (err) {
-    console.warn('[Firebase] Supabase config fetch failed:', err);
-  }
-
-  return null;
 };
 
 /**
@@ -170,6 +165,13 @@ export const initializeFirebase = async (): Promise<boolean> => {
       console.log('[Firebase] Auth initialized with default persistence (Web)');
     }
 
+    try {
+      firebaseMessaging = getMessaging(firebaseApp);
+      console.log('[Firebase] Messaging initialized');
+    } catch (e) {
+      console.warn('[Firebase] Messaging initialization failed (supported only in HTTPS/localhost):', e);
+    }
+
     firebaseAuth.languageCode = 'en';
 
     // Initialize Google Auth Provider
@@ -206,6 +208,10 @@ export const getFirebaseAuth = (): any => {
  */
 export const getGoogleProvider = (): any => {
   return googleProvider;
+};
+
+export const getFirebaseMessaging = (): any => {
+  return firebaseMessaging;
 };
 
 /**

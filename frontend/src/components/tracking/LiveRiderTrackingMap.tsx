@@ -68,16 +68,9 @@ const createRiderIcon = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-        animation: pulse 2s infinite;
       ">
         <span style="font-size: 18px;">🏍️</span>
       </div>
-      <style>
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-        }
-      </style>
     `,
     className: '',
     iconSize: [36, 36],

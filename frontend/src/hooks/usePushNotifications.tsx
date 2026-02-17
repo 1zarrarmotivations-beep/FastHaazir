@@ -1,13 +1,13 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { getFirebaseMessaging } from '@/lib/firebase';
+import { getToken, onMessage } from 'firebase/messaging';
+import { toast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
 
-/**
- * Cross-platform Push Notification Hook
- * Handles both Web (OneSignal) and Android (FCM via OneSignal) push notifications
- * Includes Android 13+ permission handling
- */
+// VAPID Key for Web Push (User needs to set this in .env)
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BM_replace_with_your_vapid_key';
 
 interface PushState {
   isSupported: boolean;
@@ -15,9 +15,8 @@ interface PushState {
   isRegistered: boolean;
   platform: 'web' | 'android' | 'ios' | 'unknown';
   error: string | null;
+  deviceToken: string | null;
 }
-
-const ONESIGNAL_APP_ID = '2a4abb59-f4b5-444b-8576-29ca47f9c7a2';
 
 export const usePushNotifications = () => {
   const { user } = useAuth();
@@ -27,6 +26,7 @@ export const usePushNotifications = () => {
     isRegistered: false,
     platform: 'unknown',
     error: null,
+    deviceToken: null,
   });
   const initAttemptedRef = useRef(false);
 
@@ -45,120 +45,92 @@ export const usePushNotifications = () => {
     return 'unknown';
   }, []);
 
-  // Save device token to Supabase
-  const saveDeviceToken = useCallback(async (token: string, platform: string): Promise<boolean> => {
-    if (!user?.id || !token) {
-      console.log('[Push] Cannot save token - missing user or token');
-      return false;
-    }
-
-    console.log(`[Push] Saving ${platform} token for user:`, user.id);
+  // Register token with backend
+  const registerToken = useCallback(async (token: string) => {
+    if (!user?.id) return;
 
     try {
-      // Check if token already exists for this user
-      const { data: existing, error: fetchError } = await supabase
-        .from('push_device_tokens')
-        .select('id, platform')
-        .eq('user_id', user.id)
-        .eq('device_token', token)
-        .maybeSingle();
+      const platform = getPlatform();
 
-      if (fetchError) {
-        console.error('[Push] Error checking existing token:', fetchError);
+      // Use backend endpoint to register
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'https://api-hcqvagallq-uc.a.run.app'}/api/push/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          role: user.user_metadata?.role || 'customer', // Default to customer if role not found
+          device_token: token,
+          platform: platform
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend registration failed');
       }
 
-      if (existing) {
-        // Update existing token's timestamp
-        const { error } = await supabase
-          .from('push_device_tokens')
-          .update({ 
-            updated_at: new Date().toISOString(),
-            platform: platform, // Update platform in case it changed
-          })
-          .eq('id', existing.id);
-
-        if (error) {
-          console.error('[Push] Error updating token:', error);
-          return false;
-        }
-        console.log('[Push] Token updated successfully');
-      } else {
-        // Delete any old tokens for this user on same platform (one device per platform)
-        await supabase
-          .from('push_device_tokens')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('platform', platform);
-
-        // Insert new token
-        const { error } = await supabase
-          .from('push_device_tokens')
-          .insert({
-            user_id: user.id,
-            device_token: token,
-            platform: platform,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (error) {
-          console.error('[Push] Error inserting token:', error);
-          return false;
-        }
-        console.log('[Push] Token saved successfully');
-      }
-
-      return true;
-    } catch (err) {
-      console.error('[Push] Error saving device token:', err);
-      return false;
+      console.log('[Push] Device registered with backend');
+      setState(prev => ({ ...prev, isRegistered: true, deviceToken: token }));
+    } catch (error) {
+      console.error('[Push] Registration error:', error);
+      setState(prev => ({ ...prev, error: 'Registration failed' }));
     }
-  }, [user]);
+  }, [user, getPlatform]);
 
-  // Request notification permission (Android 13+ / Web)
+  // Request permission and get token
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const platform = getPlatform();
     console.log('[Push] Requesting permission on platform:', platform);
 
     try {
-      if (platform === 'android' || platform === 'ios') {
-        // For native platforms, use Capacitor or OneSignal native SDK
-        if (window.OneSignal) {
-          await window.OneSignal.Notifications.requestPermission();
-          const optedIn = window.OneSignal?.User?.PushSubscription?.optedIn;
-          setState(prev => ({ ...prev, isPermissionGranted: !!optedIn }));
-          return !!optedIn;
-        }
-        
-        // Fallback: Check Notification API (works in WebView)
-        if ('Notification' in window) {
-          const permission = await Notification.requestPermission();
-          const granted = permission === 'granted';
-          setState(prev => ({ ...prev, isPermissionGranted: granted }));
-          return granted;
-        }
-      } else if (platform === 'web') {
-        // Web: Use Notification API or OneSignal
-        if (window.OneSignal) {
-          await window.OneSignal.Notifications.requestPermission();
-          const optedIn = window.OneSignal?.User?.PushSubscription?.optedIn;
-          setState(prev => ({ ...prev, isPermissionGranted: !!optedIn }));
-          return !!optedIn;
-        }
-        
-        if ('Notification' in window) {
-          const permission = await Notification.requestPermission();
-          const granted = permission === 'granted';
-          setState(prev => ({ ...prev, isPermissionGranted: granted }));
-          return granted;
-        }
+      // 1. Request Permission
+      let permission = 'default';
+      if ('Notification' in window) {
+        permission = await Notification.requestPermission();
       }
-    } catch (err) {
-      console.error('[Push] Permission request error:', err);
-      setState(prev => ({ ...prev, error: 'Failed to request permission' }));
-    }
 
-    return false;
-  }, [getPlatform]);
+      const granted = permission === 'granted';
+      setState(prev => ({ ...prev, isPermissionGranted: granted }));
+
+      if (!granted) {
+        console.warn('[Push] Permission denied');
+        return false;
+      }
+
+      // 2. Get Token
+      const messaging = getFirebaseMessaging();
+      if (!messaging) {
+        console.error('[Push] Messaging not initialized');
+        return false;
+      }
+
+      // For web, we need VAPID key
+      const options: any = {};
+      if (platform === 'web') {
+        if (!process.env.VITE_FIREBASE_VAPID_KEY && VAPID_KEY.startsWith('BM_')) {
+          console.warn('[Push] VAPID Key not set! Web Push might fail.');
+        }
+        options.vapidKey = VAPID_KEY;
+      }
+
+      const token = await getToken(messaging, options);
+
+      if (token) {
+        console.log('[Push] FCM Token:', token);
+        await registerToken(token);
+        return true;
+      } else {
+        console.warn('[Push] No registration token available.');
+        return false;
+      }
+
+    } catch (err) {
+      console.error('[Push] Permission/Token error:', err);
+      setState(prev => ({ ...prev, error: 'Failed to request permission or get token' }));
+      return false;
+    }
+  }, [getPlatform, registerToken]);
 
   // Initialize push notifications
   const initializePush = useCallback(async () => {
@@ -170,164 +142,71 @@ export const usePushNotifications = () => {
 
     setState(prev => ({ ...prev, platform }));
 
-    // Check if push notifications are supported
-    const isSupported = 'Notification' in window || platform === 'android' || platform === 'ios';
-    if (!isSupported) {
-      console.log('[Push] Notifications not supported');
+    // Check support
+    if (!('Notification' in window) && platform === 'web') {
+      console.log('[Push] This browser does not support desktop notification');
       setState(prev => ({ ...prev, isSupported: false }));
       return;
     }
-
     setState(prev => ({ ...prev, isSupported: true }));
 
-    // Check current permission status
-    let hasPermission = false;
-    if ('Notification' in window) {
-      hasPermission = Notification.permission === 'granted';
-    }
-    setState(prev => ({ ...prev, isPermissionGranted: hasPermission }));
-
-    // Load and initialize OneSignal SDK
-    await loadOneSignalSDK();
-
-    // Initialize OneSignal
-    if (window.OneSignalDeferred) {
-      window.OneSignalDeferred.push(async (OneSignal) => {
+    // If already granted, try to get token silently
+    if (Notification.permission === 'granted') {
+      setState(prev => ({ ...prev, isPermissionGranted: true }));
+      // Initializing messaging
+      const messaging = getFirebaseMessaging();
+      if (messaging) {
         try {
-          // Check if already initialized
-          if (window.__oneSignalInitialized) {
-            console.log('[Push] OneSignal already initialized');
-            return;
-          }
+          // Listen for foreground messages
+          onMessage(messaging, (payload) => {
+            console.log('[Push] Foreground Message:', payload);
 
-          await OneSignal.init({
-            appId: ONESIGNAL_APP_ID,
-            allowLocalhostAsSecureOrigin: true,
-            notifyButton: { enable: false },
-            // Android-specific settings
-            serviceWorkerPath: '/OneSignalSDKWorker.js',
-            serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
+            const link = payload.data?.url || payload.data?.click_action;
+
+            toast({
+              title: payload.notification?.title || 'New Notification',
+              description: payload.notification?.body,
+              duration: 5000,
+              action: link ? (
+                <div
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3 rounded-md text-xs flex items-center justify-center cursor-pointer"
+                  onClick={() => window.location.href = link}
+                >
+                  View
+                </div>
+              ) : undefined,
+            });
           });
 
-          window.__oneSignalInitialized = true;
-          console.log('[Push] OneSignal initialized');
-
-          // Login with external user ID
-          await OneSignal.login(user.id);
-          console.log('[Push] Logged in to OneSignal');
-
-          // Get subscription info
-          const playerId = OneSignal.User.PushSubscription.id;
-          const optedIn = OneSignal.User.PushSubscription.optedIn;
-          
-          console.log('[Push] Subscription state:', { playerId, optedIn });
-
-          if (playerId) {
-            const saved = await saveDeviceToken(playerId, platform);
-            setState(prev => ({ 
-              ...prev, 
-              isRegistered: saved,
-              isPermissionGranted: optedIn,
-            }));
-          } else if (!optedIn) {
-            // Auto-request permission for Android/iOS
-            if (platform === 'android' || platform === 'ios') {
-              console.log('[Push] Auto-requesting permission for native app');
-              const granted = await requestPermission();
-              if (granted) {
-                const newPlayerId = OneSignal.User.PushSubscription.id;
-                if (newPlayerId) {
-                  await saveDeviceToken(newPlayerId, platform);
-                  setState(prev => ({ ...prev, isRegistered: true }));
-                }
-              }
-            }
-          }
-
-          // Listen for subscription changes
-          OneSignal.User.PushSubscription.addEventListener('change', async () => {
-            const newId = OneSignal.User.PushSubscription.id;
-            console.log('[Push] Subscription changed:', newId);
-            if (newId) {
-              await saveDeviceToken(newId, platform);
-              setState(prev => ({ ...prev, isRegistered: true }));
-            }
-          });
-
-          // Handle notification clicks
-          OneSignal.Notifications.addEventListener('click', (event: any) => {
-            const route = event.notification?.additionalData?.route;
-            console.log('[Push] Notification clicked, route:', route);
-            if (route && typeof window !== 'undefined') {
-              window.location.href = route;
-            }
-          });
-
-        } catch (err) {
-          console.error('[Push] OneSignal init error:', err);
-          setState(prev => ({ ...prev, error: 'Failed to initialize push notifications' }));
+          // Refresh token if needed
+          // Note: getToken will return current token if valid
+          requestPermission();
+        } catch (e) {
+          console.error('[Push] Init error', e);
         }
-      });
-    }
-  }, [user, getPlatform, saveDeviceToken, requestPermission]);
-
-  // Load OneSignal SDK
-  const loadOneSignalSDK = async () => {
-    if (typeof window === 'undefined') return;
-
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-
-    if (!document.getElementById('onesignal-sdk')) {
-      return new Promise<void>((resolve) => {
-        const script = document.createElement('script');
-        script.id = 'onesignal-sdk';
-        script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
-        script.defer = true;
-        script.onload = () => {
-          console.log('[Push] OneSignal SDK loaded');
-          resolve();
-        };
-        script.onerror = () => {
-          console.error('[Push] Failed to load OneSignal SDK');
-          resolve();
-        };
-        document.head.appendChild(script);
-      });
-    }
-  };
-
-  // Cleanup old tokens when user logs out
-  const cleanupTokens = useCallback(async () => {
-    if (!user?.id) return;
-    
-    console.log('[Push] Cleaning up tokens for user:', user.id);
-    
-    try {
-      // Logout from OneSignal
-      if (window.OneSignal) {
-        await window.OneSignal.logout();
       }
-    } catch (err) {
-      console.error('[Push] Cleanup error:', err);
     }
-    
-    initAttemptedRef.current = false;
+
+  }, [user, getPlatform, requestPermission]);
+
+  // Handle cleanup
+  const cleanupTokens = useCallback(async () => {
+    // TODO: Could call backend to remove token
     setState({
       isSupported: false,
       isPermissionGranted: false,
       isRegistered: false,
       platform: 'unknown',
       error: null,
+      deviceToken: null,
     });
-  }, [user]);
+    initAttemptedRef.current = false;
+  }, []);
 
-  // Initialize when user logs in
+  // Initialize on mount/user change
   useEffect(() => {
     if (user) {
       initializePush();
-    } else {
-      // Reset when user logs out
-      initAttemptedRef.current = false;
     }
   }, [user, initializePush]);
 
@@ -341,6 +220,5 @@ export const usePushNotifications = () => {
     cleanup: cleanupTokens,
   };
 };
-
 
 export default usePushNotifications;

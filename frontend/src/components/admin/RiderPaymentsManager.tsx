@@ -19,12 +19,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { 
-  DollarSign, 
-  MapPin, 
-  Search, 
-  Loader2, 
-  Edit, 
+import {
+  DollarSign,
+  MapPin,
+  Search,
+  Loader2,
+  Edit,
   User,
   TrendingUp,
   TrendingDown,
@@ -32,13 +32,14 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { 
-  useAllRiderPayments, 
-  useUpdatePaymentBonus, 
+import {
+  useAllRiderPayments,
+  useUpdatePaymentBonus,
   useUpdatePaymentStatus,
-  RiderPayment 
+  RiderPayment
 } from '@/hooks/useRiderPayments';
 import PaymentSettingsManager from './PaymentSettingsManager';
+import { safeLower } from '@/lib/utils';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-500',
@@ -58,8 +59,8 @@ const RiderPaymentsManager = () => {
   const [penalty, setPenalty] = useState(0);
 
   const filteredPayments = payments?.filter((payment) => {
-    const matchesSearch = payment.rider?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.rider?.phone?.includes(searchQuery);
+    const matchesSearch = safeLower(payment.rider?.name).includes(safeLower(searchQuery)) ||
+      safeLower(payment.rider?.phone).includes(safeLower(searchQuery));
     const matchesStatus = statusFilter === 'all' || payment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -285,8 +286,8 @@ const RiderPaymentsManager = () => {
                                 Final: Rs {(selectedPayment?.calculated_amount || 0) + bonus - penalty}
                               </p>
                             </div>
-                            <Button 
-                              onClick={handleUpdateBonus} 
+                            <Button
+                              onClick={handleUpdateBonus}
                               className="w-full"
                               disabled={updateBonus.isPending}
                             >

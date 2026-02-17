@@ -78,6 +78,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { safeLower } from "@/lib/utils";
 
 export function OrdersManager() {
   const { t } = useTranslation();
@@ -139,10 +140,12 @@ export function OrdersManager() {
   const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  const filteredOrders = orders?.filter((order: any) => {
+  const filteredOrders = (orders as any[])?.filter((order: any) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.delivery_address?.toLowerCase().includes(searchQuery.toLowerCase());
+      safeLower(order.id).includes(safeLower(searchQuery)) ||
+      safeLower(order.delivery_address).includes(safeLower(searchQuery)) ||
+      safeLower(order.customer?.name).includes(safeLower(searchQuery)) ||
+      safeLower(order.customer?.phone).includes(safeLower(searchQuery));
 
     const hasClaimedPayment = order.payments?.some((p: any) =>
       p.payment_status === 'claimed' || p.payment_status === 'waiting_approval'
@@ -156,16 +159,16 @@ export function OrdersManager() {
     return matchesSearch && matchesStatus;
   });
 
-  const activeRiders = riders?.filter(r => r.is_active && r.is_online) || [];
+  const activeRiders = (riders as any[])?.filter(r => r.is_active && r.is_online) || [];
 
   // Order statistics
   const orderStats = {
     total: orders?.length || 0,
-    placed: orders?.filter(o => o.status === 'placed').length || 0,
-    preparing: orders?.filter(o => o.status === 'preparing').length || 0,
-    onWay: orders?.filter(o => o.status === 'on_way').length || 0,
-    delivered: orders?.filter(o => o.status === 'delivered').length || 0,
-    cancelled: orders?.filter(o => o.status === 'cancelled').length || 0,
+    placed: (orders as any[])?.filter(o => o.status === 'placed').length || 0,
+    preparing: (orders as any[])?.filter(o => o.status === 'preparing').length || 0,
+    onWay: (orders as any[])?.filter(o => o.status === 'on_way').length || 0,
+    delivered: (orders as any[])?.filter(o => o.status === 'delivered').length || 0,
+    cancelled: (orders as any[])?.filter(o => o.status === 'cancelled').length || 0,
   };
 
   return (
@@ -321,7 +324,7 @@ export function OrdersManager() {
             {filteredOrders?.map((order: any, index) => {
               const config = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.placed;
               const StatusIcon = config.icon;
-              const assignedRider = riders?.find(r => r.id === order.rider_id);
+              const assignedRider = (riders as any[])?.find(r => r.id === order.rider_id);
 
               return (
                 <motion.div
@@ -375,8 +378,17 @@ export function OrdersManager() {
                               <div className="min-w-0">
                                 <p className="text-xs text-muted-foreground font-medium">Customer</p>
                                 <p className="text-sm font-medium text-foreground truncate">
-                                  Customer #{order.id.slice(0, 6)}
+                                  {order.customer?.name || `Customer #${order.id.slice(0, 6)}`}
                                 </p>
+                                {order.customer?.phone && (
+                                  <a
+                                    href={`tel:${order.customer.phone}`}
+                                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                                  >
+                                    <Phone className="w-3 h-3" />
+                                    {order.customer.phone}
+                                  </a>
+                                )}
                               </div>
                             </div>
 
