@@ -214,44 +214,30 @@ async function directRoleQuery(userId: string): Promise<RoleResolution> {
     console.log("[RoleResolver] 🔍 Performing direct role query for:", userId);
 
     try {
-        // Check user_roles table first
-        const { data: roleData, error: roleError } = await supabase
-            .from('user_roles')
-            .select('role')
+        // Check profiles table first (single source of truth)
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, is_blocked')
             .eq('user_id', userId)
-            .in('role', ['admin', 'rider', 'business', 'customer'])
             .maybeSingle();
 
-        if (roleError) {
-            console.error("[RoleResolver] ❌ Error fetching user_roles:", roleError);
+        if (profileError) {
+            console.error("[RoleResolver] ❌ Error fetching profiles:", profileError);
             return { role: 'customer', isBlocked: false, needsRegistration: false };
         }
 
-        const userRole = roleData?.role as string | undefined;
-        console.log("[RoleResolver] 📊 user_roles result:", userRole);
+        const userRole = profileData?.role as AppRole | undefined;
+        const isBlocked = profileData?.is_blocked || false;
 
-        // If no role in user_roles, check admins table
+        console.log("[RoleResolver] 📊 profiles result:", userRole);
+
         if (!userRole) {
-            const { data: adminData, error: adminError } = await supabase
-                .from('admins')
-                .select('is_active')
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            if (adminData && !adminError) {
-                console.log("[RoleResolver] ✅ Found user as admin");
-                return {
-                    role: 'admin',
-                    isBlocked: adminData.is_active !== true,
-                    needsRegistration: false
-                };
-            }
-
-            console.log("[RoleResolver] ℹ️ No role found, defaulting to customer");
+            console.log("[RoleResolver] ℹ️ No profile found, defaulting to customer");
+            // If no profile, they are a new customer (handled by trigger usually, but here just return default)
             return { role: 'customer', isBlocked: false, needsRegistration: false };
         }
 
-        // If role is rider, verify rider record exists
+        // If role is rider, verify rider record exists for status
         if (userRole === 'rider') {
             const { data: riderData, error: riderError } = await supabase
                 .from('riders')
@@ -268,7 +254,7 @@ async function directRoleQuery(userId: string): Promise<RoleResolution> {
                 return {
                     role: 'rider',
                     riderStatus: 'none',
-                    isBlocked: false,
+                    isBlocked,
                     needsRegistration: true
                 };
             }
@@ -279,26 +265,16 @@ async function directRoleQuery(userId: string): Promise<RoleResolution> {
             return {
                 role: 'rider',
                 riderStatus,
-                isBlocked: riderData.is_active !== true,
+                isBlocked: isBlocked || (riderData.is_active !== true),
                 needsRegistration: false
             };
         }
 
-        // Admin role
-        if (userRole === 'admin') {
-            console.log("[RoleResolver] ✅ Found user as admin");
-            return {
-                role: 'admin',
-                isBlocked: false,
-                needsRegistration: false
-            };
-        }
-
-        // Business or customer
-        console.log("[RoleResolver] ✅ Found user as:", userRole);
+        // Admin, Business or Customer
+        console.log(`[RoleResolver] ✅ Found user as: ${userRole}`);
         return {
-            role: userRole as AppRole,
-            isBlocked: false,
+            role: userRole,
+            isBlocked,
             needsRegistration: false
         };
 

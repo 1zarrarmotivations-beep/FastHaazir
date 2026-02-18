@@ -453,6 +453,129 @@ export const useAdminRiderRequests = () => {
   });
 };
 
+// All rider applications (signups) for admin
+export const useAdminRiderApplications = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    console.log('[useAdminRiderApplications] Setting up realtime subscription');
+    const channel = supabase
+      .channel('admin-rider-applications-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rider_applications' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['admin-rider-applications'] });
+          queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return useQuery({
+    queryKey: ['admin-rider-applications'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('rider_applications')
+        .select(`
+          *,
+          user:profiles!rider_applications_user_id_fkey(full_name, phone, email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+// Review rider application (Approve/Reject)
+export const useReviewRiderApplication = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ applicationId, status }: { applicationId: string; status: 'approved' | 'rejected' }) => {
+      // 1. Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // 2. Fetch application
+      const { data: application, error: fetchError } = await supabase
+        .from('rider_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+
+      if (fetchError || !application) throw new Error('Application not found');
+
+      // 3. Update status
+      const { error: updateError } = await supabase
+        .from('rider_applications')
+        .update({
+          status: status,
+          approved_by: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', applicationId);
+
+      if (updateError) throw updateError;
+
+      // 4. If approved, create rider record
+      if (status === 'approved') {
+        let riderData: any = {};
+        try {
+          if (application.notes) {
+            riderData = JSON.parse(application.notes);
+          }
+        } catch (e) {
+          console.error("Failed to parse application notes", e);
+        }
+
+        const { error: riderError } = await supabase
+          .from('riders')
+          .upsert({
+            user_id: application.user_id,
+            name: riderData.name || 'Unknown Rider',
+            phone: riderData.phone,
+            vehicle_type: application.vehicle_type,
+            license_number: application.license_number,
+            experience_years: application.experience_years,
+            cnic: riderData.cnic,
+            cnic_front: riderData.cnic_front,
+            cnic_back: riderData.cnic_back,
+            license_image: riderData.license_image,
+            verification_status: 'verified',
+            is_active: true,
+            commission_rate: 10,
+            rating: 5.0
+          }, { onConflict: 'user_id' });
+
+        if (riderError) throw riderError;
+
+        // 5. Update Profile Role
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ role: 'rider' })
+          .eq('id', application.user_id!);
+
+        if (profileError) console.error("Error updating profile role:", profileError);
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rider-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-riders'] });
+      toast.success(variables.status === 'approved' ? 'Application approved & activated' : 'Application rejected');
+    },
+    onError: (error) => {
+      toast.error("Review failed: " + error.message);
+    }
+  });
+};
+
 // Create rider - normalize phone to digits only
 export const useCreateRider = () => {
   const queryClient = useQueryClient();
@@ -832,6 +955,30 @@ export const useToggleBusinessFeatured = () => {
     onError: (error: Error) => {
       toast.error("Failed to update business: " + error.message);
     },
+  });
+};
+
+// Update business details
+export const useUpdateBusiness = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (business: any) => {
+      const { id, ...updates } = business;
+      const { error } = await supabase
+        .from("businesses")
+        .update(updates)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-businesses"] });
+      toast.success("Business updated successfully");
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to update business: " + error.message);
+    }
   });
 };
 
@@ -1362,6 +1509,53 @@ export const useConfirmOrderPayment = () => {
     },
     onError: (error: Error) => {
       toast.error("Confirmation failed: " + error.message);
+    },
+  });
+};
+
+// Reject order payment manually (Admin)
+export const useRejectOrderPayment = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { data: adminProfile } = useAdminList();
+
+  return useMutation({
+    mutationFn: async ({ paymentId, notes }: { paymentId: string; notes?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No active session");
+
+      const currentAdmin = adminProfile?.find((a: any) => a.user_id === user?.id) as any;
+      const adminName = currentAdmin?.name || user?.email || "Admin";
+
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+      const response = await fetch(`${backendUrl}/api/admin/payments/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          payment_id: paymentId,
+          notes,
+          admin_name: adminName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to reject payment");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      toast.success("Payment rejected!");
+    },
+    onError: (error: Error) => {
+      toast.error("Rejection failed: " + error.message);
     },
   });
 };

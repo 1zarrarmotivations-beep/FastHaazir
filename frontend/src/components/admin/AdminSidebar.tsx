@@ -10,6 +10,7 @@ import {
   X,
   DollarSign,
   UserCog,
+  User,
   UserX,
   Bell,
   Settings,
@@ -63,7 +64,8 @@ const menuGroups = [
     title: "Rider Ecosystem",
     items: [
       { id: "riders", label: "Riders", icon: Bike },
-      { id: "requests", label: "Registration", icon: Users },
+      { id: "rider-applications", label: "Applications", icon: User },
+      { id: "requests", label: "Ride Requests", icon: Users },
       { id: "rider-support", label: "Rider Support", icon: Headphones, badgeId: "rider-support" },
       { id: "earnings", label: "Rider Earnings", icon: TrendingUp },
     ]
@@ -128,7 +130,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-[#1a1a1a] text-white shadow-lg border border-white/10"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-surface text-textPrimary shadow-lg border border-border"
       >
         {mobileOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -144,19 +146,19 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-40 w-72 bg-[#141414] border-r border-white/5 transition-transform duration-300 flex flex-col shadow-2xl",
+          "fixed lg:static inset-y-0 left-0 z-40 w-72 bg-background border-r border-border transition-all duration-300 flex flex-col shadow-2xl",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Logo Area */}
         <div className="p-6 pb-2">
-          <div className="flex items-center gap-4 bg-[#1a1a1a] p-4 rounded-2xl border border-white/5 shadow-inner">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
-              <Bike className="w-5 h-5 text-orange-500" />
+          <div className="flex items-center gap-4 bg-surface p-4 rounded-2xl border border-border shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Bike className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-bold text-lg text-white tracking-tight leading-tight">Fast Haazir</h1>
-              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Admin Workspace</p>
+              <h1 className="font-bold text-lg text-textPrimary tracking-tight leading-tight">Fast Haazir</h1>
+              <p className="text-[10px] text-textSecondary font-medium uppercase tracking-wider">Admin Workspace</p>
             </div>
           </div>
         </div>
@@ -183,11 +185,11 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all duration-200 group relative",
                         isActive
-                          ? "bg-orange-500 text-white shadow-lg shadow-orange-500/20"
-                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                          ? "bg-primary text-white shadow-lg shadow-primary/20"
+                          : "text-textSecondary hover:text-textPrimary hover:bg-surface"
                       )}
                     >
-                      <Icon className={cn("w-4.5 h-4.5 transition-colors", isActive ? "text-white" : "text-gray-500 group-hover:text-white")} />
+                      <Icon className={cn("w-4.5 h-4.5 transition-colors", isActive ? "text-white" : "text-textSecondary group-hover:text-textPrimary")} />
                       <span className={cn("text-sm font-medium flex-1", isActive ? "font-semibold" : "")}>{item.label}</span>
 
                       {getBadgeCount(item.badgeId) > 0 && (
@@ -195,7 +197,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
                           variant="destructive"
                           className={cn(
                             "h-5 min-w-5 flex items-center justify-center text-[10px] font-bold px-1.5 rounded-full border-2",
-                            isActive ? "bg-white text-orange-500 border-orange-500" : "bg-red-500 text-white border-[#141414]"
+                            isActive ? "bg-white text-primary border-primary" : "bg-red-500 text-white border-background"
                           )}
                         >
                           {getBadgeCount(item.badgeId)}
@@ -214,15 +216,15 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         </nav>
 
         {/* User / Logout */}
-        <div className="p-4 border-t border-white/5 bg-[#0a0a0a]">
-          <div className="bg-[#1a1a1a] rounded-xl p-1 border border-white/5">
+        <div className="p-4 border-t border-border bg-background">
+          <div className="bg-surface rounded-xl p-1 border border-border">
             <div className="flex items-center gap-3 p-2 mb-1">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 ring-2 ring-[#0a0a0a]"></div>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-emerald-500 ring-2 ring-background"></div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-bold text-white truncate">Super Admin</p>
+                <p className="text-sm font-bold text-textPrimary truncate">Super Admin</p>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <p className="text-[10px] text-gray-400 truncate uppercase tracking-wider">Online</p>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <p className="text-[10px] text-textSecondary truncate uppercase tracking-wider">Online</p>
                 </div>
               </div>
             </div>
@@ -230,7 +232,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
               variant="ghost"
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="w-full justify-center gap-2 h-8 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+              className="w-full justify-center gap-2 h-8 text-xs text-error hover:text-error/80 hover:bg-error/10 rounded-lg transition-colors"
               size="sm"
             >
               <LogOut className="w-3.5 h-3.5" />

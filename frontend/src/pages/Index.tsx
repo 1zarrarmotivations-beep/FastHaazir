@@ -34,6 +34,9 @@ const Index: React.FC = () => {
 
   // Redirect non-customer users to their respective dashboards
   useEffect(() => {
+    // Set dynamic SEO title
+    document.title = "Fast Haazir – Quetta's #1 On-Demand Delivery | Food, Grocery & Rider";
+
     // If we have a user and a resolved role, check redirection
     if (user && userRole) {
       const { role, needsRegistration, riderStatus } = userRole as any;

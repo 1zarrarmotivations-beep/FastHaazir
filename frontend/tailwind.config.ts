@@ -60,7 +60,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        // Fast Haazir specific colors
+        // Semantic Aliases
+        surface: "hsl(var(--card))",
+        textPrimary: "hsl(var(--foreground))",
+        textSecondary: "hsl(var(--muted-foreground))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        error: "hsl(var(--destructive))",
+
+        // Fast Haazir specific colors (Legacy)
         orange: {
           50: "#fff7ed",
           100: "#ffedd5",

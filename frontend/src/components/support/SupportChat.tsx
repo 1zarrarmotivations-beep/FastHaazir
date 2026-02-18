@@ -178,11 +178,11 @@ export function SupportChat({ onClose, orderId }: SupportChatProps) {
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             className={`flex ${msg.sender_id === null || msg.is_system ? 'justify-start' : 'justify-end'}`}
                                         >
-                                            <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.is_system
-                                                ? 'bg-muted text-foreground border border-border'
+                                            <div className={`max-w-[85%] p-3 rounded-2xl text-sm shadow-sm ${msg.is_system
+                                                ? 'bg-surface text-textPrimary border border-border'
                                                 : msg.is_admin
-                                                    ? 'bg-accent text-accent-foreground rounded-tl-none'
-                                                    : 'bg-primary text-primary-foreground rounded-tr-none'
+                                                    ? 'bg-surface text-textPrimary border border-primary/20 rounded-tl-none'
+                                                    : 'bg-primary text-white rounded-tr-none'
                                                 }`}>
                                                 <div className="flex items-center gap-2 mb-1 opacity-70">
                                                     {msg.is_system ? <Bot className="w-3 h-3" /> : (msg.is_admin ? <Headphones className="w-3 h-3" /> : <User className="w-3 h-3" />)}
@@ -211,7 +211,7 @@ export function SupportChat({ onClose, orderId }: SupportChatProps) {
                                                 key={idx}
                                                 variant="secondary"
                                                 size="sm"
-                                                className="rounded-full bg-white shadow-sm border border-border hover:bg-primary hover:text-white transition-colors justify-start h-auto py-2 px-4"
+                                                className="rounded-full bg-surface shadow-sm border border-border text-textPrimary hover:bg-primary hover:text-white transition-colors justify-start h-auto py-2 px-4"
                                                 onClick={() => handleOptionClick(opt)}
                                             >
                                                 {opt.label}

@@ -90,9 +90,9 @@ const PrivacyPolicy = () => {
 
                         <div className="space-y-4">
                             <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                                <p className="font-medium text-sm text-foreground mb-1">Email</p>
-                                <a href="mailto:1zarrarmotivations@gmail.com" className="text-primary hover:underline break-all">
-                                    1zarrarmotivations@gmail.com
+                                <p className="mt-2 font-medium">Email: fasthaazir@gmail.com</p>
+                                <a href="mailto:fasthaazir@gmail.com" className="text-primary hover:underline break-all">
+                                    fasthaazir@gmail.com
                                 </a>
                             </div>
 

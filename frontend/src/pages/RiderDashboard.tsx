@@ -186,7 +186,7 @@ const RiderDashboard = () => {
   /* ===== LOAD STATES ===== */
   if (authLoading || profileLoading) {
     return (
-      <div className="min-h-screen rider-bg flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1 }}
@@ -198,12 +198,12 @@ const RiderDashboard = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen rider-bg flex flex-col items-center justify-center gap-4">
-        <AlertCircle className="w-16 h-16 text-orange-400" />
-        <p className="text-white/80 text-lg">Please login to continue</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <AlertCircle className="w-16 h-16 text-warning" />
+        <p className="text-textPrimary text-lg font-medium">Please login to continue</p>
         <Button
           onClick={() => navigate('/auth')}
-          className="gradient-rider-primary text-white font-semibold px-8 py-3 rounded-2xl"
+          className="bg-primary text-white font-semibold px-8 py-3 rounded-2xl"
         >
           Login
         </Button>
@@ -213,15 +213,15 @@ const RiderDashboard = () => {
 
   if (!riderProfile && !profileLoading) {
     return (
-      <div className="min-h-screen rider-bg flex flex-col items-center justify-center gap-4 text-center px-4">
-        <AlertCircle className="w-16 h-16 text-destructive" />
-        <h2 className="text-2xl font-bold text-white">Rider Account Not Found</h2>
-        <p className="text-white/70">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 text-center px-4">
+        <AlertCircle className="w-16 h-16 text-error" />
+        <h2 className="text-2xl font-bold text-textPrimary">Rider Account Not Found</h2>
+        <p className="text-textSecondary">
           Your account is not registered as a rider. Please contact support or register as a rider.
         </p>
         <Button
           onClick={() => navigate('/')}
-          className="gradient-rider-primary text-white font-semibold px-8 py-3 rounded-2xl"
+          className="bg-primary text-white font-semibold px-8 py-3 rounded-2xl"
         >
           Go Home
         </Button>
@@ -236,7 +236,7 @@ const RiderDashboard = () => {
 
   /* ================= MAIN UI ================= */
   return (
-    <div className="min-h-screen rider-bg pb-24 overflow-x-hidden">
+    <div className="min-h-screen bg-background pb-24 overflow-x-hidden transition-colors duration-300">
 
       {/* 1. Global Permission Wizard */}
       <PermissionWizard
@@ -260,13 +260,13 @@ const RiderDashboard = () => {
         />
       )}
 
-      {/* Optimized Background - Simplified for Mobile Performance */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-[#062016]">
-        {/* Static gradient background instead of heavy blurred orbs */}
+      {/* Optimized Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-background">
+        {/* Subtle Decorative Gradient */}
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-10 dark:opacity-20 transition-opacity"
           style={{
-            background: 'linear-gradient(135deg, #065F46 0%, #064E3B 50%, #062016 100%)'
+            background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, transparent 50%, hsl(var(--primary)) 100%)'
           }}
         />
 
@@ -309,8 +309,8 @@ const RiderDashboard = () => {
           onClick={() => setShowVersionInfo(!showVersionInfo)}
           whileTap={{ scale: 0.95 }}
         >
-          <Badge className="glass-card-premium text-white/70 border-purple-500/20 text-xs font-mono px-3 py-1.5">
-            <Sparkles className="w-3 h-3 mr-1 text-purple-400" />
+          <Badge className="bg-surface text-textSecondary border-border text-xs font-mono px-3 py-1.5 shadow-sm">
+            <Sparkles className="w-3 h-3 mr-1 text-primary" />
             {BUILD_VERSION}
           </Badge>
         </motion.button>
@@ -322,21 +322,21 @@ const RiderDashboard = () => {
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="fixed top-16 right-4 z-50 glass-card-premium p-5 rounded-3xl text-xs text-white/70 min-w-[200px]"
+            className="fixed top-16 right-4 z-50 bg-surface/90 backdrop-blur-xl border border-border p-5 rounded-3xl text-xs text-textPrimary min-w-[200px] shadow-elevated"
           >
-            <div className="flex items-center gap-2 mb-3 text-emerald-400">
+            <div className="flex items-center gap-2 mb-3 text-success">
               <span>🟢</span>
               <span className="font-bold">Build Verified</span>
             </div>
-            <div className="space-y-2 text-white/60">
-              <p className="font-mono">Version: <span className="text-purple-400">{BUILD_VERSION}</span></p>
-              <p className="font-mono">Rider: <span className="text-cyan-400">{riderProfile?.id?.slice(0, 8)}</span></p>
-              <p className="font-mono">Source: <span className="text-orange-400">/src</span></p>
+            <div className="space-y-2 text-textSecondary">
+              <p className="font-mono">Version: <span className="text-primary font-bold">{BUILD_VERSION}</span></p>
+              <p className="font-mono">Rider: <span className="text-textPrimary">{riderProfile?.id?.slice(0, 8)}</span></p>
+              <p className="font-mono">Source: <span className="text-textPrimary">/src</span></p>
             </div>
             <Button
               size="sm"
               variant="ghost"
-              className="mt-3 w-full text-white/50 hover:text-white hover:bg-white/5"
+              className="mt-3 w-full text-textSecondary hover:text-textPrimary hover:bg-muted"
               onClick={() => setShowVersionInfo(false)}
             >
               Close
@@ -453,15 +453,15 @@ const RiderDashboard = () => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="glass-card rounded-3xl p-8 text-center mt-8"
+                  className="bg-surface rounded-3xl p-8 text-center mt-8 border border-border/50"
                 >
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                    <Package className="w-10 h-10 text-white/30" />
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Package className="w-10 h-10 text-primary/30" />
                   </div>
-                  <h3 className="text-white/80 text-lg font-semibold mb-2">
+                  <h3 className="text-textPrimary text-lg font-semibold mb-2">
                     No Orders Right Now
                   </h3>
-                  <p className="text-white/50 text-sm">
+                  <p className="text-textSecondary text-sm">
                     {riderProfile?.is_online
                       ? 'Stay online to receive new delivery requests'
                       : 'Go online to start receiving orders'
@@ -489,8 +489,8 @@ const RiderDashboard = () => {
                 />
               ))}
               {completedDeliveries.length === 0 && (
-                <div className="glass-card rounded-3xl p-8 text-center">
-                  <p className="text-white/50">No completed deliveries yet</p>
+                <div className="bg-surface rounded-3xl p-8 text-center border border-border/50">
+                  <p className="text-textSecondary">No completed deliveries yet</p>
                 </div>
               )}
             </motion.div>

@@ -143,6 +143,10 @@ const Cart: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    document.title = "Your Cart | Fast Haazir Quetta";
+  }, []);
+
   const handlePaymentSuccess = () => {
     setCurrentPayment(null);
     clearCart();

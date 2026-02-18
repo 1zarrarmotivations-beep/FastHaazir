@@ -87,7 +87,7 @@ const TermsOfService = () => {
                         <p>
                             If you have any questions about these Terms, please contact us at:
                         </p>
-                        <p className="mt-2 font-medium">Email: 1zarrarmotivations@gmail.com</p>
+                        <p className="mt-2 font-medium">Email: fasthaazir@gmail.com</p>
                     </section>
                 </div>
             </div>

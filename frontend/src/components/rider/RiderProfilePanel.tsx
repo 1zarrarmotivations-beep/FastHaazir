@@ -17,8 +17,10 @@ import {
   LogOut,
   X,
   Loader2,
-  Home
+  Home,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -53,6 +55,7 @@ const RiderProfilePanel = ({
   const queryClient = useQueryClient();
   const updateProfile = useUpdateRiderProfile();
 
+  const { theme, toggleTheme } = useTheme();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -101,8 +104,8 @@ const RiderProfilePanel = ({
     {
       section: 'Preferences',
       items: [
+        { icon: Moon, label: 'Dark Mode', toggle: true, value: theme === 'dark', onChange: toggleTheme },
         { icon: Bell, label: 'Notifications', toggle: true, value: soundEnabled, onChange: setSoundEnabled },
-        { icon: soundEnabled ? Volume2 : VolumeX, label: 'Sound Alerts', toggle: true, value: soundEnabled, onChange: setSoundEnabled },
         { icon: vibrationEnabled ? Volume2 : VolumeX, label: 'Vibration', toggle: true, value: vibrationEnabled, onChange: setVibrationEnabled },
       ]
     },

@@ -151,7 +151,7 @@ export const usePendingRequests = () => {
         dropoff_lng: order.delivery_lng,
         item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${order.businesses?.name || 'Business'}` : 'Food Order',
         item_image: null,
-        total: order.total,
+        total: Number((order.total_amount ?? order.total) || 0),
         created_at: order.created_at,
         updated_at: order.updated_at,
         business_name: order.businesses?.name,
@@ -241,7 +241,7 @@ export const useMyActiveDeliveries = () => {
         dropoff_lng: order.delivery_lng,
         item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${order.businesses?.name || 'Business'}` : 'Food Order',
         item_image: null,
-        total: Number(order.total || 0),
+        total: Number((order.total_amount ?? order.total) || 0),
         created_at: order.created_at,
         updated_at: order.updated_at,
         business_name: order.businesses?.name,
@@ -329,7 +329,7 @@ export const useMyCompletedDeliveries = () => {
         dropoff_lng: order.delivery_lng,
         item_description: Array.isArray(order.items) ? `${order.items.length} item(s) from ${order.businesses?.name || 'Business'}` : 'Food Order',
         item_image: null,
-        total: Number(order.total || 0),
+        total: Number((order.total_amount ?? order.total) || 0),
         created_at: order.created_at,
         updated_at: order.updated_at,
         business_name: order.businesses?.name,
@@ -735,6 +735,34 @@ export const useAutoSetRiderOnline = (riderId: string | undefined, currentOnline
   }, [user, riderId]);
 };
 
+// Hook to get rider application status
+export const useRiderApplication = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['rider-application', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('rider_applications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching rider application:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!user,
+  });
+};
+
 export const useRegisterAsRider = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -748,22 +776,35 @@ export const useRegisterAsRider = () => {
       cnic_front?: string;
       cnic_back?: string;
       license_image?: string;
+      experience_years?: number;
+      license_number?: string;
+      notes?: string;
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.rpc('register_rider' as any, {
-        _name: riderData.name,
-        _phone: riderData.phone,
-        _vehicle_type: riderData.vehicle_type,
-        _cnic: riderData.cnic || null,
-        _cnic_front: riderData.cnic_front || null,
-        _cnic_back: riderData.cnic_back || null,
-        _license_image: riderData.license_image || null
-      } as any);
-
+      // Insert into rider_applications
+      const { data, error } = await supabase
+        .from('rider_applications')
+        .insert({
+          user_id: user.id,
+          vehicle_type: riderData.vehicle_type,
+          license_number: riderData.license_number || riderData.cnic, // Using CNIC as license/ID if license number not separate
+          experience_years: riderData.experience_years || 0,
+          notes: JSON.stringify({
+            name: riderData.name,
+            phone: riderData.phone,
+            cnic: riderData.cnic,
+            cnic_front: riderData.cnic_front,
+            cnic_back: riderData.cnic_back,
+            license_image: riderData.license_image
+          }),
+          status: 'pending'
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error registering as rider:', error);
+        console.error('Error submitting rider application:', error);
         throw error;
       }
 
@@ -771,6 +812,8 @@ export const useRegisterAsRider = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rider-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['rider-application'] });
+      toast.success("Application submitted successfully!");
     },
   });
 };

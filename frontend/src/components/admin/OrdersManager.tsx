@@ -63,7 +63,8 @@ import {
   useAssignRiderToOrder,
   useUpdateOrderStatus,
   useOrderTimeline,
-  useConfirmOrderPayment
+  useConfirmOrderPayment,
+  useRejectOrderPayment
 } from "@/hooks/useAdmin";
 import { format } from "date-fns";
 import AdminChatViewer from "./AdminChatViewer";
@@ -134,6 +135,7 @@ export function OrdersManager() {
   const updateStatus = useUpdateOrderStatus();
   const assignRider = useAssignRiderToOrder();
   const confirmPayment = useConfirmOrderPayment();
+  const rejectPayment = useRejectOrderPayment();
 
   const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
@@ -769,61 +771,129 @@ export function OrdersManager() {
         </motion.div>
       )}
       {/* Manual Payment Confirmation Dialog */}
+      {/* Review Payment Dialog */}
       <Dialog open={!!confirmingPaymentId} onOpenChange={(open) => !open && setConfirmingPaymentId(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-primary" />
-              Manual Payment Approval
+              Review Payment
             </DialogTitle>
             <DialogDescription>
-              Mark this payment as PAID. Only do this if you have verified the transaction in your bank account or payment processor.
+              Verify the payment details and proof (if provided) before approving.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-3">
-              <Info className="w-5 h-5 text-amber-600 mt-0.5" />
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Confirming manually will move the order to "Preparing" status and notify the customer. This action is recorded in the audit logs.
-              </p>
-            </div>
+          {(() => {
+            const currentPayment = (orders as any[])?.flatMap((o: any) => o.payments || []).find((p: any) => p.id === confirmingPaymentId);
+            return currentPayment ? (
+              <div className="space-y-4 py-4">
+                {/* Proof Image */}
+                {currentPayment.proof_url ? (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Payment Proof</label>
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-muted aspect-video flex items-center justify-center">
+                      <img
+                        src={currentPayment.proof_url}
+                        alt="Payment Proof"
+                        className="w-full h-full object-contain"
+                        onClick={() => window.open(currentPayment.proof_url, '_blank')}
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="absolute bottom-2 right-2 bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+                        onClick={() => window.open(currentPayment.proof_url, '_blank')}
+                      >
+                        <Search className="w-3 h-3 mr-1" />
+                        Zoom
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                    <p className="text-sm text-slate-500 italic">No proof image uploaded by customer.</p>
+                  </div>
+                )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Admin Notes</label>
-              <Textarea
-                placeholder="Enter transaction reference or reason for manual approval..."
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                className="min-h-[100px]"
-              />
-            </div>
-          </div>
+                {/* Details */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <p className="text-xs text-muted-foreground uppercase">Amount</p>
+                    <p className="font-bold text-lg">PKR {currentPayment.amount}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                    <p className="text-xs text-muted-foreground uppercase">Transaction ID</p>
+                    <p className="font-mono text-sm truncate" title={currentPayment.external_transaction_id || currentPayment.transaction_id}>
+                      {currentPayment.external_transaction_id || currentPayment.transaction_id?.slice(0, 8) + '...'}
+                    </p>
+                  </div>
+                </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setConfirmingPaymentId(null)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-primary hover:bg-primary/90"
-              disabled={confirmPayment.isPending}
-              onClick={() => {
-                if (confirmingPaymentId) {
-                  confirmPayment.mutate({
-                    paymentId: confirmingPaymentId,
-                    notes: adminNotes
-                  }, {
-                    onSuccess: () => {
-                      setConfirmingPaymentId(null);
-                      setAdminNotes("");
-                    }
-                  });
-                }
-              }}
-            >
-              {confirmPayment.isPending ? "Confirming..." : "Approve Payment"}
-            </Button>
-          </DialogFooter>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Admin Notes / Rejection Reason</label>
+                  <Textarea
+                    placeholder="Enter notes..."
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row">
+                  <Button
+                    variant="destructive"
+                    className="w-full sm:w-auto bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                    disabled={rejectPayment.isPending || confirmPayment.isPending}
+                    onClick={() => {
+                      if (confirmingPaymentId) {
+                        rejectPayment.mutate({
+                          paymentId: confirmingPaymentId,
+                          notes: adminNotes || "Payment rejected by admin"
+                        }, {
+                          onSuccess: () => {
+                            setConfirmingPaymentId(null);
+                            setAdminNotes("");
+                          }
+                        });
+                      }
+                    }}
+                  >
+                    {rejectPayment.isPending ? "Rejecting..." : "Reject Payment"}
+                  </Button>
+
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setConfirmingPaymentId(null)}>
+                      Close
+                    </Button>
+                    <Button
+                      className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none"
+                      disabled={confirmPayment.isPending || rejectPayment.isPending}
+                      onClick={() => {
+                        if (confirmingPaymentId) {
+                          confirmPayment.mutate({
+                            paymentId: confirmingPaymentId,
+                            notes: adminNotes
+                          }, {
+                            onSuccess: () => {
+                              setConfirmingPaymentId(null);
+                              setAdminNotes("");
+                            }
+                          });
+                        }
+                      }}
+                    >
+                      {confirmPayment.isPending ? "Confirming..." : "Approve Payment"}
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground">
+                Loading payment details...
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

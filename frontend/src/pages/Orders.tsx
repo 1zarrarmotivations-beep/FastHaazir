@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,10 @@ const Orders: React.FC = () => {
 
   // Enable real-time sync for order updates
   useRealtimeOrders();
+
+  useEffect(() => {
+    document.title = "Your Orders | Fast Haazir Quetta";
+  }, []);
 
   if (authLoading) {
     return (

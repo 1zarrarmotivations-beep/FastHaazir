@@ -10,6 +10,7 @@ import { RidersManager } from "@/components/admin/RidersManager";
 import { BusinessesManager } from "@/components/admin/BusinessesManager";
 import { OrdersManager } from "@/components/admin/OrdersManager";
 import { RiderRequestsManager } from "@/components/admin/RiderRequestsManager";
+import { RiderApplicationsManager } from "@/components/admin/RiderApplicationsManager";
 import { LiveRidersMap } from "@/components/admin/LiveRidersMap";
 import { UsersManager } from "@/components/admin/UsersManager";
 import { SystemNotifications } from "@/components/admin/SystemNotifications";
@@ -31,6 +32,7 @@ import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificati
 import AdminSupportNotificationBadge from "@/components/admin/AdminSupportNotificationBadge";
 import LanguageToggle from "@/components/LanguageToggle";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { Loader2, ShieldX, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -65,29 +67,29 @@ export default function Admin() {
 
   if (authLoading || adminLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#141414]">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#141414] text-white p-4 text-center">
-        <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mb-6 border border-red-500/20">
-          <ShieldX className="w-10 h-10 text-red-500" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-textPrimary p-4 text-center">
+        <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center mb-6 border border-error/20">
+          <ShieldX className="w-10 h-10 text-error" />
         </div>
-        <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
+        <h1 className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-textPrimary to-textSecondary">
           Restricted Access
         </h1>
-        <p className="text-gray-400 max-w-md mb-8">
+        <p className="text-textSecondary max-w-md mb-8">
           This area is reserved for system administrators. If you believe this is an error, please contact support.
         </p>
         <div className="flex gap-4">
-          <Button variant="outline" className="border-white/10" onClick={() => navigate("/")}>
+          <Button variant="outline" className="border-border" onClick={() => navigate("/")}>
             Back to Home
           </Button>
-          <Button className="bg-orange-500 hover:bg-orange-600" onClick={() => navigate("/auth")}>
+          <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/auth")}>
             Login Again
           </Button>
         </div>
@@ -128,6 +130,12 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <RidersManager onNavigate={handleNavigate} />
+          </div>
+        );
+      case "rider-applications":
+        return (
+          <div className="space-y-6">
+            <RiderApplicationsManager />
           </div>
         );
       case "users":
@@ -233,18 +241,18 @@ export default function Admin() {
 
   return (
     <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {/* Sticky Top Bar - Dark Mode */}
-      <div className="sticky top-0 z-40 bg-[#141414]/90 backdrop-blur-md border-b border-white/5 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 flex items-center justify-between mb-8">
+      {/* Sticky Top Bar */}
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 flex items-center justify-between mb-8 transition-colors duration-300">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white hidden md:block">
+          <h1 className="text-lg font-semibold text-textPrimary hidden md:block">
             System Status
           </h1>
 
           {/* Global Order Receiving Toggle */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <Activity className={`w-3 h-3 ${stats?.pendingOrders ? 'text-orange-500 animate-pulse' : 'text-emerald-500'}`} />
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-              Flow: <span className={stats?.pendingOrders ? 'text-orange-500' : 'text-emerald-500'}>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-border">
+            <Activity className={`w-3 h-3 ${stats?.pendingOrders ? 'text-primary animate-pulse' : 'text-success'}`} />
+            <span className="text-xs font-medium text-textSecondary uppercase tracking-wider">
+              Flow: <span className={stats?.pendingOrders ? 'text-primary' : 'text-success'}>
                 {stats?.pendingOrders ? `${stats.pendingOrders} Active` : 'Stable'}
               </span>
             </span>
@@ -257,9 +265,12 @@ export default function Admin() {
             <AdminSupportNotificationBadge onTabChange={setActiveTab} />
             <AdminOrderNotificationBadge onTabChange={setActiveTab} />
           </div>
-          <div className="h-6 w-px bg-white/10 mx-1"></div>
-          <div className="bg-white/5 p-1 rounded-lg">
-            <LanguageToggle variant="admin" />
+          <div className="h-6 w-px bg-border mx-1"></div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <div className="bg-surface p-1 rounded-lg">
+              <LanguageToggle variant="admin" />
+            </div>
           </div>
         </div>
       </div>

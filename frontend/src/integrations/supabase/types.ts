@@ -1627,6 +1627,8 @@ export type Database = {
           payment_method: string | null
           payment_status: string | null
           payment_url: string | null
+          proof_url: string | null
+          external_transaction_id: string | null
           qr_url: string | null
           rider_request_id: string | null
           transaction_id: string
@@ -1643,6 +1645,8 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           payment_url?: string | null
+          proof_url?: string | null
+          external_transaction_id?: string | null
           qr_url?: string | null
           rider_request_id?: string | null
           transaction_id: string
@@ -1659,6 +1663,8 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string | null
           payment_url?: string | null
+          proof_url?: string | null
+          external_transaction_id?: string | null
           qr_url?: string | null
           rider_request_id?: string | null
           transaction_id?: string
@@ -3049,6 +3055,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      },
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          is_blocked: boolean | null
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          is_blocked?: boolean | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      },
+      rider_applications: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          experience_years: number | null
+          id: string
+          license_number: string | null
+          notes: string | null
+          status: string | null
+          updated_at: string
+          user_id: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          license_number?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          experience_years?: number | null
+          id?: string
+          license_number?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_applications_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rider_applications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
@@ -3651,6 +3747,16 @@ export type Database = {
           is_blocked: boolean
           role: string
         }[]
+      }
+      send_system_notification: {
+        Args: {
+          _title: string
+          _message: string
+          _user_ids?: string[] | null
+          _type?: string
+          _data?: Json
+        }
+        Returns: undefined
       }
       set_default_customer_address:
       | { Args: { p_address_id: string }; Returns: undefined }

@@ -9,138 +9,119 @@
 @layer base {
   :root {
     /* ============================================
-       FAST HAAZIR BRAND SYSTEM v2.0
-       Primary: Deep Green (Pakistan Identity)
-       Accent: Lightning Orange (Speed & Energy)
+       FAST HAAZIR BRAND SYSTEM - SEMANTIC COLORS
+       Accessible, Readable, Professional
        ============================================ */
 
-    --background: 150 20% 98%;
-    --foreground: 160 25% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 160 25% 12%;
+    /* Basic Layout */
+    --background: 0 0% 100%;
+    /* #FFFFFF */
+    --foreground: 221 39% 11%;
+    /* #111827 - Text Primary */
+    --card: 210 20% 98%;
+    /* #F8F9FA - Surface */
+    --card-foreground: 221 39% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 25% 12%;
+    --popover-foreground: 221 39% 11%;
 
-    /* Primary: Vibrant Green (Matches New Logo) */
+    /* Brand Colors */
     --primary: 142 76% 36%;
+    /* #16A34A - Accessible Green */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Dark Charcoal */
-    --secondary: 160 20% 15%;
+    --secondary: 38 92% 50%;
+    /* #F59E0B - Amber/Orange */
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted */
-    --muted: 150 15% 95%;
-    --muted-foreground: 160 10% 40%;
+    /* Functional Colors */
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    /* #6B7280 - Text Secondary */
 
-    /* Accent: Lightning Orange (Speed indicator) */
-    --accent: 28 100% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 20% 96%;
+    --accent-foreground: 221 39% 11%;
 
-    /* Success: Bright Green (Matches New Logo) */
-    --success: 142 70% 45%;
+    --success: 142 71% 45%;
+    /* #22C55E */
     --success-foreground: 0 0% 100%;
 
-    /* Destructive: Danger Red */
-    --destructive: 7 80% 50%;
+    --destructive: 0 84% 60%;
+    /* #EF4444 - Error */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 15% 88%;
-    --input: 150 15% 88%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    /* #E5E7EB */
+    --input: 214 32% 91%;
     --ring: 142 76% 36%;
 
     --radius: 1rem;
 
-    /* Fast Haazir Brand Gradients (Updated for Vibrancy) */
+    /* Gradients */
     --gradient-brand: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(142, 70%, 45%) 100%);
-    --gradient-speed: linear-gradient(135deg, hsl(28, 100%, 50%) 0%, hsl(38, 100%, 55%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(142, 76%, 28%) 50%, hsl(142, 76%, 22%) 100%);
-    --gradient-card: linear-gradient(145deg, hsla(142, 76%, 36%, 0.08) 0%, hsla(28, 100%, 50%, 0.04) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(142, 70%, 45%) 0%, hsl(142, 76%, 36%) 100%);
-    --gradient-lightning: linear-gradient(135deg, hsl(38, 100%, 55%) 0%, hsl(28, 100%, 50%) 50%, hsl(18, 100%, 48%) 100%);
+    --gradient-surface: linear-gradient(145deg, #FFFFFF 0%, #F8F9FA 100%);
 
     /* Brand Shadows */
-    --shadow-soft: 0 4px 20px hsla(152, 77%, 26%, 0.08);
-    --shadow-card: 0 8px 30px hsla(0, 0%, 0%, 0.1);
-    --shadow-elevated: 0 12px 40px hsla(152, 77%, 26%, 0.15);
-    --shadow-glow: 0 0 30px hsla(28, 100%, 50%, 0.25);
-    --shadow-brand: 0 8px 24px hsla(152, 77%, 26%, 0.2);
-
-    /* Sidebar */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 160 25% 20%;
-    --sidebar-primary: 152 77% 26%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 15% 95%;
-    --sidebar-accent-foreground: 160 25% 15%;
-    --sidebar-border: 150 15% 90%;
-    --sidebar-ring: 152 77% 30%;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.1);
   }
 
   .dark {
     /* ============================================
-       FAST HAAZIR DARK MODE (Premium AMOLED)
+       FAST HAAZIR DARK MODE (Premium Navy Slate)
        ============================================ */
-    --background: 160 25% 6%;
-    --foreground: 150 15% 95%;
+    --background: 222 47% 11%;
+    /* #0F172A */
+    --foreground: 210 40% 98%;
+    /* #F9FAFB - Text Primary */
 
-    --card: 160 20% 10%;
-    --card-foreground: 150 15% 95%;
+    --card: 217 33% 17%;
+    /* #1E293B - Surface */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 160 20% 10%;
-    --popover-foreground: 150 15% 95%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Primary: Brighter Green for Dark Mode */
-    --primary: 152 77% 40%;
+    /* Brand Colors for Dark Mode */
+    --primary: 142 71% 45%;
+    /* #22C55E - Brighter for Dark */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary */
-    --secondary: 160 15% 18%;
-    --secondary-foreground: 150 15% 95%;
+    --secondary: 38 95% 56%;
+    /* #FBBF24 */
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted */
-    --muted: 160 15% 15%;
-    --muted-foreground: 150 10% 55%;
+    /* Functional Colors */
+    --muted: 217 33% 14%;
+    --muted-foreground: 213 27% 84%;
+    /* #CBD5E1 - Text Secondary */
 
-    /* Accent: Vibrant Orange */
-    --accent: 28 100% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 217 33% 14%;
+    --accent-foreground: 210 40% 98%;
 
-    /* Success */
-    --success: 152 77% 45%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Destructive */
-    --destructive: 7 80% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 91% 71%;
+    /* #F87171 - Light error for dark */
+    --destructive-foreground: 222 47% 11%;
 
-    --border: 160 15% 20%;
-    --input: 160 15% 20%;
-    --ring: 152 77% 45%;
+    --warning: 38 95% 56%;
+    --warning-foreground: 0 0% 100%;
 
-    /* Dark Mode Gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(152, 77%, 35%) 0%, hsl(152, 77%, 45%) 100%);
-    --gradient-speed: linear-gradient(135deg, hsl(28, 100%, 55%) 0%, hsl(38, 100%, 60%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(160, 25%, 8%) 0%, hsl(160, 25%, 6%) 50%, hsl(160, 25%, 4%) 100%);
+    --border: 215 25% 27%;
+    /* #334155 */
+    --input: 215 25% 27%;
+    --ring: 142 71% 45%;
 
     /* Dark Mode Shadows */
-    --shadow-soft: 0 4px 20px hsla(0, 0%, 0%, 0.3);
-    --shadow-card: 0 8px 30px hsla(0, 0%, 0%, 0.4);
-    --shadow-elevated: 0 12px 40px hsla(152, 77%, 40%, 0.15);
-    --shadow-glow: 0 0 30px hsla(28, 100%, 55%, 0.3);
-    --shadow-brand: 0 8px 24px hsla(152, 77%, 40%, 0.2);
-
-    /* Sidebar Dark */
-    --sidebar-background: 160 25% 6%;
-    --sidebar-foreground: 150 15% 95%;
-    --sidebar-primary: 152 77% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 15% 12%;
-    --sidebar-accent-foreground: 150 15% 95%;
-    --sidebar-border: 160 15% 18%;
-    --sidebar-ring: 152 77% 45%;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -285,51 +266,13 @@
      Inspired by Uber Driver + Apple Vision
      ======================================== */
 
-  /* Premium Dark Background - True AMOLED Black */
-  .rider-bg {
-    background: linear-gradient(180deg, #0B0F14 0%, #050709 100%);
-    min-height: 100vh;
-  }
-
-  .rider-bg-premium {
-    background: #0B0F14;
-    background-image:
-      radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at bottom left, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
-  }
-
-  /* Glass Card - Premium Frosted */
+  /* Glass Card - Unified Design System */
   .glass-card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  .glass-card-dark {
-    background: rgba(15, 20, 30, 0.85);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    box-shadow:
-      0 8px 40px rgba(0, 0, 0, 0.5),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }
-
-  .glass-card-premium {
-    background: linear-gradient(135deg,
-        rgba(30, 40, 60, 0.4) 0%,
-        rgba(20, 25, 40, 0.6) 100%);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      0 0 0 1px rgba(255, 255, 255, 0.02),
-      inset 0 2px 4px rgba(255, 255, 255, 0.02);
+    background: hsla(var(--card), 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsla(var(--border), 0.5);
+    box-shadow: var(--shadow-card);
   }
 
   /* Neon Glow Effects - Premium */

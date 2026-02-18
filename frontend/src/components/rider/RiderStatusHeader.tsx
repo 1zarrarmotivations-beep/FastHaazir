@@ -42,18 +42,18 @@ const RiderStatusHeader = ({
   if (!riderProfile) {
     return (
       <div className="relative px-4 pt-6 pb-4">
-        <div className="glass-card-premium rounded-3xl p-6 animate-pulse">
+        <div className="bg-surface rounded-3xl p-6 animate-pulse border border-border">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-18 h-18 rounded-2xl bg-white/5 shimmer" />
+            <div className="w-18 h-18 rounded-2xl bg-muted shimmer" />
             <div className="flex-1 space-y-2">
-              <div className="h-5 bg-white/5 rounded-xl w-32 shimmer" />
-              <div className="h-4 bg-white/5 rounded-xl w-24 shimmer" />
+              <div className="h-5 bg-muted rounded-xl w-32 shimmer" />
+              <div className="h-4 bg-muted rounded-xl w-24 shimmer" />
             </div>
-            <div className="w-16 h-16 rounded-2xl bg-white/5 shimmer" />
+            <div className="w-16 h-16 rounded-2xl bg-muted shimmer" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-card rounded-2xl p-4 h-24 shimmer" />
+              <div key={i} className="bg-muted rounded-2xl p-4 h-24 shimmer" />
             ))}
           </div>
         </div>
@@ -68,7 +68,7 @@ const RiderStatusHeader = ({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="glass-card-premium rounded-3xl p-6 relative overflow-hidden border border-white/10 shadow-2xl"
+        className="bg-surface rounded-3xl p-6 relative overflow-hidden border border-border shadow-elevated"
       >
         {/* Animated Gradient Background */}
         {isOnline && (
@@ -140,7 +140,7 @@ const RiderStatusHeader = ({
               </div>
               {/* Premium Status Indicator */}
               <motion.div
-                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-3 border-[#0B0F14] flex items-center justify-center ${isOnline ? 'bg-emerald-400' : 'bg-gray-600'
+                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-3 border-surface flex items-center justify-center ${isOnline ? 'bg-success' : 'bg-muted-foreground'
                   }`}
                 animate={isOnline ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 2, repeat: Infinity }}
@@ -150,16 +150,16 @@ const RiderStatusHeader = ({
             </motion.div>
 
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">{riderProfile.name}</h1>
+              <h1 className="text-xl font-bold text-textPrimary tracking-tight">{riderProfile.name}</h1>
               <div className="flex items-center gap-2 text-sm mt-1.5">
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/10">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                  <span className="font-bold text-yellow-400">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10">
+                  <Star className="w-3.5 h-3.5 text-secondary fill-secondary" />
+                  <span className="font-bold text-secondary">
                     {riderProfile.rating?.toFixed(1) || '5.0'}
                   </span>
                 </div>
-                <span className="text-white/30">•</span>
-                <span className="text-white/50 font-medium">
+                <span className="text-textSecondary/30">•</span>
+                <span className="text-textSecondary font-medium">
                   {riderProfile.total_trips || 0} trips
                 </span>
               </div>
@@ -172,10 +172,10 @@ const RiderStatusHeader = ({
               onClick={() => !isToggling && !cannotGoOffline && onToggleOnline(!isOnline)}
               disabled={isToggling || cannotGoOffline}
               className={`relative flex flex-col items-center gap-1.5 p-4 rounded-2xl transition-all duration-500 min-w-[80px] ${cannotGoOffline
-                ? 'bg-orange-500/10 cursor-not-allowed opacity-70'
+                ? 'bg-warning/10 cursor-not-allowed opacity-70'
                 : isOnline
-                  ? 'bg-emerald-500/15 glow-green'
-                  : 'bg-white/3 hover:bg-white/5 border border-white/5'
+                  ? 'bg-success/15 glow-green'
+                  : 'bg-muted/30 hover:bg-muted/50 border border-border'
                 }`}
               whileTap={cannotGoOffline ? {} : { scale: 0.95 }}
             >
@@ -190,16 +190,16 @@ const RiderStatusHeader = ({
                 }}
               >
                 {isOnline ? (
-                  <Zap className={`w-7 h-7 ${cannotGoOffline ? 'text-orange-400' : 'text-emerald-400'} fill-current drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]`} />
+                  <Zap className={`w-7 h-7 ${cannotGoOffline ? 'text-warning' : 'text-success'} fill-current drop-shadow-[0_0_8px_hsl(var(--success)/0.6)]`} />
                 ) : (
-                  <PowerOff className="w-7 h-7 text-white/30" />
+                  <PowerOff className="w-7 h-7 text-textSecondary/30" />
                 )}
               </motion.div>
               <span className={`text-[10px] font-black tracking-widest ${cannotGoOffline
-                ? 'text-orange-400'
+                ? 'text-warning'
                 : isOnline
-                  ? 'text-emerald-400 text-glow-green'
-                  : 'text-white/30'
+                  ? 'text-success text-glow-green'
+                  : 'text-textSecondary/30'
                 }`}>
                 {isOnline ? 'ONLINE' : 'OFFLINE'}
               </span>
@@ -293,7 +293,7 @@ const PremiumStatCard = ({ icon, label, value, color }: PremiumStatCardProps) =>
 
   return (
     <motion.div
-      className={`glass-card rounded-2xl p-4 ${styles.glow} border border-white/3`}
+      className={`bg-surface rounded-2xl p-4 ${styles.glow} border border-border`}
       whileTap={{ scale: 0.98 }}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -303,7 +303,7 @@ const PremiumStatCard = ({ icon, label, value, color }: PremiumStatCardProps) =>
         <div className={styles.icon}>{icon}</div>
       </div>
       <p className={`text-xl font-bold ${styles.value} tracking-tight`}>{value}</p>
-      <p className="text-[11px] text-white/40 uppercase tracking-wider font-medium mt-0.5">{label}</p>
+      <p className="text-[11px] text-textSecondary uppercase tracking-wider font-medium mt-0.5">{label}</p>
     </motion.div>
   );
 };

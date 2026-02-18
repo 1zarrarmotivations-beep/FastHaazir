@@ -27,7 +27,7 @@ const DebugOverlay: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="fixed bottom-4 right-4 z-[100] bg-black/95 text-white rounded-xl shadow-2xl max-w-md border border-yellow-500/50"
@@ -107,23 +107,24 @@ const Restaurants: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showDebug, setShowDebug] = useState(false);
-  
+
   // Check if user is admin (for debug overlay)
   const { data: isAdmin } = useIsAdmin();
-  
+
   // Use realtime-enabled hook instead of static data
   const { data: restaurants, isLoading, error, refetch, dataUpdatedAt } = useBusinesses('restaurant');
 
   // Debug logging for realtime updates
   useEffect(() => {
+    document.title = "Fast Haazir – Best Restaurants in Quetta | Fast Delivery";
     console.log('[Restaurants] Data updated at:', new Date(dataUpdatedAt).toISOString());
     console.log('[Restaurants] Restaurant count:', restaurants?.length ?? 0);
     if (restaurants) {
-      console.log('[Restaurants] Restaurant data:', restaurants.map(r => ({ 
-        id: r.id, 
-        name: r.name, 
-        type: r.type, 
-        is_active: r.is_active 
+      console.log('[Restaurants] Restaurant data:', restaurants.map(r => ({
+        id: r.id,
+        name: r.name,
+        type: r.type,
+        is_active: r.is_active
       })));
     }
   }, [dataUpdatedAt, restaurants]);
@@ -189,7 +190,7 @@ const Restaurants: React.FC = () => {
     <div className="mobile-container bg-background min-h-screen pb-8">
       {/* Debug Overlay - Admin Only */}
       {isAdmin && showDebug && <DebugOverlay onClose={() => setShowDebug(false)} />}
-      
+
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -202,9 +203,9 @@ const Restaurants: React.FC = () => {
           </div>
           {/* Debug Button - Admin Only */}
           {isAdmin && (
-            <Button 
-              variant="ghost" 
-              size="icon-sm" 
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => setShowDebug(!showDebug)}
               className={showDebug ? 'text-yellow-500' : 'text-muted-foreground'}
             >
@@ -257,8 +258,8 @@ const Restaurants: React.FC = () => {
           >
             <Card variant="elevated" className="overflow-hidden cursor-pointer">
               <div className="relative h-36">
-                <img 
-                  src={restaurant.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'} 
+                <img
+                  src={restaurant.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'}
                   alt={restaurant.name}
                   className="w-full h-full object-cover"
                 />

@@ -4,7 +4,7 @@ import { ArrowLeft, Search, Filter, Croissant } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BusinessCard from "@/components/BusinessCard";
 import BottomNav from "@/components/BottomNav";
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -15,6 +15,10 @@ const Bakery = () => {
     const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState("");
     const { data: bakeries, isLoading } = useBusinesses('bakery');
+
+    useEffect(() => {
+        document.title = "Fast Haazir – Fresh Bakery Delivery in Quetta";
+    }, []);
 
     const filteredStores = bakeries?.filter(store =>
         store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

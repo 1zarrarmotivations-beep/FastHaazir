@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MessageCircle, 
-  X, 
-  User, 
-  Store, 
-  Bike, 
+import {
+  MessageCircle,
+  X,
+  User,
+  Store,
+  Bike,
   EyeOff,
   Play,
   Pause,
@@ -33,10 +33,10 @@ interface AdminChatViewerProps {
 import { VoiceNotePlayer } from '@/components/chat/VoiceNotePlayer';
 
 // Message Bubble Component (Admin View - Shows full sender info)
-const AdminMessageBubble = memo(({ 
+const AdminMessageBubble = memo(({
   msg,
   orderInfo
-}: { 
+}: {
   msg: ChatMessage;
   orderInfo?: {
     customerLabel?: string;
@@ -46,7 +46,7 @@ const AdminMessageBubble = memo(({
 }) => {
   const isCustomerMessage = msg.sender_type === 'customer';
   const isVoiceMessage = msg.message_type === 'voice' && msg.voice_url;
-  
+
   const getSenderLabel = () => {
     switch (msg.sender_type) {
       case 'customer':
@@ -76,7 +76,7 @@ const AdminMessageBubble = memo(({
         return <User className="w-4 h-4" />;
     }
   };
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -87,42 +87,39 @@ const AdminMessageBubble = memo(({
         {/* Sender Label with Icon */}
         <div className={`flex items-center gap-1.5 mb-1 ${isCustomerMessage ? 'justify-end' : 'justify-start'}`}>
           {getSenderIcon()}
-          <span className={`text-xs font-medium ${
-            msg.sender_type === 'customer' ? 'text-blue-600' : 
-            msg.sender_type === 'rider' ? 'text-green-600' : 
-            msg.sender_type === 'business' ? 'text-orange-600' : 'text-purple-600'
-          }`}>
+          <span className={`text-xs font-bold uppercase tracking-wider ${msg.sender_type === 'customer' ? 'text-primary' :
+              msg.sender_type === 'rider' ? 'text-accent' :
+                msg.sender_type === 'business' ? 'text-warning' : 'text-textPrimary'
+            }`}>
             {getSenderLabel()}
           </span>
         </div>
-        
+
         {/* Message Bubble */}
         <div
-          className={`px-4 py-3 shadow-sm ${
-            isCustomerMessage
-              ? 'bg-blue-500 text-white'
-              : 'bg-muted text-foreground'
-          }`}
+          className={`px-4 py-3 shadow-sm ${isCustomerMessage
+              ? 'bg-primary text-white'
+              : 'bg-surface text-textPrimary border border-border'
+            }`}
           style={{
-            borderRadius: isCustomerMessage 
+            borderRadius: isCustomerMessage
               ? '18px 18px 4px 18px'
               : '18px 18px 18px 4px'
           }}
         >
           {isVoiceMessage ? (
-            <VoiceNotePlayer 
-              voiceUrl={msg.voice_url!} 
+            <VoiceNotePlayer
+              voiceUrl={msg.voice_url!}
               duration={msg.voice_duration}
               isOwnMessage={isCustomerMessage}
             />
           ) : (
             <p className="text-sm leading-relaxed">{msg.message}</p>
           )}
-          <p className={`text-xs mt-2 flex items-center gap-1 ${
-            isCustomerMessage 
-              ? 'text-white/70 justify-end' 
+          <p className={`text-xs mt-2 flex items-center gap-1 ${isCustomerMessage
+              ? 'text-white/70 justify-end'
               : 'text-muted-foreground justify-start'
-          }`}>
+            }`}>
             <Clock className="w-3 h-3" />
             {format(new Date(msg.created_at), 'MMM d, HH:mm:ss')}
           </p>
@@ -135,12 +132,12 @@ const AdminMessageBubble = memo(({
 AdminMessageBubble.displayName = 'AdminMessageBubble';
 
 // Main Admin Chat Viewer Component
-const AdminChatViewer = ({ 
-  orderId, 
-  riderRequestId, 
-  isOpen, 
+const AdminChatViewer = ({
+  orderId,
+  riderRequestId,
+  isOpen,
   onClose,
-  orderInfo 
+  orderInfo
 }: AdminChatViewerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -162,10 +159,10 @@ const AdminChatViewer = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="fixed inset-0 z-[100] bg-background flex flex-col md:inset-auto md:bottom-4 md:right-4 md:w-[450px] md:h-[600px] md:rounded-xl md:shadow-2xl md:border md:border-border overflow-hidden"
+        className="fixed inset-0 z-[100] bg-background text-textPrimary flex flex-col md:inset-auto md:bottom-4 md:right-4 md:w-[450px] md:h-[600px] md:rounded-xl md:shadow-2xl md:border md:border-border overflow-hidden transition-colors"
       >
         {/* ==================== HEADER ==================== */}
-        <div className="bg-slate-800 text-white p-4 flex items-center justify-between md:rounded-t-xl shrink-0">
+        <div className="bg-primary text-white p-4 flex items-center justify-between md:rounded-t-xl shrink-0">
           <div className="flex items-center gap-2">
             <div className="relative">
               <MessageCircle className="w-5 h-5" />
@@ -173,7 +170,7 @@ const AdminChatViewer = ({
             </div>
             <div>
               <span className="font-semibold">Admin Chat Monitor</span>
-              <p className="text-xs text-slate-300">Order #{(orderId || riderRequestId)?.slice(0, 8)}</p>
+              <p className="text-xs opacity-70">Order #{(orderId || riderRequestId)?.slice(0, 8)}</p>
             </div>
           </div>
           <Button
@@ -187,13 +184,13 @@ const AdminChatViewer = ({
         </div>
 
         {/* ==================== SILENT MODE BANNER ==================== */}
-        <div className="px-4 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-3 shrink-0">
-          <div className="p-2 rounded-full bg-amber-500/20">
-            <EyeOff className="w-4 h-4 text-amber-600" />
+        <div className="px-4 py-3 bg-warning/10 border-b border-warning/30 flex items-center gap-3 shrink-0">
+          <div className="p-2 rounded-full bg-warning/20">
+            <EyeOff className="w-4 h-4 text-warning" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-amber-700">Silent Mode</p>
-            <p className="text-xs text-amber-600/80">
+            <p className="text-sm font-bold text-textPrimary">Silent Mode</p>
+            <p className="text-xs text-textSecondary font-medium">
               You are viewing this chat privately. Participants are not notified.
             </p>
           </div>
@@ -226,7 +223,7 @@ const AdminChatViewer = ({
         </div>
 
         {/* ==================== CHAT MESSAGES (Read-only) ==================== */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-0 bg-slate-50/50">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0 bg-background/50">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
@@ -253,9 +250,9 @@ const AdminChatViewer = ({
         </div>
 
         {/* ==================== FOOTER (Read-only notice) ==================== */}
-        <div className="p-4 border-t border-border bg-slate-100 md:rounded-b-xl shrink-0">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Shield className="w-4 h-4" />
+        <div className="p-4 border-t border-border bg-surface md:rounded-b-xl shrink-0">
+          <div className="flex items-center justify-center gap-2 text-sm text-textSecondary font-medium">
+            <Shield className="w-4 h-4 text-primary" />
             <span>Read-only mode • Messages: {messages.length}</span>
           </div>
         </div>

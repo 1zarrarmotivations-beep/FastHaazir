@@ -3,7 +3,7 @@ import { ArrowLeft, Search, Filter, Store } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BusinessCard from "@/components/BusinessCard";
 import BottomNav from "@/components/BottomNav";
 import { useBusinesses } from "@/hooks/useBusinesses";
@@ -12,6 +12,10 @@ const Grocery = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: groceryStores, isLoading } = useBusinesses('grocery');
+
+  useEffect(() => {
+    document.title = "Fast Haazir – Grocery Delivery in Quetta | Fast & Fresh";
+  }, []);
 
   const filteredStores = groceryStores?.filter(store =>
     store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

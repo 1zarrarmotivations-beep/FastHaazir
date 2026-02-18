@@ -17,4 +17,10 @@ if (!Capacitor.isNativePlatform()) {
     registerSW({ immediate: true });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+import { ThemeProvider } from "./context/ThemeContext.tsx";
+
+createRoot(document.getElementById("root")!).render(
+    <ThemeProvider>
+        <App />
+    </ThemeProvider>
+);

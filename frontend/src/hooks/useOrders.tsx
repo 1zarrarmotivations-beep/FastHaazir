@@ -25,6 +25,7 @@ export interface Order {
   subtotal: number;
   delivery_fee: number;
   total: number;
+  total_amount?: number; // Backend calculated SSoT
   delivery_address: string | null;
   delivery_lat: number | null;
   delivery_lng: number | null;
@@ -108,8 +109,8 @@ export const useOrders = () => {
         .from('orders')
         .select(`
           *,
-          businesses(name, image),
-          riders(name, image, rating, vehicle_type, total_trips)
+          businesses(name, image, owner_phone),
+          riders(name, phone, image, rating, vehicle_type, total_trips)
         `)
         .eq('customer_id', user.id)
         .order('created_at', { ascending: false });
@@ -123,6 +124,7 @@ export const useOrders = () => {
         ...order,
         items: parseOrderItems(order.items),
         status: order.status as OrderStatus,
+        total: order.total_amount ?? order.total, // Use backend calculated total
       })) as Order[];
     },
     enabled: !!user,
@@ -228,6 +230,7 @@ export const useActiveOrders = () => {
         items: parseOrderItems(order.items),
         status: order.status as OrderStatus,
         type: 'order' as const,
+        total: order.total_amount ?? order.total, // Use backend calculated total
       }));
 
       // Transform rider requests to match Order interface
@@ -345,7 +348,7 @@ export const useCreateOrder = () => {
         await createNotification(
           business.owner_user_id,
           '🍽️ New Order!',
-          `You have a new order worth Rs ${orderData.total}`,
+          `You have a new order worth Rs ${order.total_amount ?? orderData.total}`,
           'order',
           order.id
         );
@@ -357,7 +360,7 @@ export const useCreateOrder = () => {
           order_id: order.id,
           pickup_address: (business as any)?.location_address || business?.name || orderData.business_name,
           dropoff_address: orderData.delivery_address,
-          order_total: orderData.total,
+          order_total: order.total_amount ?? orderData.total,
         });
       } catch (notifyError) {
         console.error('[useCreateOrder] Failed to notify riders:', notifyError);

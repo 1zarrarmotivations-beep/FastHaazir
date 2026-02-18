@@ -829,6 +829,41 @@ app.post('/api/admin/payments/confirm', verifyAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
+// Admin reject payment
+app.post('/api/admin/payments/reject', verifyAdmin, async (req, res) => {
+    const { payment_id, notes, admin_name } = req.body;
+    const { data: payment } = await supabase.from('payments').select('*').eq('id', payment_id).single();
+    if (!payment) return res.status(404).send();
+
+    await supabase.from('payments').update({
+        payment_status: 'rejected', // or 'failed' depending on enum, 'rejected' is clearer for manual
+        approved_by_name: admin_name || req.user.email,
+        admin_notes: notes,
+        updated_at: new Date().toISOString()
+    }).eq('id', payment_id);
+
+    // Notify user
+    await supabase.rpc('create_notification', {
+        _user_id: payment.user_id,
+        _title: '❌ Payment Rejected',
+        _message: `Reason: ${notes || 'Verification failed'}`,
+        _type: 'payment_failed',
+        _order_id: payment.order_id || null,
+        _rider_request_id: payment.rider_request_id || null
+    });
+
+    // Send Push
+    await sendPushNotificationInternal({
+        title: '❌ Payment Rejected',
+        message: `Your payment was rejected. Reason: ${notes || 'Verification failed'}`,
+        target: 'specific',
+        target_user_id: payment.user_id,
+        link: payment.order_id ? `/orders/${payment.order_id}` : '/rider/dashboard'
+    });
+
+    res.json({ success: true });
+});
+
 // ==========================================
 // PUSH NOTIFICATION SYSTEM
 // ==========================================

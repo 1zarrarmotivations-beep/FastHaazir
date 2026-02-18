@@ -18,7 +18,8 @@ import {
   Clock,
   MapPin,
   Globe,
-  FileCheck
+  FileCheck,
+  Edit
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,8 @@ import {
   useToggleBusinessStatus,
   useDeleteBusiness,
   useToggleBusinessFeatured,
-  useToggleBusinessApproval
+  useToggleBusinessApproval,
+  useUpdateBusiness
 } from "@/hooks/useAdmin";
 import { safeLower } from "@/lib/utils";
 import { MenuItemsManager } from "./MenuItemsManager";
@@ -87,6 +89,7 @@ export function BusinessesManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [menuDialogOpen, setMenuDialogOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: string; name: string } | null>(null);
+  const [editingBusiness, setEditingBusiness] = useState<any>(null);
   const [showMenuManager, setShowMenuManager] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "restaurant" | "grocery" | "bakery" | "shop" | "pharmacy">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "pending">("all");
@@ -109,6 +112,7 @@ export function BusinessesManager() {
   const deleteBusiness = useDeleteBusiness();
   const toggleFeatured = useToggleBusinessFeatured();
   const toggleApproval = useToggleBusinessApproval();
+  const updateBusiness = useUpdateBusiness();
 
   const filteredBusinesses = (businesses as any[])?.filter((business) => {
     const matchesSearch = safeLower(business.name).includes(safeLower(searchQuery)) ||
@@ -155,6 +159,15 @@ export function BusinessesManager() {
           location_lat: 30.1798,
           location_lng: 66.9750,
         });
+      },
+    });
+  };
+
+  const handleUpdateBusiness = () => {
+    if (!editingBusiness || !editingBusiness.name) return;
+    updateBusiness.mutate(editingBusiness, {
+      onSuccess: () => {
+        setEditingBusiness(null);
       },
     });
   };
@@ -417,6 +430,133 @@ export function BusinessesManager() {
         </Dialog>
       </div>
 
+      {/* Edit Business Dialog */}
+      <Dialog open={!!editingBusiness} onOpenChange={(open) => !open && setEditingBusiness(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Business</DialogTitle>
+          </DialogHeader>
+          {editingBusiness && (
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Business Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={editingBusiness.name}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-type">Business Type *</Label>
+                <Select
+                  value={editingBusiness.type}
+                  onValueChange={(value) => setEditingBusiness({ ...editingBusiness, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="restaurant">Restaurant</SelectItem>
+                    <SelectItem value="grocery">Grocery Store</SelectItem>
+                    <SelectItem value="bakery">Bakery</SelectItem>
+                    <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                    <SelectItem value="shop">Shop</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  value={editingBusiness.category || ''}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, category: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-commission">Commission %</Label>
+                <Input
+                  id="edit-commission"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editingBusiness.commission_rate || 0}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, commission_rate: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+
+              {/* Location Section */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  Shop Location (For Rider)
+                </h4>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-address">Full Shop Address *</Label>
+                  <Textarea
+                    id="edit-address"
+                    value={editingBusiness.location_address || ''}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, location_address: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-lat">Latitude</Label>
+                    <Input
+                      id="edit-lat"
+                      type="number"
+                      step="any"
+                      value={editingBusiness.location_lat || 0}
+                      onChange={(e) => setEditingBusiness({ ...editingBusiness, location_lat: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-lng">Longitude</Label>
+                    <Input
+                      id="edit-lng"
+                      type="number"
+                      step="any"
+                      value={editingBusiness.location_lng || 0}
+                      onChange={(e) => setEditingBusiness({ ...editingBusiness, location_lng: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingBusiness.description || ''}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, description: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Business Image</Label>
+                <ImageUpload
+                  value={editingBusiness.image}
+                  onChange={(url) => setEditingBusiness({ ...editingBusiness, image: url })}
+                  bucket="businesses"
+                  folder="businesses"
+                  label="Update Business Image"
+                  maxSizeMB={5}
+                />
+              </div>
+              <Button
+                onClick={handleUpdateBusiness}
+                className="w-full gradient-primary text-primary-foreground"
+                disabled={updateBusiness.isPending}
+              >
+                {updateBusiness.isPending ? "Updating..." : "Update Business"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Full Screen Menu Manager */}
       {showMenuManager && selectedBusiness && (
         <div className="fixed inset-0 bg-background z-50 overflow-auto">
@@ -588,6 +728,14 @@ export function BusinessesManager() {
                         </Button>
                       </div>
                       <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingBusiness(business)}
+                          className="text-primary hover:bg-primary/10"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"

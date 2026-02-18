@@ -1319,5 +1319,117 @@ app.post('/api/push/send', verifyAdmin, async (req, res) => {
     }
 });
 
+// ==========================================
+// ADMIN UTILITIES & PAYMENTS
+// ==========================================
+
+// Admin verification middleware
+const verifyAdminMiddleware = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'No auth' });
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+
+        // Check if user has admin role
+        // This assumes you have a has_role RPC function or similar logic
+        const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+
+        if (roleError || !isAdmin) {
+            // Fallback: Check if email is in a hardcoded admin list for safety
+            const adminEmails = [
+                'admin@fasthaazir.com',
+                'superadmin@fasthaazir.com',
+                'qasim.dev.001@gmail.com' // From context or safe default
+            ];
+            if (!adminEmails.includes(user.email)) {
+                return res.status(403).json({ error: 'Forbidden' });
+            }
+        }
+
+        req.user = user;
+        next();
+    } catch (e) {
+        console.error('Auth error:', e);
+        res.status(500).json({ error: 'Auth check failed' });
+    }
+};
+
+// Admin confirm payment
+app.post('/api/admin/payments/confirm', verifyAdminMiddleware, async (req, res) => {
+    const { payment_id, notes, admin_name } = req.body;
+    const { data: payment } = await supabase.from('payments').select('*').eq('id', payment_id).single();
+    if (!payment) return res.status(404).send();
+
+    await supabase.from('payments').update({
+        payment_status: 'paid',
+        approved_by_name: admin_name || req.user.email,
+        admin_notes: notes,
+        updated_at: new Date().toISOString()
+    }).eq('id', payment_id);
+
+    if (payment.order_id) {
+        await supabase.from('orders').update({ payment_status: 'paid', status: 'preparing' }).eq('id', payment.order_id);
+    } else if (payment.rider_request_id) {
+        await supabase.from('rider_requests').update({ status: 'preparing' }).eq('id', payment.rider_request_id);
+    }
+
+    await supabase.rpc('create_notification', {
+        _user_id: payment.user_id,
+        _title: '✅ Payment Confirmed!',
+        _message: `Verified by admin: Rs. ${payment.amount}`,
+        _type: 'payment',
+        _order_id: payment.order_id,
+        _rider_request_id: payment.rider_request_id
+    });
+
+    // Send Push
+    await sendPushNotificationInternal({
+        title: '✅ Payment Confirmed!',
+        message: `Admin verified your payment of Rs. ${payment.amount}`,
+        target: 'specific',
+        target_user_id: payment.user_id,
+        link: payment.order_id ? `/orders/${payment.order_id}` : '/rider/dashboard'
+    });
+
+    res.json({ success: true });
+});
+
+// Admin reject payment
+app.post('/api/admin/payments/reject', verifyAdminMiddleware, async (req, res) => {
+    const { payment_id, notes, admin_name } = req.body;
+    const { data: payment } = await supabase.from('payments').select('*').eq('id', payment_id).single();
+    if (!payment) return res.status(404).send();
+
+    await supabase.from('payments').update({
+        payment_status: 'rejected',
+        approved_by_name: admin_name || req.user.email,
+        admin_notes: notes,
+        updated_at: new Date().toISOString()
+    }).eq('id', payment_id);
+
+    // Notify user
+    await supabase.rpc('create_notification', {
+        _user_id: payment.user_id,
+        _title: '❌ Payment Rejected',
+        _message: `Reason: ${notes || 'Verification failed'}`,
+        _type: 'payment_failed',
+        _order_id: payment.order_id || null,
+        _rider_request_id: payment.rider_request_id || null
+    });
+
+    // Send Push
+    await sendPushNotificationInternal({
+        title: '❌ Payment Rejected',
+        message: `Your payment was rejected. Reason: ${notes || 'Verification failed'}`,
+        target: 'specific',
+        target_user_id: payment.user_id,
+        link: payment.order_id ? `/orders/${payment.order_id}` : '/rider/dashboard'
+    });
+
+    res.json({ success: true });
+});
+
 // Expose Express App as a single Cloud Function
 exports.api = onRequest({ timeoutSeconds: 60, region: "us-central1" }, app);
