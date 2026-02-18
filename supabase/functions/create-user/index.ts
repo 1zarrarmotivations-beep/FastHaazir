@@ -102,13 +102,14 @@ serve(async (req) => {
         const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .upsert({
-                id: user.user.id,
+                user_id: user.user.id,
                 email: email || null,
                 phone: formattedPhone || user.user.phone,
                 role: role || 'customer',
+                status: 'active',
                 full_name: userData?.name,
                 updated_at: new Date().toISOString()
-            })
+            }, { onConflict: 'user_id' })
 
         if (profileError) {
             console.error("[Error] Profile creation failed:", profileError);

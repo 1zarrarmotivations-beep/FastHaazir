@@ -243,21 +243,23 @@ const redirectByRole = (
   let redirectPath = "/";
   let welcomeMessage = "Welcome to Fast Haazir!";
 
-  if (role === 'admin') {
+  if (role === 'super_admin' || role === 'admin') {
     redirectPath = "/admin";
-    welcomeMessage = "Welcome Admin!";
+    welcomeMessage = role === 'super_admin' ? "👑 [Master Admin] God Mode Enabled" : "Welcome Admin!";
   } else if (role === 'rider') {
-    // PHASE 3: Rider status check
     if (needsRegistration) {
       redirectPath = "/rider/register";
       welcomeMessage = "Please complete your rider registration.";
     } else if (riderStatus !== 'verified') {
-      redirectPath = "/rider/register"; // This page shows the pending screen in our app
-      welcomeMessage = "Your rider application is still being reviewed.";
+      redirectPath = "/rider/register";
+      welcomeMessage = "Your rider application is being reviewed.";
     } else {
       redirectPath = "/rider";
       welcomeMessage = "Welcome back to the Rider Dashboard!";
     }
+  } else if (role === 'business') {
+    redirectPath = "/business";
+    welcomeMessage = "Welcome back to your Business!";
   } else {
     redirectPath = "/";
     welcomeMessage = "Welcome to Fast Haazir!";

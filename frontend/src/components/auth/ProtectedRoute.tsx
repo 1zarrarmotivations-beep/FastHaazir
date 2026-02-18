@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { roleResolver, type RoleResolution } from '@/lib/roleResolver';
 
-type UserRole = 'admin' | 'rider' | 'customer';
+type UserRole = 'super_admin' | 'admin' | 'rider' | 'customer' | 'business';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -16,6 +16,7 @@ interface UserData {
     role: UserRole;
     isBlocked: boolean;
     riderStatus?: 'pending' | 'verified' | 'rejected' | 'none';
+    needsRegistration?: boolean;
 }
 
 /**
@@ -142,7 +143,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
                             id: session.user.id,
                             role: resolution.role as UserRole,
                             isBlocked: resolution.isBlocked,
-                            riderStatus: resolution.riderStatus
+                            riderStatus: resolution.riderStatus,
+                            needsRegistration: resolution.needsRegistration
                         },
                         error: isAuthorized ? null : 'Insufficient permissions',
                     });
@@ -211,9 +213,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
         // Otherwise, redirect to role-appropriate dashboard
         const roleRedirects: Record<UserRole, string> = {
-            admin: '/admin-dashboard',
-            rider: '/rider-dashboard',
-            customer: '/home',
+            super_admin: '/admin',
+            admin: '/admin',
+            rider: '/rider',
+            customer: '/',
+            business: '/business',
         };
 
         const destination = authState.user?.role

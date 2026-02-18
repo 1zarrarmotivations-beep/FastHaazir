@@ -6,20 +6,23 @@ import { safeLower } from "./utils";
  * PHASE 2 – PREVENT ROLE MIXING
  * Standardize role values and ensure consistency.
  */
-export type AppRole = 'admin' | 'rider' | 'business' | 'customer';
+export type AppRole = 'super_admin' | 'admin' | 'rider' | 'business' | 'customer';
 
 export interface RoleResolution {
     role: AppRole;
+    name?: string;
     riderStatus?: 'pending' | 'verified' | 'rejected' | 'none';
     isBlocked: boolean;
     needsRegistration: boolean;
+    profileId?: string;
 }
 
 // Type for get_my_role RPC response
 interface GetMyRoleResponse {
     role: string;
-    is_blocked: boolean;
+    status: string;
     needs_registration: boolean;
+    profile_id: string;
 }
 
 // Type for resolve_role_by_email/phone RPC response
@@ -58,33 +61,39 @@ export const roleResolver = async (userId: string, email?: string): Promise<Role
         console.log(`[RoleResolver] 📥 get_my_role response:`, roleData);
 
         // get_my_role returns a table, so roleData is an array with one row
-        // New format: { role: string, is_blocked: boolean, needs_registration: boolean }
         let resolvedRole = 'customer';
-        let isBlocked = false;
+        let profileStatus = 'active';
         let needsRegistration = false;
+        let profileId = undefined;
+        let profileName = undefined;
 
         if (roleData && Array.isArray(roleData) && roleData.length > 0) {
             const roleRow = roleData[0];
             if (roleRow) {
                 resolvedRole = safeLower(roleRow.role || 'customer');
-                isBlocked = roleRow.is_blocked === true;
+                profileStatus = safeLower(roleRow.status || 'active');
                 needsRegistration = roleRow.needs_registration === true;
+                profileId = roleRow.profile_id;
+                profileName = roleRow.full_name;
 
-                console.log(`[RoleResolver] ✅ RPC returned role: ${resolvedRole}, blocked: ${isBlocked}, needsReg: ${needsRegistration}`);
+                console.log(`[RoleResolver] ✅ RPC returned role: ${resolvedRole}, name: ${profileName}, status: ${profileStatus}, needsReg: ${needsRegistration}`);
             }
         } else {
             console.log("[RoleResolver] ⚠️ RPC returned empty data, falling back to direct query");
             return await directRoleQuery(userId);
         }
 
+        const isBlocked = profileStatus === 'blocked';
+
         // Standardize role
         let standardizedRole: AppRole = 'customer';
-        if (resolvedRole === 'admin') standardizedRole = 'admin';
+        if (resolvedRole === 'super_admin') standardizedRole = 'super_admin';
+        else if (resolvedRole === 'admin') standardizedRole = 'admin';
         else if (resolvedRole === 'rider') standardizedRole = 'rider';
         else if (resolvedRole === 'business') standardizedRole = 'business';
         else standardizedRole = 'customer';
 
-        console.log(`[RoleResolver] 👤 Resolved Role: ${standardizedRole}, Blocked: ${isBlocked}, NeedsReg: ${needsRegistration}`);
+        console.log(`[RoleResolver] 👤 Resolved Role: ${standardizedRole}, Status: ${profileStatus}, NeedsReg: ${needsRegistration}`);
 
         // PHASE 3 – RIDER VALIDATION CHECK
         if (standardizedRole === 'rider') {
@@ -126,9 +135,11 @@ export const roleResolver = async (userId: string, email?: string): Promise<Role
 
             return {
                 role: 'rider',
+                name: profileName,
                 riderStatus,
                 isBlocked,
-                needsRegistration: false
+                needsRegistration: false,
+                profileId
             };
         }
 
@@ -145,8 +156,10 @@ export const roleResolver = async (userId: string, email?: string): Promise<Role
 
         return {
             role: standardizedRole,
+            name: profileName,
             isBlocked,
-            needsRegistration
+            needsRegistration,
+            profileId
         };
 
     } catch (error) {
@@ -191,7 +204,8 @@ async function fallbackRoleResolution(userId: string, email?: string): Promise<R
 
         // Map to standardized role
         let standardizedRole: AppRole = 'customer';
-        if (syncedRole === 'admin') standardizedRole = 'admin';
+        if (syncedRole === 'super_admin') standardizedRole = 'super_admin';
+        else if (syncedRole === 'admin') standardizedRole = 'admin';
         else if (syncedRole === 'rider') standardizedRole = 'rider';
         else if (syncedRole === 'business') standardizedRole = 'business';
 

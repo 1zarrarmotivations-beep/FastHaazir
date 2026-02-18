@@ -11,7 +11,8 @@ interface ProtectedRouteProps {
   allowedRoles: AllowedRole[];
 }
 
-const roleRedirectMap: Record<AllowedRole, string> = {
+const roleRedirectMap: Record<string, string> = {
+  super_admin: "/admin",
   admin: "/admin",
   rider: "/rider",
   business: "/business",
@@ -72,6 +73,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   // Check if user has an allowed role
   const resolution = userRole as any;
   const effectiveRole = resolution?.role || 'customer';
+  const isSuperAdmin = effectiveRole === 'super_admin';
 
   if (resolution?.isBlocked) {
     console.log("[ProtectedRoute] User is blocked, redirecting to /auth");
@@ -79,8 +81,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   // PHASE 3 & 4: Rider status validation
-  // Only force registration redirect if they are trying to access a restricted rider area
-  // AND the current route doesn't allow plain 'customer' access.
   if (effectiveRole === 'rider' && !allowedRoles.includes('customer')) {
     if (resolution.needsRegistration || resolution.riderStatus !== 'verified') {
       console.log("[ProtectedRoute] Rider not verified accessing restricted area, redirecting to registration/pending");
@@ -88,12 +88,15 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     }
   }
 
-  const hasAccess = allowedRoles.includes(effectiveRole as AllowedRole);
+  // Super Admin bypass: If allowed roles includes 'admin', super_admin also has access
+  const hasAccess = allowedRoles.includes(effectiveRole as AllowedRole) ||
+    (isSuperAdmin && (allowedRoles.includes('admin') || allowedRoles.length === 0));
 
   console.log("[ProtectedRoute] Access check:", {
     effectiveRole,
     allowedRoles,
     hasAccess,
+    isSuperAdmin,
     riderStatus: resolution?.riderStatus
   });
 

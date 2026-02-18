@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { useAdminSupportTickets } from "@/hooks/useAdminSupport";
 import { useUnreadRiderTicketsCount } from "@/hooks/useAdminRiderSupport";
+import { useUserRole } from "@/hooks/useAdmin";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -87,6 +88,7 @@ const menuGroups = [
       { id: "notifications", label: "System Alerts", icon: Bell },
       { id: "push-notifications", label: "Push Center", icon: Send },
       { id: "promo-banner", label: "Marketing Banners", icon: Sparkles },
+      { id: "explore-control", label: "Discovery Engine", icon: LayoutDashboard },
     ]
   }
 ];
@@ -125,9 +127,10 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
     return 0;
   };
 
+  const { data: userRole } = useUserRole();
+
   return (
     <>
-      {/* Mobile Menu Button */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-surface text-textPrimary shadow-lg border border-border"
@@ -135,7 +138,6 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         {mobileOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Overlay */}
       {mobileOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
@@ -143,14 +145,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed lg:static inset-y-0 left-0 z-40 w-72 bg-background border-r border-border transition-all duration-300 flex flex-col shadow-2xl",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Logo Area */}
         <div className="p-6 pb-2">
           <div className="flex items-center gap-4 bg-surface p-4 rounded-2xl border border-border shadow-inner">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -163,7 +163,6 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-4 py-4 space-y-6 overflow-y-auto scrollbar-hide">
           {menuGroups.map((group) => (
             <div key={group.title}>
@@ -215,16 +214,35 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
           ))}
         </nav>
 
-        {/* User / Logout */}
         <div className="p-4 border-t border-border bg-background">
-          <div className="bg-surface rounded-xl p-1 border border-border">
+          <div className={cn(
+            "bg-surface rounded-xl p-1 border border-border shadow-sm",
+            userRole?.role === 'super_admin' && "border-primary/30 ring-1 ring-primary/10 shadow-[0_0_15px_-5px_rgba(15,92,58,0.2)]"
+          )}>
             <div className="flex items-center gap-3 p-2 mb-1">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-emerald-500 ring-2 ring-background"></div>
+              <div className={cn(
+                "w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-emerald-500 ring-2 ring-background",
+                userRole?.role === 'super_admin' && "from-amber-400 via-primary to-emerald-500"
+              )}></div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-bold text-textPrimary truncate">Super Admin</p>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <p className="text-sm font-bold text-textPrimary truncate capitalize">{userRole?.name || (userRole?.role === 'super_admin' ? 'Master Admin' : 'Admin')}</p>
+                  {userRole?.role === 'super_admin' && (
+                    <Sparkles className="w-3 h-3 text-primary animate-pulse shrink-0" />
+                  )}
+                </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <p className="text-[10px] text-textSecondary truncate uppercase tracking-wider">Online</p>
+                  {userRole?.role === 'super_admin' ? (
+                    <div className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                      <p className="text-[9px] text-primary font-bold uppercase tracking-wider">God Mode Enabled</p>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <p className="text-[10px] text-textSecondary truncate uppercase tracking-wider">Online</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

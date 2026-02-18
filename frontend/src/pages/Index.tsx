@@ -43,7 +43,7 @@ const Index: React.FC = () => {
       console.log("[Index] Post-login check. Resolution:", userRole);
 
       // Automated redirects only for admin
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'super_admin') {
         navigate('/admin', { replace: true });
         return;
       }

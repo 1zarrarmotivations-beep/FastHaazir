@@ -27,6 +27,7 @@ import { EnhancedSupportTicketsManager } from "@/components/admin/EnhancedSuppor
 import RiderSupportTicketsManager from "@/components/admin/RiderSupportTicketsManager";
 import { DeletionRequestsManager } from "@/components/admin/DeletionRequestsManager";
 import AdminRiderSupportNotificationBadge from "@/components/admin/AdminRiderSupportNotificationBadge";
+import ExploreControl from "@/components/admin/ExploreControl";
 
 import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
 import AdminSupportNotificationBadge from "@/components/admin/AdminSupportNotificationBadge";
@@ -225,6 +226,12 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <BannersManager />
+          </div>
+        );
+      case "explore-control":
+        return (
+          <div className="space-y-6">
+            <ExploreControl />
           </div>
         );
 
