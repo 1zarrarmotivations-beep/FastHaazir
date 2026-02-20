@@ -95,6 +95,17 @@ export const useNotificationSound = () => {
     }
   }, [canVibrate]);
 
+  // Enable audio context on gesture
+  const enableAudio = useCallback(() => {
+    // Resume audio context if suspended (for Chrome auto-play policy)
+    if (audioRef.current) {
+      audioRef.current.play().then(() => audioRef.current?.pause()).catch(() => { });
+    }
+    if (orderAudioRef.current) {
+      orderAudioRef.current.play().then(() => orderAudioRef.current?.pause()).catch(() => { });
+    }
+  }, []);
+
   // Play notification sound
   const playSound = useCallback(() => {
     const now = Date.now();
@@ -223,6 +234,9 @@ export const useNotificationSound = () => {
     notifyAlert,
     notifySuccess,
     notifyError,
+
+    // Audio context helper
+    enableAudio
   };
 };
 

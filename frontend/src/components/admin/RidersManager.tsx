@@ -148,23 +148,34 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
 
   const verifyRider = useVerifyRider();
 
-  const handleCreateRider = () => {
-    if (!newRider.name || !newRider.phone) return;
-    createRider.mutate(newRider, {
-      onSuccess: () => {
-        setDialogOpen(false);
-        setNewRider({ name: "", phone: "", email: "", password: "", cnic: "", vehicle_type: "Bike", commission_rate: 10 });
-      },
-    });
-  };
+
 
   const handleUpdateRider = () => {
     if (!selectedRider || !selectedRider.name || !selectedRider.phone) return;
+
+    // Normalize phone to +923XXXXXXXXX
+    let phoneDigits = selectedRider.phone.replace(/\D/g, "");
+    // If it's short (just edited digits 3XXXXXXXXX), prefix 92
+    if (phoneDigits.length === 10) {
+      phoneDigits = "92" + phoneDigits;
+    } else if (phoneDigits.startsWith("03")) {
+      phoneDigits = "92" + phoneDigits.slice(1);
+    }
+
+    // Ensure we have at least 12 digits (92 + 10 digits)
+    // Actually just enforce last 10 approach for maximum robustness
+    const last10 = phoneDigits.slice(-10);
+    if (last10.length < 10) {
+      alert("Invalid phone number length.");
+      return;
+    }
+    const finalPhone = `+92${last10}`;
+
     updateRider.mutate({
       id: selectedRider.id,
       userId: selectedRider.user_id,
       name: selectedRider.name,
-      phone: selectedRider.phone,
+      phone: finalPhone,
       email: selectedRider.email,
       cnic: selectedRider.cnic,
       vehicle_type: selectedRider.vehicle_type,
@@ -297,12 +308,24 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number * (Login via OTP)</Label>
-                <Input
-                  id="phone"
-                  placeholder="03XX-XXXXXXX"
-                  value={formatPhone(newRider.phone)}
-                  onChange={(e) => setNewRider({ ...newRider, phone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">+92</span>
+                  <Input
+                    id="phone"
+                    className="pl-10"
+                    placeholder="3XXXXXXXXX"
+                    value={newRider.phone.replace(/^\+?92|^0/, '')}
+                    onChange={(e) => {
+                      // Allow only digits
+                      const digits = e.target.value.replace(/\D/g, '');
+                      // Limit to 10 digits (after 92) if possible, but let user type
+                      setNewRider({ ...newRider, phone: digits.slice(0, 10) })
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter 3XXXXXXXXX (e.g. 3001234567). System auto-formats to +923001234567.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email (Login via Email)</Label>
@@ -367,11 +390,31 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
                 </div>
               </div>
               <Button
-                onClick={handleCreateRider}
+                onClick={() => {
+                  // Manual validation and formatting
+                  const raw = newRider.phone.replace(/\D/g, '');
+                  // Ensure it has at least 10 digits
+                  if (raw.length < 10) {
+                    alert("Please enter a valid 10-digit mobile number (excluding 0/92).");
+                    return;
+                  }
+                  // Format to +923XXXXXXXXX
+                  const formattedPhone = `+92${raw.slice(-10)}`;
+
+                  createRider.mutate({
+                    ...newRider,
+                    phone: formattedPhone
+                  }, {
+                    onSuccess: () => {
+                      setDialogOpen(false);
+                      setNewRider({ name: "", phone: "", email: "", password: "", cnic: "", vehicle_type: "Bike", commission_rate: 10 });
+                    },
+                  });
+                }}
                 className="w-full gradient-primary text-primary-foreground"
                 disabled={createRider.isPending || !newRider.name || !newRider.phone}
               >
-                {createRider.isPending ? "Creating..." : "Create Rider"}
+                {createRider.isPending ? "Creating..." : "Create Rider (+92 Format)"}
               </Button>
             </div>
           </DialogContent>
@@ -489,10 +532,20 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
                           </div>
                           <div className="space-y-2">
                             <Label>Phone Number</Label>
-                            <Input
-                              value={selectedRider.phone}
-                              onChange={(e) => setSelectedRider({ ...selectedRider, phone: e.target.value })}
-                            />
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">+92</span>
+                              <Input
+                                className="pl-10"
+                                value={selectedRider.phone.replace(/^\+?92|^0/, '')}
+                                onChange={(e) => {
+                                  const digits = e.target.value.replace(/\D/g, '');
+                                  setSelectedRider({ ...selectedRider, phone: digits.slice(0, 10) })
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Edit digits only (3XXXXXXXXX). Saved as +92...
+                            </p>
                           </div>
                           <div className="space-y-2">
                             <Label>Email</Label>

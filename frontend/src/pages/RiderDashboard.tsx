@@ -82,7 +82,7 @@ const RiderDashboard = () => {
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Destructure stopRinging from useNotificationSound
-  const { notifyNewOrder, vibrate, stopRinging } =
+  const { notifyNewOrder, vibrate, stopRinging, enableAudio } =
     useNotificationSound();
 
   const { data: riderProfile, isLoading: profileLoading } =
@@ -128,7 +128,7 @@ const RiderDashboard = () => {
     }
   }, [isLocationEnabled, permissions.location, permissionsReady, riderProfile?.is_online]);
 
-  /* ===== AUTO OFFLINE INACTIVITY ===== */
+  /* ===== AUTO OFFLINE INACTIVITY & SOUND INIT ===== */
   const resetInactivityTimer = useCallback(() => {
     if (inactivityTimerRef.current)
       clearTimeout(inactivityTimerRef.current);
@@ -142,15 +142,22 @@ const RiderDashboard = () => {
   }, [riderProfile?.is_online, activeDeliveries.length, toggleOnline]);
 
   useEffect(() => {
-    const activity = () => resetInactivityTimer();
-    window.addEventListener('click', activity);
-    window.addEventListener('touchstart', activity);
+    // Also initialize audio on first touch/click
+    const handleInteraction = () => {
+      resetInactivityTimer();
+      enableAudio();
+      // Remove listener after first successful interaction if desired, 
+      // but keeping it ensures audio context stays alive
+    };
+
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
     resetInactivityTimer();
     return () => {
-      window.removeEventListener('click', activity);
-      window.removeEventListener('touchstart', activity);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
     };
-  }, [resetInactivityTimer]);
+  }, [resetInactivityTimer, enableAudio]);
 
   /* ===== REALTIME ORDERS ===== */
   useEffect(() => {

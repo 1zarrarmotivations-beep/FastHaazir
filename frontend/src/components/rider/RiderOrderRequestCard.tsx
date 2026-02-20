@@ -285,27 +285,33 @@ const RiderOrderRequestCard = ({
 
           {/* Actions */}
           <div className="flex gap-3 mt-4">
-            {variant === 'new' && onAccept && (
-              <>
+            {variant === 'new' && (
+              <div className="flex gap-3 w-full">
                 <motion.button
-                  className="flex-1 h-14 rounded-2xl bg-white/5 border border-white/10 text-white/70 font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                  className="flex-1 h-14 rounded-2xl bg-white/5 border border-white/10 text-white/70 font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all hover:bg-white/10"
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onReject?.(request.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReject?.(request.id)
+                  }}
                   disabled={isLoading}
                 >
                   <X className="w-5 h-5" />
                   Reject
                 </motion.button>
                 <motion.button
-                  className="flex-1 h-14 rounded-2xl gradient-rider-success text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all"
+                  className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all hover:brightness-110"
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onAccept(request.id, request.type || 'rider_request')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAccept?.(request.id, request.type || 'rider_request')
+                  }}
                   disabled={isLoading}
                 >
                   <Check className="w-5 h-5" />
                   Accept
                 </motion.button>
-              </>
+              </div>
             )}
 
             {variant === 'active' && (

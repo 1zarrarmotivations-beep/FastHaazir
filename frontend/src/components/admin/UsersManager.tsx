@@ -398,12 +398,19 @@ export function UsersManager() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number * (Login Number)</Label>
-                <Input
-                  id="phone"
-                  placeholder="03XX-XXXXXXX"
-                  value={formatPhone(newUser.phone)}
-                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">+92</span>
+                  <Input
+                    id="phone"
+                    className="pl-10"
+                    placeholder="3XXXXXXXXX"
+                    value={newUser.phone.replace(/^\+?92|^0/, '')}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      setNewUser({ ...newUser, phone: digits.slice(0, 10) })
+                    }}
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   User will login with this number and access {
                     newUser.role === 'admin' ? 'Admin' :
