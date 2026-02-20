@@ -41,6 +41,7 @@ import RiderHeatmap from '@/components/rider/RiderHeatmap';
 import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
 import SpeedMeter from '@/components/rider/SpeedMeter';
+import RiderDashboardMap from '@/components/rider/RiderDashboardMap';
 
 /* ================= PRODUCTION BUILD MARKER ================= */
 const BUILD_VERSION = 'PROD-v5.0';
@@ -395,7 +396,20 @@ const RiderDashboard = () => {
           onOpenEarnings={() => setActiveTab('earnings')}
         />
 
-        {/* Real-time Speed Meter - Show only during active deliveries */}
+        {/* Live Dashboard Map */}
+        <div className="px-4 mt-4">
+          <RiderDashboardMap
+            riderLocation={
+              riderProfile?.current_location_lat && riderProfile?.current_location_lng
+                ? { lat: Number(riderProfile.current_location_lat), lng: Number(riderProfile.current_location_lng) }
+                : null
+            }
+            activeDelivery={activeDeliveries.length > 0 ? activeDeliveries[0] : null}
+            currentRiderId={riderProfile?.id}
+          />
+        </div>
+
+        {/* Real-time Speed Meter - Show only during active deliveries (or maybe always if desired) */}
         {activeDeliveries.length > 0 && (
           <div className="px-4 mt-2">
             <SpeedMeter isActive={riderProfile?.is_online} />

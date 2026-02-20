@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, PolylineF, DirectionsRenderer } from '@react-google-maps/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Bike, Clock } from 'lucide-react';
@@ -78,6 +78,7 @@ const LiveRiderTrackingMap = ({
 }: LiveRiderTrackingMapProps) => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const queryClient = useQueryClient();
+  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
 
   // Fetch rider location
   const { data: riderLocation } = useQuery({
@@ -96,6 +97,7 @@ const LiveRiderTrackingMap = ({
   });
 
   // Calculate ETA & Distance
+  // ... (unchanged part of calculate logic if needed, but we can reuse existing trackingInfo logic)
   const trackingInfo = useMemo(() => {
     if (!riderLocation?.current_location_lat || !riderLocation?.current_location_lng) {
       return { eta: fallbackEta, distance: null, isLive: false };
@@ -153,6 +155,39 @@ const LiveRiderTrackingMap = ({
       supabase.removeChannel(channel);
     };
   }, [riderId, queryClient]);
+
+  // Fetch Directions
+  useEffect(() => {
+    if (!window.google || !riderLocation?.current_location_lat || !riderLocation?.current_location_lng) return;
+
+    const origin = { lat: riderLocation.current_location_lat, lng: riderLocation.current_location_lng };
+    let destination = null;
+
+    if (status === 'preparing' && pickupLat && pickupLng) {
+      destination = { lat: pickupLat, lng: pickupLng };
+    } else if (deliveryLat && deliveryLng) {
+      destination = { lat: deliveryLat, lng: deliveryLng };
+    }
+
+    if (!destination) return;
+
+    const directionsService = new google.maps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          setDirectionsResponse(result);
+        } else {
+          console.error(`error fetching directions ${result}`);
+        }
+      }
+    );
+  }, [riderLocation, status, pickupLat, pickupLng, deliveryLat, deliveryLng]);
 
 
   // Fit Bounds
@@ -221,41 +256,67 @@ const LiveRiderTrackingMap = ({
             onUnmount={onUnmount}
             options={options}
           >
-            {/* Rider Marker */}
+            {/* Directions Services */}
+            {/* We use the native JS API in useEffect to avoid re-renders of the Service component */}
+
+            {/* Rider Marker - Premium 3D Icon */}
             {riderLocation?.current_location_lat && riderLocation?.current_location_lng && (
               <MarkerF
                 position={{ lat: riderLocation.current_location_lat, lng: riderLocation.current_location_lng }}
                 icon={{
-                  url: 'https://cdn-icons-png.flaticon.com/512/3448/3448636.png', // Or custom bike icon
-                  scaledSize: new google.maps.Size(40, 40),
+                  url: 'https://cdn-icons-png.flaticon.com/512/9425/9425836.png', // Premium 3D Delivery Bike
+                  scaledSize: new google.maps.Size(48, 48),
+                  anchor: new google.maps.Point(24, 24),
                 }}
+                zIndex={100}
                 animation={google.maps.Animation.DROP}
               />
             )}
 
-            {/* Delivery Marker */}
+            {/* Delivery Marker - Custom Pin */}
             {deliveryLat && deliveryLng && (
               <MarkerF
                 position={{ lat: deliveryLat, lng: deliveryLng }}
-                label={{ text: "📍", className: "text-lg" }}
+                icon={{
+                  url: 'https://cdn-icons-png.flaticon.com/512/927/927667.png', // Home Location Pin
+                  scaledSize: new google.maps.Size(40, 40),
+                }}
               />
             )}
 
-            {/* Pickup Marker */}
+            {/* Pickup Marker - Store Icon */}
             {pickupLat && pickupLng && (
               <MarkerF
                 position={{ lat: pickupLat, lng: pickupLng }}
-                label={{ text: "🏪", className: "text-lg" }}
+                icon={{
+                  url: 'https://cdn-icons-png.flaticon.com/512/2830/2830305.png', // Store/Shop Icon
+                  scaledSize: new google.maps.Size(36, 36),
+                }}
               />
             )}
 
-            {/* Route Line */}
-            {pathCoordinates.length > 0 && (
+            {/* Real Route Polyline using DirectionsRenderer if available */}
+            {directionsResponse && (
+              <DirectionsRenderer
+                options={{
+                  directions: directionsResponse,
+                  suppressMarkers: true, // We use custom markers
+                  polylineOptions: {
+                    strokeColor: "#10b981", // Emerald-500
+                    strokeOpacity: 0.8,
+                    strokeWeight: 6,
+                  }
+                }}
+              />
+            )}
+
+            {/* Fallback Straight Line if Directions API fails or loading */}
+            {!directionsResponse && pathCoordinates.length > 0 && (
               <PolylineF
                 path={pathCoordinates}
                 options={{
-                  strokeColor: "#3b82f6",
-                  strokeOpacity: 0.8,
+                  strokeColor: "#64748b", // Slate-500 (Backup color)
+                  strokeOpacity: 0.5,
                   strokeWeight: 4,
                   geodesic: true,
                   icons: [{

@@ -163,13 +163,16 @@ export function LiveRidersMap() {
                     lng: Number(rider.current_location_lng),
                   }}
                   icon={{
-                    // Use a custom icon URL or allow default google marker with color
-                    // For now using a colored dot or bike icon
+                    // Premium 3D Bike Icon for Admin Map too
                     url: rider.is_online
-                      ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
-                      : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                    scaledSize: new google.maps.Size(40, 40),
+                      ? 'https://cdn-icons-png.flaticon.com/512/9425/9425836.png'
+                      : 'https://cdn-icons-png.flaticon.com/512/9425/9425836.png', // Or a gray version if available, but let's stick to consistent bike
+                    scaledSize: new google.maps.Size(42, 42),
+                    anchor: new google.maps.Point(21, 21),
+                    // If offline, maybe make it grayscale via CSS filter? Can't easily do in marker icon object without separate image.
+                    // For now, same icon, maybe opacity?
                   }}
+                  opacity={rider.is_online ? 1 : 0.6}
                   onClick={() => setSelectedRider(rider)}
                 />
               )
