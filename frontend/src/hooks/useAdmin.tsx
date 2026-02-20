@@ -39,6 +39,30 @@ export const useIsAdmin = () => {
 // NOTE: Added cache busting to ensure fresh role data
 export const useUserRole = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime subscription for instant role updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('[useUserRole] Setting up realtime role listener for:', user.id);
+    const channel = supabase
+      .channel(`role-updates-${user.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `user_id=eq.${user.id}`
+      }, (payload) => {
+        console.log('[useUserRole] 🔔 Profile updated, refreshing role...', payload);
+        queryClient.invalidateQueries({ queryKey: ["user-role"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   return useQuery<RoleResolution | null>({
     queryKey: ["user-role", user?.id, 'v2'], // Versioned to bust cache
@@ -49,10 +73,8 @@ export const useUserRole = () => {
       }
 
       console.log("[useUserRole] Fetching full role resolution for:", user.id);
-      console.log("[useUserRole] User email:", user.email);
-      console.log("[useUserRole] User phone:", user.phone);
 
-      const result = await roleResolver(user.id, user.email || user.phone);
+      const result = await roleResolver(user.id, user.email, user.phone);
       console.log("[useUserRole] Resolution result:", result);
       return result;
     },
@@ -585,10 +607,16 @@ export const useCreateRider = () => {
       let userId = null;
       let createdRider = null;
 
-      // Normalize phone: Ensure it starts with correct format
+      // Normalize phone: Ensure it starts with correct format (92...)
       let normalizedPhone = (riderData.phone || '').replace(/\D/g, '');
-      // If local format (03...), convert to international? Or keep as is.
-      // Assuming Admin provides valid phone.
+
+      // Auto-fix local format (03... -> 923...)
+      if (normalizedPhone.startsWith('03')) {
+        normalizedPhone = '92' + normalizedPhone.substring(1);
+      } else if (normalizedPhone.startsWith('3') && normalizedPhone.length === 10) {
+        // Handle case where user enters 3001234567 without 0
+        normalizedPhone = '92' + normalizedPhone;
+      }
 
       // 1. If email/password provided, create Auth User via Edge Function
       if (riderData.email && riderData.password) {

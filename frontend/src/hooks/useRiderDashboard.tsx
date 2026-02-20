@@ -782,13 +782,13 @@ export const useRegisterAsRider = () => {
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Insert into rider_applications
+      // 1. Insert into rider_applications
       const { data, error } = await supabase
         .from('rider_applications')
         .insert({
           user_id: user.id,
           vehicle_type: riderData.vehicle_type,
-          license_number: riderData.license_number || riderData.cnic, // Using CNIC as license/ID if license number not separate
+          license_number: riderData.license_number || riderData.cnic,
           experience_years: riderData.experience_years || 0,
           notes: JSON.stringify({
             name: riderData.name,
@@ -808,11 +808,46 @@ export const useRegisterAsRider = () => {
         throw error;
       }
 
+      // 2. Insert into riders with pending status (to allow unified RPC to see it)
+      const { error: riderError } = await supabase
+        .from('riders')
+        .upsert({
+          user_id: user.id,
+          name: riderData.name,
+          phone: riderData.phone,
+          vehicle_type: riderData.vehicle_type,
+          cnic: riderData.cnic,
+          cnic_front: riderData.cnic_front,
+          cnic_back: riderData.cnic_back,
+          license_image: riderData.license_image,
+          verification_status: 'pending',
+          is_active: true, // Must be true to avoid 'blocked' status in RPC
+          rating: 0,
+          total_trips: 0
+        }, { onConflict: 'user_id' }); // If exists, update
+
+      if (riderError) {
+        console.error('Error creating pending rider profile:', riderError);
+        // Continue anyway, application is submitted
+      }
+
+      // 3. Update Profile Role to Rider (so RPC routes correctly to 'pending' screen)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ role: 'rider' })
+        .eq('user_id', user.id);
+
+      if (profileError) {
+        console.error('Error updating profile role:', profileError);
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rider-profile'] });
       queryClient.invalidateQueries({ queryKey: ['rider-application'] });
+      // Invalidate role query to trigger immediate re-routing
+      queryClient.invalidateQueries({ queryKey: ['user-role'] });
       toast.success("Application submitted successfully!");
     },
   });

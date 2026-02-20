@@ -10,25 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { GoogleMap, MarkerF } from '@react-google-maps/api';
 import { calculateDistance } from '@/components/rider/DeliveryMap';
 import { usePaymentSettings, calculatePayment } from '@/hooks/useRiderPayments';
-
-// Custom marker icons
-const pickupIcon = L.divIcon({
-  className: 'custom-marker',
-  html: `<div style="background: linear-gradient(135deg, #ff6a00 0%, #ff3d00 100%); width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(255,106,0,0.4);"><div style="transform: rotate(45deg); color: white; font-weight: bold; font-size: 14px;">P</div></div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
-const dropoffIcon = L.divIcon({
-  className: 'custom-marker',
-  html: `<div style="background: linear-gradient(135deg, #00b894 0%, #00a884 100%); width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,184,148,0.4);"><div style="transform: rotate(45deg); color: white; font-weight: bold; font-size: 14px;">D</div></div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
 
 interface Location {
   lat: number;
@@ -40,13 +24,21 @@ type Step = 'pickup' | 'dropoff' | 'details' | 'waiting' | 'assigned';
 
 const REQUEST_TIMEOUT = 60; // seconds
 
+const mapContainerStyle = {
+  width: "100%",
+  height: "100%",
+};
+
+const defaultCenter = {
+  lat: 30.1798,
+  lng: 66.9750, // Quetta
+};
+
 const AssignRider: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const pickupMarkerRef = useRef<L.Marker | null>(null);
-  const dropoffMarkerRef = useRef<L.Marker | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+
   const { user, loading: authLoading } = useAuth();
   const { data: riders, isLoading: loadingRiders } = useOnlineRiders();
   const { data: paymentSettings } = usePaymentSettings();
@@ -102,9 +94,6 @@ const AssignRider: React.FC = () => {
     };
   }, [pickupLocation, dropoffLocation, paymentSettings]);
 
-  // Quetta coordinates
-  const quettaCenter: L.LatLngTuple = [30.1798, 66.9750];
-
   // Countdown timer for waiting step
   useEffect(() => {
     if (step !== 'waiting' || !requestId) return;
@@ -143,9 +132,6 @@ const AssignRider: React.FC = () => {
 
           // Check if rider was assigned
           if (updated.rider_id && updated.status !== 'placed') {
-            console.log('Rider assigned:', updated.rider_id);
-
-            // Fetch rider details
             const { data: riderData } = await supabase
               .from('public_rider_info')
               .select('*')
@@ -199,34 +185,19 @@ const AssignRider: React.FC = () => {
     await handleBroadcastRequest();
   };
 
-  // Reverse geocode function - get full detailed address
+  // Reverse geocode function - get full detailed address using Google Maps Geocoding API
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
+    if (!window.google || !window.google.maps) return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+    const geocoder = new google.maps.Geocoder();
     try {
-      // Use Nominatim for more detailed addresses
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`
-      );
-      const data = await response.json();
-
-      if (data.display_name) {
-        // Get detailed address components
-        const address = data.address || {};
-        const parts = [];
-
-        // Build detailed address from specific to general
-        if (address.house_number) parts.push(address.house_number);
-        if (address.road) parts.push(address.road);
-        if (address.neighbourhood || address.suburb) parts.push(address.neighbourhood || address.suburb);
-        if (address.city || address.town || address.village) parts.push(address.city || address.town || address.village);
-        if (address.state) parts.push(address.state);
-
-        // Return constructed address or full display_name
-        return parts.length > 2 ? parts.join(', ') : data.display_name;
+      const response = await geocoder.geocode({ location: { lat, lng } });
+      if (response.results[0]) {
+        return response.results[0].formatted_address;
       }
-
       return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    } catch (error) {
-      console.error('Geocoding error:', error);
+    } catch (e) {
+      console.error("Geocoding failed", e);
       return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
   }, []);
@@ -246,16 +217,13 @@ const AssignRider: React.FC = () => {
 
         if (step === 'pickup') {
           setPickupLocation({ lat, lng, address });
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([lat, lng], 15);
-            updateMarker('pickup', lat, lng);
-          }
         } else if (step === 'dropoff') {
           setDropoffLocation({ lat, lng, address });
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([lat, lng], 15);
-            updateMarker('dropoff', lat, lng);
-          }
+        }
+
+        if (mapRef.current) {
+          mapRef.current.panTo({ lat, lng });
+          mapRef.current.setZoom(15);
         }
         setIsLocating(false);
       },
@@ -268,100 +236,26 @@ const AssignRider: React.FC = () => {
     );
   }, [step, reverseGeocode]);
 
-  // Update marker function
-  const updateMarker = useCallback((type: 'pickup' | 'dropoff', lat: number, lng: number) => {
-    if (!mapInstanceRef.current) return;
-
-    if (type === 'pickup') {
-      if (pickupMarkerRef.current) {
-        pickupMarkerRef.current.setLatLng([lat, lng]);
-      } else {
-        pickupMarkerRef.current = L.marker([lat, lng], { icon: pickupIcon })
-          .addTo(mapInstanceRef.current)
-          .bindPopup('<b>Pickup Location</b>');
-      }
-    } else {
-      if (dropoffMarkerRef.current) {
-        dropoffMarkerRef.current.setLatLng([lat, lng]);
-      } else {
-        dropoffMarkerRef.current = L.marker([lat, lng], { icon: dropoffIcon })
-          .addTo(mapInstanceRef.current)
-          .bindPopup('<b>Dropoff Location</b>');
-      }
-    }
+  const onLoad = useCallback(function callback(map: google.maps.Map) {
+    mapRef.current = map;
   }, []);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
-
-    const map = L.map(mapContainerRef.current, {
-      center: quettaCenter,
-      zoom: 13,
-      zoomControl: false,
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
-      maxZoom: 19,
-    }).addTo(map);
-
-    // Add zoom control to bottom right
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-    mapInstanceRef.current = map;
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-        pickupMarkerRef.current = null;
-        dropoffMarkerRef.current = null;
-      }
-    };
+  const onUnmount = useCallback(function callback(map: google.maps.Map) {
+    mapRef.current = null;
   }, []);
 
-  // Map click handler based on current step
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
+  const handleMapClick = async (e: google.maps.MapMouseEvent) => {
+    if (!e.latLng) return;
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    const address = await reverseGeocode(lat, lng);
 
-    const handleMapClick = async (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng;
-      const address = await reverseGeocode(lat, lng);
-
-      if (step === 'pickup') {
-        setPickupLocation({ lat, lng, address });
-        updateMarker('pickup', lat, lng);
-      } else if (step === 'dropoff') {
-        setDropoffLocation({ lat, lng, address });
-        updateMarker('dropoff', lat, lng);
-      }
-    };
-
-    mapInstanceRef.current.on('click', handleMapClick);
-
-    return () => {
-      mapInstanceRef.current?.off('click', handleMapClick);
-    };
-  }, [step, reverseGeocode, updateMarker]);
-
-  // Restore markers when returning to map steps
-  useEffect(() => {
-    if ((step === 'pickup' || step === 'dropoff') && mapInstanceRef.current) {
-      // Restore pickup marker if exists
-      if (pickupLocation && !pickupMarkerRef.current) {
-        updateMarker('pickup', pickupLocation.lat, pickupLocation.lng);
-      }
-      // Restore dropoff marker if exists
-      if (dropoffLocation && !dropoffMarkerRef.current) {
-        updateMarker('dropoff', dropoffLocation.lat, dropoffLocation.lng);
-      }
-      // Invalidate map size after step change
-      setTimeout(() => {
-        mapInstanceRef.current?.invalidateSize();
-      }, 100);
+    if (step === 'pickup') {
+      setPickupLocation({ lat, lng, address });
+    } else if (step === 'dropoff') {
+      setDropoffLocation({ lat, lng, address });
     }
-  }, [step, pickupLocation, dropoffLocation, updateMarker]);
+  };
 
   const handleNext = () => {
     if (step === 'pickup' && pickupLocation) {
@@ -463,7 +357,7 @@ const AssignRider: React.FC = () => {
         className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border"
       >
         <div className="flex items-center gap-3 px-4 py-3">
-          <Button variant="icon" size="icon-sm" onClick={handleBack} disabled={step === 'waiting' && countdown > 0}>
+          <Button variant="ghost" size="icon" onClick={handleBack} disabled={step === 'waiting' && countdown > 0}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
@@ -490,7 +384,7 @@ const AssignRider: React.FC = () => {
             {['pickup', 'dropoff', 'details', 'waiting'].map((s, i) => (
               <div
                 key={s}
-                className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= currentStepIndex ? 'gradient-primary' : 'bg-muted'
+                className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= currentStepIndex ? 'bg-primary' : 'bg-muted'
                   }`}
               />
             ))}
@@ -505,15 +399,55 @@ const AssignRider: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="relative flex-1 min-h-[50vh]"
+          className="relative flex-1 w-full min-h-[60vh] sm:min-h-[50vh]"
         >
-          <div ref={mapContainerRef} className="absolute inset-0" />
+          <div className="absolute inset-0">
+            <GoogleMap
+              mapContainerStyle={mapContainerStyle}
+              center={defaultCenter}
+              zoom={13}
+              onLoad={onLoad}
+              onUnmount={onUnmount}
+              onClick={handleMapClick}
+              options={{
+                disableDefaultUI: true,
+                zoomControl: true,
+              }}
+            >
+              {step === 'pickup' && pickupLocation && (
+                <MarkerF
+                  position={{ lat: pickupLocation.lat, lng: pickupLocation.lng }}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#ff3d00", // Orange for Pickup
+                    fillOpacity: 1,
+                    strokeColor: "white",
+                    strokeWeight: 2,
+                  }}
+                />
+              )}
+              {step === 'dropoff' && dropoffLocation && (
+                <MarkerF
+                  position={{ lat: dropoffLocation.lat, lng: dropoffLocation.lng }}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#00b894", // Green for Dropoff
+                    fillOpacity: 1,
+                    strokeColor: "white",
+                    strokeWeight: 2,
+                  }}
+                />
+              )}
+            </GoogleMap>
+          </div>
 
           {/* Locate Me Button */}
           <Button
-            variant="glass"
+            variant="outline"
             size="icon"
-            className="absolute top-4 right-4 z-[1000]"
+            className="absolute top-4 right-4 z-[10] bg-background/80 backdrop-blur-md border-border text-foreground shadow-sm hover:bg-background/90"
             onClick={getCurrentLocation}
             disabled={isLocating}
           >
@@ -525,20 +459,20 @@ const AssignRider: React.FC = () => {
           </Button>
 
           {/* Bottom Card */}
-          <div className="absolute bottom-4 left-4 right-4 z-[1000]">
-            <Card variant="glass" className="p-4">
+          <div className="absolute bottom-4 left-4 right-4 z-[10]">
+            <Card className="p-4 bg-background/95 backdrop-blur shadow-lg border-border">
               <div className="flex items-center gap-3 mb-3">
                 <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${step === 'pickup' ? 'gradient-primary' : 'gradient-success'
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${step === 'pickup' ? 'bg-orange-500/20' : 'bg-green-500/20'
                     }`}
                 >
-                  <MapPin className="w-5 h-5 text-primary-foreground" />
+                  <MapPin className={`w-5 h-5 ${step === 'pickup' ? 'text-orange-500' : 'text-green-500'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground">
                     {step === 'pickup' ? 'Pickup Location' : 'Dropoff Location'}
                   </p>
-                  <p className="font-semibold text-sm truncate">
+                  <p className="font-semibold text-sm truncate text-foreground">
                     {step === 'pickup'
                       ? pickupLocation?.address || 'Tap on map to select'
                       : dropoffLocation?.address || 'Tap on map to select'}
@@ -568,25 +502,25 @@ const AssignRider: React.FC = () => {
           className="flex-1 p-4 space-y-4"
         >
           {/* Location Summary */}
-          <Card variant="elevated" className="p-4">
+          <Card className="p-4 border-border shadow-sm">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5 text-primary-foreground" />
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-orange-500" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Pickup</p>
-                  <p className="font-medium text-sm truncate">{pickupLocation?.address}</p>
+                  <p className="font-medium text-sm truncate text-foreground">{pickupLocation?.address}</p>
                 </div>
               </div>
-              <div className="border-l-2 border-dashed border-muted ml-5 h-4" />
+              <div className="border-l-2 border-dashed border-border ml-5 h-4" />
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl gradient-success flex items-center justify-center shrink-0">
-                  <Navigation className="w-5 h-5 text-primary-foreground" />
+                <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+                  <Navigation className="w-5 h-5 text-green-500" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Dropoff</p>
-                  <p className="font-medium text-sm truncate">{dropoffLocation?.address}</p>
+                  <p className="font-medium text-sm truncate text-foreground">{dropoffLocation?.address}</p>
                 </div>
               </div>
             </div>
@@ -605,16 +539,16 @@ const AssignRider: React.FC = () => {
           </Card>
 
           {/* Item Description */}
-          <Card variant="elevated" className="p-4">
+          <Card className="p-4 border-border shadow-sm">
             <div className="flex items-center gap-3 mb-3">
               <Package className="w-5 h-5 text-primary" />
-              <span className="font-semibold">What are you sending?</span>
+              <span className="font-semibold text-foreground">What are you sending?</span>
             </div>
             <textarea
               value={itemDescription}
               onChange={(e) => setItemDescription(e.target.value)}
               placeholder="Describe your item (e.g., Documents, Small package, Food order...)"
-              className="w-full h-24 p-3 rounded-xl bg-muted border-0 resize-none text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full h-24 p-3 rounded-xl bg-muted border-transparent resize-none text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground"
               maxLength={500}
             />
             <p className="text-xs text-muted-foreground mt-2 text-right">
@@ -623,7 +557,7 @@ const AssignRider: React.FC = () => {
           </Card>
 
           {/* Online Riders Info */}
-          <Card variant="elevated" className="p-4">
+          <Card className="p-4 border-border shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${onlineRiderCount > 0 ? 'bg-green-500/20' : 'bg-orange-500/20'
@@ -641,12 +575,12 @@ const AssignRider: React.FC = () => {
                     </>
                   ) : onlineRiderCount > 0 ? (
                     <>
-                      <p className="font-medium text-green-600">{onlineRiderCount} Rider{onlineRiderCount > 1 ? 's' : ''} Online</p>
+                      <p className="font-medium text-green-600 dark:text-green-400">{onlineRiderCount} Rider{onlineRiderCount > 1 ? 's' : ''} Online</p>
                       <p className="text-xs text-muted-foreground">Request will be sent to all nearby riders</p>
                     </>
                   ) : (
                     <>
-                      <p className="font-medium text-orange-600">No Riders Available</p>
+                      <p className="font-medium text-orange-600 dark:text-orange-400">No Riders Available</p>
                       <p className="text-xs text-muted-foreground">All riders are currently offline or busy</p>
                     </>
                   )}
@@ -664,14 +598,14 @@ const AssignRider: React.FC = () => {
           </Card>
 
           <Button
-            className="w-full"
+            className="w-full h-12 text-lg"
             disabled={!itemDescription.trim() || isSubmitting || onlineRiderCount === 0 || loadingRiders}
             onClick={handleBroadcastRequest}
           >
             {isSubmitting ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
             ) : (
-              <Send className="w-4 h-4 mr-2" />
+              <Send className="w-5 h-5 mr-2" />
             )}
             {isSubmitting ? 'Sending...' : `Request Rider • Rs. ${deliveryCharge}`}
           </Button>
@@ -741,11 +675,11 @@ const AssignRider: React.FC = () => {
                   ))}
                 </div>
 
-                <Card variant="elevated" className="mt-8 p-4 max-w-sm mx-auto">
+                <Card className="mt-8 p-4 max-w-sm mx-auto bg-card border-border">
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-muted-foreground" />
                     <div className="text-left">
-                      <p className="text-sm font-medium">Waiting for acceptance</p>
+                      <p className="text-sm font-medium text-foreground">Waiting for acceptance</p>
                       <p className="text-xs text-muted-foreground">First rider to accept gets the job</p>
                     </div>
                   </div>
@@ -830,7 +764,7 @@ const AssignRider: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card variant="elevated" className="p-4 w-full max-w-sm">
+            <Card className="p-4 w-full max-w-sm border-border">
               <div className="flex items-center gap-4">
                 <img
                   src={assignedRider.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face'}

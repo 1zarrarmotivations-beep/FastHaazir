@@ -56,6 +56,9 @@ const ExploreBanners: React.FC<Props> = ({ banners }) => {
                                 src={banner.image_url}
                                 alt={banner.title}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    e.currentTarget.src = `https://placehold.co/800x400/10b981/white?text=${encodeURIComponent(banner.title)}`;
+                                }}
                             />
                         )}
 

@@ -4,52 +4,82 @@ import { useEffect } from 'react';
 
 export interface PromoBanner {
   id: string;
-  heading_en: string;
-  heading_ur: string;
-  description_en: string | null;
-  description_ur: string | null;
-  subtitle_en: string | null;
-  subtitle_ur: string | null;
-  button_text_en: string | null;
-  button_text_ur: string | null;
-  icon: string | null;
-  background_type: 'gradient' | 'image';
-  background_value: string;
+  title: string | null;
+  subtitle: string | null;
+  image_url: string | null;
+  location: 'home' | 'category';
+  category_id: string | null;
+  style_config: {
+    gradient?: string;
+    overlayOpacity?: number;
+    textColor?: string;
+    icon?: string;
+  };
+  action_type: 'link' | 'store' | 'product';
+  action_value: string | null;
   is_active: boolean;
-  click_action: 'none' | 'restaurants' | 'categories' | 'external' | 'business';
-  external_url: string | null;
-  business_id: string | null;
   display_order: number;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
-  updated_at: string;
+
+  // Date fields (handle both naming conventions)
+  starts_at?: string | null;
+  ends_at?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+
+  // Additional fields for BannersManager
+  heading_en?: string;
+  heading_ur?: string;
+  description_en?: string;
+  description_ur?: string;
+  subtitle_en?: string;
+  subtitle_ur?: string;
+  button_text_en?: string;
+  button_text_ur?: string;
+  icon?: string;
+  background_type?: string;
+  background_value?: string;
+  click_action?: string;
+  external_url?: string;
+  business_id?: string;
 }
 
-// Fetch multiple active banners within schedule for carousel
-export function useActivePromoBanners() {
-  const query = useQuery({
-    queryKey: ['promo-banners-active-carousel'],
+// Fetch active banners for a specific location
+export function useActivePromoBanners(location: 'home' | 'category' = 'home', categoryId?: string) {
+  return useQuery({
+    queryKey: ['promo-banners-active', location, categoryId],
     queryFn: async () => {
       const now = new Date().toISOString();
-      
-      const { data, error } = await supabase
+
+      let query = supabase
         .from('promo_banners')
         .select('*')
         .eq('is_active', true)
-        .or(`start_date.is.null,start_date.lte.${now}`)
-        .or(`end_date.is.null,end_date.gte.${now}`)
+        .eq('location', location)
+        .or(`starts_at.is.null,starts_at.lte.${now},start_date.is.null,start_date.lte.${now}`) // Check both date fields
+        .or(`ends_at.is.null,ends_at.gte.${now},end_date.is.null,end_date.gte.${now}`) // Check both date fields
         .order('display_order', { ascending: true });
+
+      if (location === 'category' && categoryId) {
+        query = query.or(`category_id.eq.${categoryId},category_id.is.null`);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('[useActivePromoBanners] Error:', error);
         throw error;
       }
 
-      // Filter banners that are within their schedule
-      const filteredBanners = (data || []).filter((banner: PromoBanner) => {
-        const startValid = !banner.start_date || new Date(banner.start_date) <= new Date();
-        const endValid = !banner.end_date || new Date(banner.end_date) >= new Date();
+      // Client-side filter for dates just to be safe
+      const filteredBanners = (data || []).map(b => ({
+        ...b,
+        style_config: typeof b.style_config === 'string' ? JSON.parse(b.style_config) : b.style_config
+      })).filter((banner: any) => {
+        const start = banner.starts_at || banner.start_date;
+        const end = banner.ends_at || banner.end_date;
+
+        const startValid = !start || new Date(start) <= new Date();
+        const endValid = !end || new Date(end) >= new Date();
         return startValid && endValid;
       });
 
@@ -58,90 +88,40 @@ export function useActivePromoBanners() {
     staleTime: 1000 * 60 * 2, // 2 minutes cache
     refetchOnWindowFocus: true,
   });
-
-  // Subscribe to realtime updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('promo-banners-carousel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'promo_banners',
-        },
-        () => {
-          query.refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [query]);
-
-  return query;
 }
 
-// Admin hook to fetch ALL banners with business info
+// Admin hook to fetch ALL banners
 export function useAllPromoBannersAdmin() {
-  const query = useQuery({
+  return useQuery({
     queryKey: ['promo-banners-all-admin'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('promo_banners')
-        .select(`
-          *,
-          business:businesses(id, name, image)
-        `)
+        .select('*')
         .order('display_order', { ascending: true });
 
       if (error) throw error;
-      return data as (PromoBanner & { business?: { id: string; name: string; image: string | null } })[];
-    },
-    staleTime: 1000 * 30, // 30 seconds for admin
+
+      return (data || []).map(b => ({
+        ...b,
+        style_config: typeof b.style_config === 'string' ? JSON.parse(b.style_config) : b.style_config
+      })) as PromoBanner[];
+    }
   });
-
-  // Subscribe to realtime updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('promo-banners-admin-all')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'promo_banners',
-        },
-        () => {
-          query.refetch();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [query]);
-
-  return query;
 }
 
-// Fetch businesses for linking
+// Hook to fetch businesses for banner linkage
 export function useBusinessesForBanner() {
   return useQuery({
-    queryKey: ['businesses-for-banner'],
+    queryKey: ['admin-businesses-simple'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('public_businesses')
-        .select('id, name, image, type')
-        .eq('is_active', true)
+        .from('businesses')
+        .select('id, name')
         .order('name');
 
       if (error) throw error;
       return data;
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    }
   });
 }

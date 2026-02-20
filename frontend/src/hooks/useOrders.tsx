@@ -318,8 +318,9 @@ export const useCreateOrder = () => {
           delivery_fee: orderData.delivery_fee,
           total: orderData.total,
           delivery_address: orderData.delivery_address,
-          delivery_lat: orderData.delivery_lat || null,
-          delivery_lng: orderData.delivery_lng || null,
+          delivery_lat: orderData.delivery_lat ?? null, // Ensure exact coord
+          delivery_lng: orderData.delivery_lng ?? null,
+
           pickup_address: (business as any)?.location_address || business?.name || orderData.business_name,
           pickup_lat: (business as any)?.location_lat || null,
           pickup_lng: (business as any)?.location_lng || null,

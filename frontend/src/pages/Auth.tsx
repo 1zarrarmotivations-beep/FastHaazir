@@ -106,6 +106,44 @@ const syncWithSupabaseByPhone = async (
       return { success: false, error: "Session not ready. Please check if email confirmation is required in Supabase." };
     }
 
+    // Auto-verify phone in customer profile since they logged in via phone
+    try {
+      console.log("[Auth] Auto-verifying phone for customer profile...");
+      const { error: profileError } = await supabase
+        .from('customer_profiles')
+        .upsert({
+          user_id: data.session.user.id,
+          phone: digitsPhone,
+          phone_verified: true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
+      if (profileError) {
+        console.warn("[Auth] Failed to update profile phone:", profileError);
+        // Don't block login, but log warning
+      } else {
+        console.log("[Auth] Phone verified in profile successfully");
+      }
+    } catch (err) {
+      console.warn("[Auth] Profile update error:", err);
+    }
+
+    // Force checking for rider profile linkage (Self-Correction)
+    try {
+      const { data: claimData, error: claimError } = await (supabase.rpc as any)('claim_rider_profile');
+      if (claimError) {
+        console.warn("[Auth] Claim profile check failed:", claimError);
+      } else if (claimData && (claimData as any).success) {
+        console.log("[Auth] Successfully self-claimed rider profile:", claimData);
+        // Invalidate cache immediately to ensure next role check sees 'rider'
+        clearRoleCache(queryClient);
+      } else {
+        console.log("[Auth] No rider profile to claim.");
+      }
+    } catch (err) {
+      console.warn("[Auth] Claim RPC exception:", err);
+    }
+
     return await checkRoleByPhone(digitsPhone, navigate, queryClient, data.session, firebaseSignOut);
   } catch (err: any) {
     console.error("[Auth] Sync error:", err);
@@ -161,6 +199,19 @@ const syncWithSupabaseByEmail = async (
 
     if (!data?.session) {
       return { success: false, error: "Session not ready. Please check if email confirmation is required in Supabase." };
+    }
+
+    // Force checking for rider linkage (Self-Correction)
+    try {
+      const { data: claimData, error: claimError } = await (supabase.rpc as any)('claim_rider_profile');
+      if (claimError) {
+        console.warn("[Auth] Email-Claim profile check failed:", claimError);
+      } else if (claimData && (claimData as any).success) {
+        console.log("[Auth] Successfully self-claimed rider profile (Email):", claimData);
+        clearRoleCache(queryClient);
+      }
+    } catch (err) {
+      console.warn("[Auth] Claim RPC exception:", err);
     }
 
     return await checkRoleByEmail(email, navigate, queryClient, data.session, firebaseSignOut);

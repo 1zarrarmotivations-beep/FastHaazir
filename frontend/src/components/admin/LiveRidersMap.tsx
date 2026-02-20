@@ -1,126 +1,70 @@
-import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { GoogleMap, MarkerF, InfoWindowF } from "@react-google-maps/api";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAdminRiders } from "@/hooks/useAdmin";
-import { supabase } from "@/integrations/supabase/client";
-import { Bike, MapPin, RefreshCw } from "lucide-react";
+import { Bike, MapPin, RefreshCw, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// Custom rider icon
-const createRiderIcon = (isOnline: boolean) => {
-  return L.divIcon({
-    className: 'custom-rider-marker',
-    html: `
-      <div style="
-        width: 40px;
-        height: 40px;
-        background: ${isOnline ? 'linear-gradient(135deg, #00b894, #00a884)' : '#9ca3af'};
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        border: 3px solid white;
-      ">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18.5" cy="17.5" r="3.5"/>
-          <circle cx="5.5" cy="17.5" r="3.5"/>
-          <circle cx="15" cy="5" r="1"/>
-          <path d="M12 17.5V14l-3-3 4-3 2 3h2"/>
-        </svg>
-      </div>
-    `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-  });
+const mapContainerStyle = {
+  width: "100%",
+  height: "500px",
+  borderRadius: "0.5rem",
+};
+
+const defaultCenter = {
+  lat: 30.1798,
+  lng: 66.9750, // Quetta
+};
+
+const options = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
 };
 
 export function LiveRidersMap() {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const mapRef = useRef<google.maps.Map | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [selectedRider, setSelectedRider] = useState<any | null>(null);
 
   const { data: riders, isLoading, refetch } = useAdminRiders();
 
-  // Update timestamp when data changes (handled by useAdminRiders invalidation)
   useEffect(() => {
     if (riders) {
       setLastUpdate(new Date());
     }
   }, [riders]);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    mapRef.current = L.map(mapContainerRef.current, {
-      center: [30.1798, 66.9750], // Quetta coordinates
-      zoom: 12,
-      zoomControl: false,
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(mapRef.current);
-
-    L.control.zoom({ position: "topright" }).addTo(mapRef.current);
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
+  const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
   }, []);
 
-  // Update markers when riders change
+  const onUnmount = useCallback(() => {
+    mapRef.current = null;
+  }, []);
+
+  // Fit bounds to show all riders
   useEffect(() => {
-    if (!mapRef.current || !riders) return;
+    if (mapRef.current && riders && riders.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      let hasValidLoc = false;
 
-    const currentRiderIds = new Set(riders.map(r => r.id));
-
-    // Remove markers for riders no longer in the list
-    markersRef.current.forEach((marker, riderId) => {
-      if (!currentRiderIds.has(riderId)) {
-        marker.remove();
-        markersRef.current.delete(riderId);
-      }
-    });
-
-    // Add/update markers for current riders
-    riders.forEach((rider) => {
-      if (rider.current_location_lat && rider.current_location_lng) {
-        const lat = Number(rider.current_location_lat);
-        const lng = Number(rider.current_location_lng);
-
-        if (markersRef.current.has(rider.id)) {
-          // Update existing marker
-          const marker = markersRef.current.get(rider.id)!;
-          marker.setLatLng([lat, lng]);
-          marker.setIcon(createRiderIcon(rider.is_online || false));
-        } else {
-          // Create new marker
-          const marker = L.marker([lat, lng], {
-            icon: createRiderIcon(rider.is_online || false),
-          }).addTo(mapRef.current!);
-
-          marker.bindPopup(`
-            <div style="text-align: center; min-width: 120px;">
-              <strong>${rider.name}</strong><br/>
-              <span style="color: #666;">${rider.vehicle_type}</span><br/>
-              <span style="color: ${rider.is_online ? '#00b894' : '#9ca3af'};">
-                ${rider.is_online ? '🟢 Online' : '⚫ Offline'}
-              </span>
-            </div>
-          `);
-
-          markersRef.current.set(rider.id, marker);
+      riders.forEach(rider => {
+        if (rider.current_location_lat && rider.current_location_lng) {
+          bounds.extend({
+            lat: Number(rider.current_location_lat),
+            lng: Number(rider.current_location_lng)
+          });
+          hasValidLoc = true;
         }
+      });
+
+      if (hasValidLoc) {
+        mapRef.current.fitBounds(bounds, 50);
       }
-    });
+    }
   }, [riders]);
 
   const onlineRiders = riders?.filter(r => r.is_online) || [];
@@ -132,8 +76,8 @@ export function LiveRidersMap() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{onlineRiders.length}</p>
@@ -179,55 +123,131 @@ export function LiveRidersMap() {
       </div>
 
       {/* Map */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MapPin className="w-5 h-5 text-primary" />
-            Live Rider Locations
-          </CardTitle>
+      <Card className="overflow-hidden border-border bg-card">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-3">
+          <div className="flex flex-col gap-1">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MapPin className="w-5 h-5 text-primary" />
+              Live Rider Locations
+            </CardTitle>
+            <CardDescription>
+              Real-time view of all registered riders
+            </CardDescription>
+          </div>
+
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground hidden sm:inline-block">
               Updated: {lastUpdate.toLocaleTimeString()}
             </span>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div
-            ref={mapContainerRef}
-            className="w-full h-[500px]"
-            style={{ minHeight: "500px" }}
-          />
+        <CardContent className="p-0 relative">
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={defaultCenter}
+            zoom={12}
+            onLoad={onLoad}
+            onUnmount={onUnmount}
+            options={options}
+          >
+            {riders?.map((rider) => (
+              rider.current_location_lat && rider.current_location_lng && (
+                <MarkerF
+                  key={rider.id}
+                  position={{
+                    lat: Number(rider.current_location_lat),
+                    lng: Number(rider.current_location_lng),
+                  }}
+                  icon={{
+                    // Use a custom icon URL or allow default google marker with color
+                    // For now using a colored dot or bike icon
+                    url: rider.is_online
+                      ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                      : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    scaledSize: new google.maps.Size(40, 40),
+                  }}
+                  onClick={() => setSelectedRider(rider)}
+                />
+              )
+            ))}
+
+            {selectedRider && (
+              <InfoWindowF
+                position={{
+                  lat: Number(selectedRider.current_location_lat),
+                  lng: Number(selectedRider.current_location_lng),
+                }}
+                onCloseClick={() => setSelectedRider(null)}
+              >
+                <div className="p-2 min-w-[150px]">
+                  <h3 className="font-bold text-sm mb-1">{selectedRider.name}</h3>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                    <Bike className="w-3 h-3" />
+                    {selectedRider.vehicle_type || 'Unknown Vehicle'}
+                  </div>
+                  <Badge variant={selectedRider.is_online ? 'default' : 'secondary'} className="w-full justify-center">
+                    {selectedRider.is_online ? 'Online' : 'Offline'}
+                  </Badge>
+                  <p className="text-[10px] text-muted-foreground mt-2 border-t pt-1">
+                    Lat: {Number(selectedRider.current_location_lat).toFixed(4)}<br />
+                    Lng: {Number(selectedRider.current_location_lng).toFixed(4)}
+                  </p>
+                </div>
+              </InfoWindowF>
+            )}
+          </GoogleMap>
         </CardContent>
       </Card>
 
       {/* Online Riders List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Online Riders</CardTitle>
+          <CardTitle className="text-lg">Online Riders List</CardTitle>
         </CardHeader>
         <CardContent>
           {onlineRiders.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No riders online</p>
+            <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Bike className="w-6 h-6 opacity-50" />
+              </div>
+              <p>No riders are currently online</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {onlineRiders.map((rider) => (
                 <div
                   key={rider.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card"
+                  className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (rider.current_location_lat && rider.current_location_lng && mapRef.current) {
+                      mapRef.current.panTo({
+                        lat: Number(rider.current_location_lat),
+                        lng: Number(rider.current_location_lng)
+                      });
+                      mapRef.current.setZoom(15);
+                      setSelectedRider(rider);
+                    }
+                  }}
                 >
-                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-                    <Bike className="w-5 h-5 text-accent" />
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                    <Bike className="w-5 h-5 text-green-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">{rider.name}</p>
-                    <p className="text-xs text-muted-foreground">{rider.vehicle_type}</p>
+                    <p className="text-xs text-muted-foreground truncate">{rider.vehicle_type}</p>
                   </div>
-                  <Badge className="bg-accent/20 text-accent">
-                    Online
-                  </Badge>
+                  <div className="flex flex-col items-end gap-1">
+                    <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-500/20 text-[10px]">
+                      Online
+                    </Badge>
+                    {rider.current_location_lat && (
+                      <Navigation className="w-3 h-3 text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

@@ -56,16 +56,19 @@ export const useExploreData = () => {
                 .order('display_order', { ascending: true });
             if (error) throw error;
 
-            return data.map(b => ({
-                id: b.id,
-                title: b.heading_en,
-                subtitle: b.subtitle_en,
-                image_url: b.background_type === 'image' ? b.background_value : '',
-                gradient: b.background_type === 'gradient' ? b.background_value : '',
-                icon: b.icon,
-                redirect_type: b.click_action,
-                redirect_id: b.business_id || b.external_url
-            })) as any[];
+            return data.map(b => {
+                const style = typeof b.style_config === 'string' ? JSON.parse(b.style_config) : (b.style_config || {});
+                return {
+                    id: b.id,
+                    title: b.title,
+                    subtitle: b.subtitle,
+                    image_url: b.image_url,
+                    gradient: style.gradient || '',
+                    icon: style.icon,
+                    redirect_type: b.action_type || 'link',
+                    redirect_id: b.action_value
+                };
+            }) as any[];
         }
     });
 

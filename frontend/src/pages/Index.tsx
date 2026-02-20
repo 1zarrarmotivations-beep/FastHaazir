@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import CategoryGrid from '@/components/customer/CategoryGrid';
 import BannerCarousel from '@/components/customer/BannerCarousel';
@@ -31,6 +33,27 @@ const Index: React.FC = () => {
   const { data: restaurants, isLoading: loadingRestaurants } = useBusinesses('restaurant');
   const { data: bakeries, isLoading: loadingBakeries } = useBusinesses('bakery');
   const { data: grocery, isLoading: loadingGrocery } = useBusinesses('grocery');
+
+  // Self-correction for riders who might be stuck as customers
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const performDoubleCheck = async () => {
+      if (user && !roleLoading) {
+        // Only run this check if currently seen as customer, to avoid redundant calls for known riders
+        const currentRole = (userRole as any)?.role;
+        if (currentRole === 'customer') {
+          console.log("[Index] Performing background rider check...");
+          const { data } = await (supabase.rpc as any)('claim_rider_profile');
+          if (data && (data as any).success) {
+            console.log("[Index] Rider profile claimed! Invalidating role...");
+            queryClient.invalidateQueries({ queryKey: ["user-role"] });
+            window.location.reload(); // Force reload to ensure clean state
+          }
+        }
+      }
+    };
+    performDoubleCheck();
+  }, [user, userRole, roleLoading, queryClient]);
 
   // Redirect non-customer users to their respective dashboards
   useEffect(() => {

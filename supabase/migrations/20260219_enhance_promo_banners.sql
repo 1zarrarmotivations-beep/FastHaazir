@@ -1,0 +1,6 @@
+ALTER TABLE public.promo_banners
+ADD COLUMN IF NOT EXISTS location TEXT DEFAULT 'home',
+ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS style_config JSONB DEFAULT '{}'::jsonb,
+ADD COLUMN IF NOT EXISTS action_type TEXT DEFAULT 'link',
+ADD COLUMN IF NOT EXISTS action_value TEXT;

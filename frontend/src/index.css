@@ -230,6 +230,7 @@
     max-width: 414px;
     margin: 0 auto;
     min-height: 100vh;
+    min-height: 100dvh;
     position: relative;
   }
 
@@ -597,27 +598,7 @@
   }
 }
 
-/* Leaflet Map Customization */
-.leaflet-container {
-  font-family: 'Poppins', sans-serif !important;
-  border-radius: 1rem;
-}
 
-.leaflet-popup-content-wrapper {
-  border-radius: 0.75rem !important;
-  box-shadow: var(--shadow-card) !important;
-}
-
-.leaflet-control-zoom {
-  border: none !important;
-  box-shadow: var(--shadow-soft) !important;
-}
-
-.leaflet-control-zoom a {
-  border-radius: 0.5rem !important;
-  background: white !important;
-  color: hsl(var(--foreground)) !important;
-}
 
 /* ============================================
    BILINGUAL LANGUAGE SYSTEM - PRODUCTION READY
@@ -790,7 +771,7 @@ html.lang-ur td p {
 }
 
 /* ===== MAPS - Always LTR ===== */
-html.lang-ur .leaflet-container,
+html.lang-ur .gm-style,
 html.lang-ur [class*="map"],
 html.lang-ur [class*="Map"] {
   direction: ltr !important;

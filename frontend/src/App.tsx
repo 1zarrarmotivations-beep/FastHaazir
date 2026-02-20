@@ -14,6 +14,8 @@ import { AndroidNotificationSetup } from "@/components/push/AndroidNotificationS
 import { initializeMobileApp } from "@/lib/mobile";
 import { initializeAnalytics, trackPageView } from "@/lib/analytics";
 import { useLocation } from "react-router-dom";
+import { GoogleMapProvider } from "@/components/maps/GoogleMapProvider";
+
 import Index from "./pages/Index";
 
 // Page view tracker component
@@ -144,71 +146,70 @@ const App = () => {
                 <PushNotificationProvider>
                   {/* Android 13+ Notification Permission Dialog */}
                   <AndroidNotificationSetup />
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/complete-profile" element={<CompleteProfile />} />
-                      <Route path="/assign-rider" element={<AssignRider />} />
-                      <Route path="/restaurants" element={<Restaurants />} />
-                      <Route path="/grocery" element={<Grocery />} />
-                      <Route path="/bakery" element={<Bakery />} />
-                      <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-                      <Route path="/cart" element={<Cart />} />
-                      <Route path="/orders" element={<Orders />} />
-                      <Route path="/history" element={<History />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/onboarding" element={<Onboarding />} />
-                      <Route path="/categories" element={<Categories />} />
-                      <Route path="/support" element={<Support />} />
-                      <Route path="/rider/register" element={<RiderRegistration />} />
+                  <GoogleMapProvider>
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/complete-profile" element={<CompleteProfile />} />
+                        <Route path="/assign-rider" element={<AssignRider />} />
+                        <Route path="/restaurants" element={<Restaurants />} />
+                        <Route path="/grocery" element={<Grocery />} />
+                        <Route path="/bakery" element={<Bakery />} />
+                        <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/orders" element={<Orders />} />
+                        <Route path="/history" element={<History />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/onboarding" element={<Onboarding />} />
+                        <Route path="/categories" element={<Categories />} />
+                        <Route path="/support" element={<Support />} />
+                        <Route path="/rider/register" element={<RiderRegistration />} />
 
-                      {/* Protected Dashboards */}
-                      <Route
-                        path="/rider"
-                        element={
-                          <ProtectedRoute allowedRoles={["rider"]}>
-                            <RiderDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/rider-dashboard"
-                        element={
-                          <ProtectedRoute allowedRoles={["rider"]}>
-                            <RiderDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
+                        {/* Protected Dashboards */}
+                        <Route
+                          path="/rider"
+                          element={
+                            <ProtectedRoute allowedRoles={["rider"]}>
+                              <RiderDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/rider-dashboard"
+                          element={
+                            <ProtectedRoute allowedRoles={["rider"]}>
+                              <RiderDashboard />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Rider Support - Protected for Riders Only */}
-                      <Route
-                        path="/rider-support"
-                        element={
-                          <ProtectedRoute allowedRoles={["rider"]}>
-                            <RiderSupport />
-                          </ProtectedRoute>
-                        }
-                      />
+                        {/* Rider Support - Protected for Riders Only */}
+                        <Route
+                          path="/rider-support"
+                          element={
+                            <ProtectedRoute allowedRoles={["rider"]}>
+                              <RiderSupport />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      <Route
-                        path="/admin"
-                        element={
-                          <ProtectedRoute allowedRoles={["admin"]}>
-                            <Admin />
-                          </ProtectedRoute>
-                        }
-                      />
+                        <Route
+                          path="/admin"
+                          element={
+                            <ProtectedRoute allowedRoles={["admin"]}>
+                              <Admin />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Removed: Business routes (business role removed)
-                        Admin now controls all businesses from /admin panel */}
+                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                        <Route path="/terms-of-service" element={<TermsOfService />} />
 
-                      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                      <Route path="/terms-of-service" element={<TermsOfService />} />
-
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Suspense>
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </GoogleMapProvider>
                 </PushNotificationProvider>
               </BrowserRouter>
             </RealtimeProvider>

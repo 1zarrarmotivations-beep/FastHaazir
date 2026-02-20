@@ -63,4 +63,11 @@
     <!-- Wake lock for background location updates -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Google Maps API Key -->
+    <application>
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyA_GWinEAAgIDP4QsaMInEyriu1hOAKWAc" />
+    </application>
 </manifest>

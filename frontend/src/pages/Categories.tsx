@@ -37,7 +37,22 @@ const ExploreSkeleton = () => (
 
 const Categories: React.FC = () => {
   const { t } = useTranslation();
+  const [activeFilter, setActiveFilter] = React.useState('trending');
   const { banners, categories, trending, offers, isLoading, refetch } = useExploreData();
+
+  const filteredTrending = React.useMemo(() => {
+    if (!trending) return [];
+    switch (activeFilter) {
+      case 'fast':
+        return trending.filter(s => (s.delivery_time_mins || 30) <= 30);
+      case 'rated':
+        return trending.filter(s => parseFloat(s.rating || '0') >= 4.5);
+      case 'new':
+        return [...trending].reverse(); // Mock new by reversing
+      default:
+        return trending;
+    }
+  }, [trending, activeFilter]);
 
   if (isLoading && categories.length === 0) {
     return (
@@ -50,23 +65,18 @@ const Categories: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Scrollable Container with pull-to-refresh hint (UI only for now) */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="relative"
       >
         <ExploreHero />
-
         <ExploreBanners banners={banners} />
-
-        <ExploreChips />
-
+        <ExploreChips active={activeFilter} onChange={setActiveFilter} />
         <ExploreCategories categories={categories} />
-
-        <ExploreTrending trending={trending} />
-
+        <ExploreTrending trending={filteredTrending} />
         <ExploreOffers offers={offers} />
+
 
         {/* Personalized Recommendations Placeholder */}
         <div className="px-6 mb-10">

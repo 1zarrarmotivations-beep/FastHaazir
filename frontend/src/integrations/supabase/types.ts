@@ -1968,68 +1968,98 @@ export type Database = {
       }
       promo_banners: {
         Row: {
-          background_type: string
-          background_value: string
+          id: string
+          title: string
+          subtitle: string | null
+          image_url: string
+          location: 'home' | 'category'
+          category_id: string | null
+          style_config: Json | null
+          action_type: 'link' | 'store' | 'product'
+          action_value: string | null
+          is_active: boolean
+          display_order: number
+          start_date: string | null
+          end_date: string | null
+
+          // Legacy Compatibility
+          background_type: string | null
+          background_value: string | null
           business_id: string | null
           button_text_en: string | null
           button_text_ur: string | null
-          click_action: string
+          click_action: string | null
           created_at: string
           description_en: string | null
           description_ur: string | null
-          display_order: number
-          end_date: string | null
           external_url: string | null
-          heading_en: string
-          heading_ur: string
+          heading_en: string | null
+          heading_ur: string | null
           icon: string | null
-          id: string
-          is_active: boolean
-          start_date: string | null
           subtitle_en: string | null
           subtitle_ur: string | null
         }
         Insert: {
-          background_type?: string
-          background_value?: string
+          id?: string
+          title?: string
+          subtitle?: string | null
+          image_url?: string
+          location?: 'home' | 'category'
+          category_id?: string | null
+          style_config?: Json | null
+          action_type?: 'link' | 'store' | 'product'
+          action_value?: string | null
+          is_active?: boolean
+          display_order?: number
+          start_date?: string | null
+          end_date?: string | null
+
+          // Legacy Compatibility
+          background_type?: string | null
+          background_value?: string | null
           business_id?: string | null
           button_text_en?: string | null
           button_text_ur?: string | null
-          click_action?: string
+          click_action?: string | null
           created_at?: string
           description_en?: string | null
           description_ur?: string | null
-          display_order?: number
-          end_date?: string | null
           external_url?: string | null
-          heading_en?: string
-          heading_ur?: string
+          heading_en?: string | null
+          heading_ur?: string | null
           icon?: string | null
-          id?: string
-          is_active?: boolean
-          start_date?: string | null
           subtitle_en?: string | null
           subtitle_ur?: string | null
         }
         Update: {
-          background_type?: string
-          background_value?: string
+          id?: string
+          title?: string
+          subtitle?: string | null
+          image_url?: string
+          location?: 'home' | 'category'
+          category_id?: string | null
+          style_config?: Json | null
+          action_type?: 'link' | 'store' | 'product'
+          action_value?: string | null
+          is_active?: boolean
+          display_order?: number
+          start_date?: string | null
+          end_date?: string | null
+
+          // Legacy Compatibility
+          background_type?: string | null
+          background_value?: string | null
           business_id?: string | null
           button_text_en?: string | null
           button_text_ur?: string | null
-          click_action?: string
+          click_action?: string | null
           created_at?: string
           description_en?: string | null
           description_ur?: string | null
-          display_order?: number
-          end_date?: string | null
           external_url?: string | null
-          heading_en?: string
-          heading_ur?: string
+          heading_en?: string | null
+          heading_ur?: string | null
           icon?: string | null
-          id?: string
-          is_active?: boolean
-          start_date?: string | null
           subtitle_en?: string | null
           subtitle_ur?: string | null
         }

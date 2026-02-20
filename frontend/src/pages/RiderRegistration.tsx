@@ -23,12 +23,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { useRegisterAsRider, useRiderProfile } from '@/hooks/useRiderDashboard';
+import { useRegisterAsRider, useRiderProfile, useRiderApplication } from '@/hooks/useRiderDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Camera as CapCamera, CameraResultType, CameraSource } from '@capacitor/camera';
 
-type Step = 'personal' | 'vehicle' | 'documents' | 'pending';
+type Step = 'personal' | 'vehicle' | 'documents' | 'pending' | 'rejected';
 
 const RiderRegistration = () => {
     const navigate = useNavigate();
@@ -52,16 +52,38 @@ const RiderRegistration = () => {
         license_image: '',
     });
 
-    // PHASE: Auto-detect pending status
+    const { data: riderApplication, isLoading: appLoading } = useRiderApplication();
+
+    // PHASE: Auto-detect pending/rejected status from Profile OR Application
     React.useEffect(() => {
+        // 1. Priority: Check Profile (if fully approved)
         if (riderProfile) {
+            if (riderProfile.verification_status === 'verified') {
+                navigate('/rider', { replace: true });
+                return;
+            }
             if (riderProfile.verification_status === 'pending') {
                 setStep('pending');
-            } else if (riderProfile.verification_status === 'verified') {
+                return;
+            }
+            if (riderProfile.verification_status === 'rejected') {
+                setStep('rejected');
+                return;
+            }
+        }
+
+        // 2. Secondary: Check Application (if profile doesn't exist yet)
+        if (riderApplication) {
+            if (riderApplication.status === 'pending') {
+                setStep('pending');
+            } else if (riderApplication.status === 'rejected') {
+                setStep('rejected');
+            } else if (riderApplication.status === 'approved') {
+                // Should have been caught by profile check, but safe fallback
                 navigate('/rider', { replace: true });
             }
         }
-    }, [riderProfile, navigate]);
+    }, [riderProfile, riderApplication, navigate]);
 
     // Conditional return for loading state (Must be AFTER all hooks)
     if (riderLoading) {
@@ -282,7 +304,7 @@ const RiderRegistration = () => {
     return (
         <div className="mobile-container bg-background min-h-screen pb-10">
             <header className="sticky top-0 z-50 customer-header-glass px-4 py-4 flex items-center gap-4 border-b border-primary/10">
-                {step !== 'pending' && (
+                {step !== 'pending' && step !== 'rejected' && (
                     <Button
                         variant="ghost"
                         size="icon"
@@ -507,6 +529,40 @@ const RiderRegistration = () => {
                             </p>
 
                             <div className="pt-6">
+                                <Button
+                                    variant="outline"
+                                    className="w-full h-12 rounded-xl"
+                                    onClick={() => navigate('/')}
+                                >
+                                    Return to Home
+                                </Button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === 'rejected' && (
+                        <motion.div
+                            key="rejected"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-center py-10 space-y-6"
+                        >
+                            <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <AlertCircle className="w-12 h-12 text-red-500" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-red-500">Application Rejected</h2>
+                            <p className="text-muted-foreground px-4 text-sm">
+                                Unfortunately, your rider application has been rejected.
+                                Please contact support for more information or to re-apply.
+                            </p>
+
+                            <div className="pt-6 space-y-3">
+                                <Button
+                                    className="w-full h-12 rounded-xl"
+                                    onClick={() => navigate('/support')}
+                                >
+                                    Contact Support
+                                </Button>
                                 <Button
                                     variant="outline"
                                     className="w-full h-12 rounded-xl"

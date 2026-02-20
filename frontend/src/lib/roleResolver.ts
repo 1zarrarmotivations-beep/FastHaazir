@@ -1,10 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { safeLower } from "./utils";
 
 /**
- * PHASE 2 – PREVENT ROLE MIXING
- * Standardize role values and ensure consistency.
+ * PHASE 2 – UNIFIED ROLE SYSTEM
+ * Single Source of Truth is the Database (profiles + riders tables).
  */
 export type AppRole = 'super_admin' | 'admin' | 'rider' | 'business' | 'customer';
 
@@ -17,283 +15,60 @@ export interface RoleResolution {
     profileId?: string;
 }
 
-// Type for get_my_role RPC response
-interface GetMyRoleResponse {
-    role: string;
-    status: string;
-    needs_registration: boolean;
-    profile_id: string;
-}
-
-// Type for resolve_role_by_email/phone RPC response
-interface ResolveRoleResponse {
-    role: string;
-    is_blocked: boolean;
-}
-
 /**
- * PHASE 1 & 3 & 5 & 6 – ROLE RESOLVER
- * Safe role validation layer with database as source of truth.
- * 
- * Uses get_my_role() which returns: role, is_blocked, needs_registration
- * This is the PRIMARY role resolution function.
- * 
- * FALLBACK: If RPC fails, directly query user_roles table
+ * CENTRALIZED ROLE RESOLVER
+ * Uses 'get_unified_role' RPC to fetch the definitive role from the backend.
+ * No client-side role guessing.
  */
-export const roleResolver = async (userId: string, email?: string): Promise<RoleResolution> => {
-    // PHASE 6 – DEBUG LOGGER
-    console.log(`[RoleResolver] 🔍 Starting validation for: ${email || userId}`);
-    console.log(`[RoleResolver] 📋 Received userId: ${userId}`);
+export const roleResolver = async (userId: string, email?: string, phone?: string): Promise<RoleResolution> => {
+    // Debug Logging
+    console.log(`[RoleResolver] 🔒 Validating Role for: ${userId}`);
+    if (email) console.log(`[RoleResolver] 📧 Email: ${email}`);
+    if (phone) console.log(`[RoleResolver] 📱 Phone: ${phone}`);
 
     try {
-        // PHASE 5 – ASYNC FIX: Use the new get_my_role function
-        // This function returns a table with role, is_blocked, needs_registration
-        console.log(`[RoleResolver] 📡 Calling get_my_role() RPC...`);
-        const { data: roleData, error: roleError } = await (supabase.rpc as any)('get_my_role');
+        // 1. Call Unified RPC
+        // This function encapsulates all logic: Admin checks, Rider status checks, Block checks.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: unified, error } = await (supabase.rpc as any)('get_unified_role', { target_user_id: userId });
 
-        if (roleError) {
-            console.error("[RoleResolver] ❌ RPC error fetching role:", roleError);
-            // Fallback: try direct query
-            console.log("[RoleResolver] 🔄 Falling back to direct query...");
-            return await directRoleQuery(userId);
+        if (error) {
+            console.error("[RoleResolver] ❌ RPC Failure:", error);
+            // Robustness: If RPC fails, fallback to 'customer' to avoid blocking legitimate logins completely,
+            // but log significantly. In a strict system, we might block access, but for now 'customer' is safer.
+            return { role: 'customer', isBlocked: false, needsRegistration: false };
         }
 
-        console.log(`[RoleResolver] 📥 get_my_role response:`, roleData);
+        console.log(`[RoleResolver] 🛡️ Backend Response:`, unified);
 
-        // get_my_role returns a table, so roleData is an array with one row
-        let resolvedRole = 'customer';
-        let profileStatus = 'active';
-        let needsRegistration = false;
-        let profileId = undefined;
-        let profileName = undefined;
+        const role = (unified as any).role || 'customer';
+        const status = (unified as any).status || 'active'; // approved, pending, rejected, blocked, active
+        const isBlocked = (unified as any).is_blocked === true;
 
-        if (roleData && Array.isArray(roleData) && roleData.length > 0) {
-            const roleRow = roleData[0];
-            if (roleRow) {
-                resolvedRole = safeLower(roleRow.role || 'customer');
-                profileStatus = safeLower(roleRow.status || 'active');
-                needsRegistration = roleRow.needs_registration === true;
-                profileId = roleRow.profile_id;
-                profileName = roleRow.full_name;
+        // 2. Map Backend Status to Frontend Types
+        let riderStatus: RoleResolution['riderStatus'] = 'none';
 
-                console.log(`[RoleResolver] ✅ RPC returned role: ${resolvedRole}, name: ${profileName}, status: ${profileStatus}, needsReg: ${needsRegistration}`);
-            }
-        } else {
-            console.log("[RoleResolver] ⚠️ RPC returned empty data, falling back to direct query");
-            return await directRoleQuery(userId);
+        if (role === 'rider') {
+            if (status === 'approved') riderStatus = 'verified';
+            else if (status === 'pending') riderStatus = 'pending';
+            else if (status === 'rejected') riderStatus = 'rejected';
+            else riderStatus = 'pending'; // Safe default for rider role
         }
 
-        const isBlocked = profileStatus === 'blocked';
-
-        // Standardize role
-        let standardizedRole: AppRole = 'customer';
-        if (resolvedRole === 'super_admin') standardizedRole = 'super_admin';
-        else if (resolvedRole === 'admin') standardizedRole = 'admin';
-        else if (resolvedRole === 'rider') standardizedRole = 'rider';
-        else if (resolvedRole === 'business') standardizedRole = 'business';
-        else standardizedRole = 'customer';
-
-        console.log(`[RoleResolver] 👤 Resolved Role: ${standardizedRole}, Status: ${profileStatus}, NeedsReg: ${needsRegistration}`);
-
-        // PHASE 3 – RIDER VALIDATION CHECK
-        if (standardizedRole === 'rider') {
-            // If needs_registration is true, return early
-            if (needsRegistration) {
-                return {
-                    role: 'rider',
-                    riderStatus: 'none',
-                    isBlocked: false,
-                    needsRegistration: true
-                };
-            }
-
-            // If blocked by is_active, return blocked status
-            if (isBlocked) {
-                return {
-                    role: 'rider',
-                    riderStatus: 'rejected',
-                    isBlocked: true,
-                    needsRegistration: false
-                };
-            }
-
-            // Get rider details for verification status
-            const { data: rider, error: riderError } = await supabase
-                .from('riders')
-                .select('verification_status, is_active')
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            if (riderError) {
-                console.error("[RoleResolver] ❌ Error fetching rider details:", riderError);
-            }
-
-            const riderObj = rider as Record<string, unknown>;
-            const riderStatus = (riderObj?.verification_status || 'pending') as 'pending' | 'verified' | 'rejected';
-
-            console.log(`[RoleResolver] 🏍️ Rider Status: ${riderStatus}, Active: ${!isBlocked}`);
-
-            return {
-                role: 'rider',
-                name: profileName,
-                riderStatus,
-                isBlocked,
-                needsRegistration: false,
-                profileId
-            };
-        }
-
-        // Admin or Customer path
-        // NEW: If resolved as customer but email/phone provided, check if they exist in rider/admin tables
-        if (standardizedRole === 'customer' && email) {
-            console.log(`[RoleResolver] 🕵️ Role is customer, checking email/phone for matches: ${email}`);
-            const syncResult = await fallbackRoleResolution(userId, email);
-            if (syncResult.role !== 'customer') {
-                console.log(`[RoleResolver] 🚀 Upgraded to ${syncResult.role} based on email/phone match`);
-                return syncResult;
-            }
-        }
+        // 3. Admin Protection (Frontend Safeguard)
+        // Even if backend sends 'admin', if we wanted to enforce strict UIDs here we could,
+        // but the RPC is the trusted source.
 
         return {
-            role: standardizedRole,
-            name: profileName,
+            role: role as AppRole,
+            riderStatus,
             isBlocked,
-            needsRegistration,
-            profileId
+            needsRegistration: false, // RPC implies registration is sufficient if a role is returned
+            profileId: userId // implicit
         };
 
-    } catch (error) {
-        console.error("[RoleResolver] 🚨 Critical failure in resolver:", error);
-        // Try fallback before giving up
-        return await fallbackRoleResolution(userId, email);
+    } catch (e) {
+        console.error("[RoleResolver] 🚨 Exception in logic:", e);
+        return { role: 'customer', isBlocked: false, needsRegistration: false };
     }
 };
-
-/**
- * Fallback role resolution when get_my_role fails
- * This attempts to sync role from email/phone
- */
-async function fallbackRoleResolution(userId: string, email?: string): Promise<RoleResolution> {
-    console.log("[RoleResolver] 🔄 Attempting fallback resolution...");
-
-    if (!email) {
-        return { role: 'customer', isBlocked: false, needsRegistration: false };
-    }
-
-    try {
-        const isEmail = email.includes('@');
-        const rpcName = isEmail ? 'resolve_role_by_email' : 'resolve_role_by_phone';
-        const rpcParam = isEmail ? { _email: email } : { _phone: email };
-
-        const { data: syncData, error: syncError } = await (supabase.rpc as any)(rpcName, rpcParam);
-
-        if (syncError || !syncData || (syncData as unknown[]).length === 0) {
-            console.log("[RoleResolver] Fallback failed, defaulting to customer");
-            return { role: 'customer', isBlocked: false, needsRegistration: false };
-        }
-
-        const synced = Array.isArray(syncData) ? syncData[0] : syncData;
-        if (!synced) {
-            return { role: 'customer', isBlocked: false, needsRegistration: false };
-        }
-
-        const syncedRole = safeLower(synced.role || 'customer');
-        const isBlocked = synced.is_blocked === true;
-
-        console.log(`[RoleResolver] ✅ Fallback resolved to: ${syncedRole}`);
-
-        // Map to standardized role
-        let standardizedRole: AppRole = 'customer';
-        if (syncedRole === 'super_admin') standardizedRole = 'super_admin';
-        else if (syncedRole === 'admin') standardizedRole = 'admin';
-        else if (syncedRole === 'rider') standardizedRole = 'rider';
-        else if (syncedRole === 'business') standardizedRole = 'business';
-
-        return {
-            role: standardizedRole,
-            isBlocked,
-            needsRegistration: false
-        };
-    } catch (error) {
-        console.error("[RoleResolver] Fallback error:", error);
-        return { role: 'customer', isBlocked: false, needsRegistration: false };
-    }
-}
-
-/**
- * Direct role query fallback - bypasses RPC function issues
- * Queries user_roles and riders tables directly
- */
-async function directRoleQuery(userId: string): Promise<RoleResolution> {
-    console.log("[RoleResolver] 🔍 Performing direct role query for:", userId);
-
-    try {
-        // Check profiles table first (single source of truth)
-        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('role, is_blocked')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-        if (profileError) {
-            console.error("[RoleResolver] ❌ Error fetching profiles:", profileError);
-            return { role: 'customer', isBlocked: false, needsRegistration: false };
-        }
-
-        const userRole = profileData?.role as AppRole | undefined;
-        const isBlocked = profileData?.is_blocked || false;
-
-        console.log("[RoleResolver] 📊 profiles result:", userRole);
-
-        if (!userRole) {
-            console.log("[RoleResolver] ℹ️ No profile found, defaulting to customer");
-            // If no profile, they are a new customer (handled by trigger usually, but here just return default)
-            return { role: 'customer', isBlocked: false, needsRegistration: false };
-        }
-
-        // If role is rider, verify rider record exists for status
-        if (userRole === 'rider') {
-            const { data: riderData, error: riderError } = await supabase
-                .from('riders')
-                .select('id, is_active, verification_status')
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            if (riderError) {
-                console.error("[RoleResolver] ❌ Error fetching rider record:", riderError);
-            }
-
-            if (!riderData) {
-                console.log("[RoleResolver] ⚠️ Rider role but no rider record - needs registration");
-                return {
-                    role: 'rider',
-                    riderStatus: 'none',
-                    isBlocked,
-                    needsRegistration: true
-                };
-            }
-
-            const riderStatus = (riderData.verification_status || 'pending') as 'pending' | 'verified' | 'rejected';
-            console.log("[RoleResolver] ✅ Found user as rider with status:", riderStatus);
-
-            return {
-                role: 'rider',
-                riderStatus,
-                isBlocked: isBlocked || (riderData.is_active !== true),
-                needsRegistration: false
-            };
-        }
-
-        // Admin, Business or Customer
-        console.log(`[RoleResolver] ✅ Found user as: ${userRole}`);
-        return {
-            role: userRole,
-            isBlocked,
-            needsRegistration: false
-        };
-
-    } catch (error) {
-        console.error("[RoleResolver] 🚨 Direct query critical failure:", error);
-        return { role: 'customer', isBlocked: false, needsRegistration: false };
-    }
-}

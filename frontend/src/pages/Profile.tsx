@@ -160,6 +160,13 @@ const Profile: React.FC = () => {
       color: 'text-emerald-500',
       bgColor: 'bg-emerald-500/10'
     },
+    super_admin: {
+      label: 'Super Admin Dashboard',
+      path: '/admin',
+      icon: ShieldCheck,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-600/10'
+    },
     rider: {
       label: 'Rider Dashboard',
       path: '/rider',
