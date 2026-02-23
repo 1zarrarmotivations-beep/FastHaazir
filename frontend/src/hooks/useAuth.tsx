@@ -9,28 +9,20 @@ import { useNavigate } from "react-router-dom";
  */
 const clearAllStorage = () => {
   console.log("[useAuth] Clearing all storage...");
-
-  // Preserve important non-auth flags
-  const onboardingCompleted = localStorage.getItem('fasthaazir_onboarding_completed');
-
+  
   // Clear entire localStorage
   localStorage.clear();
-
-  // Restore non-auth flags
-  if (onboardingCompleted) {
-    localStorage.setItem('fasthaazir_onboarding_completed', onboardingCompleted);
-  }
-
+  
   // Clear entire sessionStorage
   sessionStorage.clear();
-
+  
   // Clear IndexedDB entries for Firebase/Supabase (async, fire-and-forget)
   try {
     if (typeof indexedDB !== 'undefined') {
       indexedDB.databases?.()?.then(dbs => {
         dbs?.forEach(db => {
           if (db.name && (
-            db.name.includes('firebase') ||
+            db.name.includes('firebase') || 
             db.name.includes('supabase') ||
             db.name.includes('auth')
           )) {
@@ -42,7 +34,7 @@ const clearAllStorage = () => {
   } catch (e) {
     // IndexedDB not available or error, continue
   }
-
+  
   console.log("[useAuth] All storage cleared");
 };
 
@@ -66,7 +58,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("[useAuth] Auth state changed:", event);
-
+        
         // On SIGNED_OUT event, ensure state is cleared
         if (event === 'SIGNED_OUT') {
           setSession(null);
@@ -74,7 +66,7 @@ export const useAuth = () => {
           setLoading(false);
           return;
         }
-
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -93,7 +85,7 @@ export const useAuth = () => {
 
   const signOut = useCallback(async (navigate?: ReturnType<typeof useNavigate>) => {
     console.log("[useAuth] Starting global sign out...");
-
+    
     // Try to set rider offline before signing out
     if (user) {
       try {
@@ -106,47 +98,33 @@ export const useAuth = () => {
         console.log("[useAuth] No rider profile to update or error:", error);
       }
     }
-
+    
     // Sign out from Supabase with GLOBAL scope - terminates all sessions
     try {
-      // 1. Also try to sign out from Firebase if it's active
-      // We do this dynamically to avoid circular dependencies if any
-      try {
-        const { getAuth, signOut: firebaseSignOut } = await import('firebase/auth');
-        const auth = getAuth();
-        if (auth) {
-          await firebaseSignOut(auth);
-          console.log("[useAuth] Firebase sign out complete");
-        }
-      } catch (fError) {
-        console.log("[useAuth] Firebase sign out skipped or failed:", fError);
-      }
-
-      // 2. Supabase Global Sign Out
       await supabase.auth.signOut({ scope: 'global' });
       console.log("[useAuth] Supabase global sign out complete");
     } catch (error) {
-      console.error("[useAuth] Sign out error:", error);
+      console.error("[useAuth] Supabase sign out error:", error);
       // Continue with cleanup even if sign out fails
     }
-
+    
     // Clear React Query cache
     clearQueryCache(queryClient);
-
+    
     // Clear all storage
     clearAllStorage();
-
+    
     // Reset state immediately
     setUser(null);
     setSession(null);
-
+    
     console.log("[useAuth] Sign out complete - all state cleared");
-
+    
     // Navigate to auth if navigate function provided
     if (navigate) {
       navigate('/auth', { replace: true });
     }
-
+    
     return true;
   }, [user, queryClient]);
 

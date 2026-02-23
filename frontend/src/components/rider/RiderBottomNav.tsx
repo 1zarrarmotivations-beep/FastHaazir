@@ -4,9 +4,11 @@ import {
   Package,
   Wallet,
   User,
+  MapPin,
+  Gauge,
 } from 'lucide-react';
 
-export type RiderTab = 'home' | 'orders' | 'earnings' | 'profile';
+export type RiderTab = 'home' | 'orders' | 'map' | 'speed' | 'earnings' | 'profile';
 
 interface RiderBottomNavProps {
   activeTab: RiderTab;
@@ -19,6 +21,8 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
   const tabs: { id: RiderTab; label: string; icon: typeof Home; badge?: number }[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'orders', label: 'Orders', icon: Package, badge: pendingCount + activeCount },
+    { id: 'map', label: 'Navigate', icon: MapPin, badge: activeCount > 0 ? activeCount : undefined },
+    { id: 'speed', label: 'Speed', icon: Gauge },
     { id: 'earnings', label: 'Earnings', icon: Wallet },
     { id: 'profile', label: 'Profile', icon: User },
   ];
@@ -28,7 +32,7 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="fixed bottom-0 left-0 right-0 z-40 glass-nav safe-area-bottom border-t border-white/10"
+      className="fixed bottom-0 left-0 right-0 z-40 glass-nav safe-area-bottom"
     >
       <div className="flex justify-around items-center h-20 max-w-md mx-auto px-2">
         {tabs.map((tab, index) => {
@@ -49,7 +53,7 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
               {isActive && (
                 <motion.div
                   layoutId="activeTabBg"
-                  className="absolute inset-0 rounded-2xl bg-gradient-to-t from-orange-500/20 to-transparent"
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-t from-orange-500/15 to-transparent"
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               )}
@@ -69,8 +73,8 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
               <div className="relative z-10">
                 <Icon
                   className={`w-6 h-6 transition-all duration-300 ${isActive
-                      ? 'text-orange-400'
-                      : 'text-white/35 group-hover:text-white/50'
+                    ? 'text-orange-400'
+                    : 'text-white/35 group-hover:text-white/50'
                     }`}
                   style={isActive ? {
                     filter: 'drop-shadow(0 0 8px rgba(255,106,0,0.6))'

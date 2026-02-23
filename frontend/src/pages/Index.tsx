@@ -22,7 +22,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, Clock, MapPin } from 'lucide-react';
 
-import { NearbyRidersMap } from '@/components/maps/NearbyRidersMap';
 
 const Index: React.FC = () => {
   const { t } = useTranslation();
@@ -116,11 +115,6 @@ const Index: React.FC = () => {
       <main>
         {/* Promo Banner */}
         <BannerCarousel />
-
-        {/* Live Map of Nearby Riders */}
-        <div className="px-4 py-3">
-          <NearbyRidersMap />
-        </div>
 
         {/* Category Grid */}
         <CategoryGrid />

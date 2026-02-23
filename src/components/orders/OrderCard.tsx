@@ -30,6 +30,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
   const showTracking = hasRider && (order.status === 'on_way' || order.status === 'preparing');
   const [showRiderAssigned, setShowRiderAssigned] = useState(false);
   const [prevRiderId, setPrevRiderId] = useState<string | null>(null);
+  const [showTrackingMap, setShowTrackingMap] = useState(false);
 
   // Detect when rider is newly assigned
   useEffect(() => {
@@ -127,7 +128,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
                 className="w-12 h-12 rounded-xl object-cover"
               />
               <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <p className="font-semibold text-foreground">{order.riders?.name}</p>
                   {order.riders?.rating && (
                     <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
@@ -167,20 +168,45 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           </div>
         )}
 
-        {/* Live Tracking Map - Show when rider is assigned and order is in transit */}
+        {/* Live Tracking Map - Only when customer explicitly taps "Track" */}
         {showTracking && (
           <div className="mb-4">
-            <LiveRiderTrackingMap
-              riderId={order.rider_id!}
-              deliveryLat={isRiderRequest ? order.dropoff_lat ?? null : order.delivery_lat}
-              deliveryLng={isRiderRequest ? order.dropoff_lng ?? null : order.delivery_lng}
-              deliveryAddress={isRiderRequest ? order.dropoff_address || '' : order.delivery_address || ''}
-              pickupLat={order.pickup_lat}
-              pickupLng={order.pickup_lng}
-              pickupAddress={order.pickup_address || undefined}
-              status={order.status}
-              fallbackEta={order.eta || '25-35 min'}
-            />
+            {/* Track button */}
+            <button
+              onClick={() => setShowTrackingMap(prev => !prev)}
+              className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all mb-2 ${showTrackingMap
+                  ? 'bg-primary/10 text-primary border border-primary/30'
+                  : 'bg-primary text-white shadow-md active:scale-95'
+                }`}
+            >
+              <Navigation className="w-4 h-4" />
+              {showTrackingMap ? 'Hide Map' : '📍 Track Rider Live'}
+            </button>
+
+            {/* Collapsible map */}
+            <AnimatePresence>
+              {showTrackingMap && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden rounded-xl"
+                >
+                  <LiveRiderTrackingMap
+                    riderId={order.rider_id!}
+                    deliveryLat={isRiderRequest ? order.dropoff_lat ?? null : order.delivery_lat}
+                    deliveryLng={isRiderRequest ? order.dropoff_lng ?? null : order.delivery_lng}
+                    deliveryAddress={isRiderRequest ? order.dropoff_address || '' : order.delivery_address || ''}
+                    pickupLat={order.pickup_lat}
+                    pickupLng={order.pickup_lng}
+                    pickupAddress={order.pickup_address || undefined}
+                    status={order.status}
+                    fallbackEta={order.eta || '25-35 min'}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -207,9 +233,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
-              className={`h-1.5 flex-1 rounded-full transition-all ${
-                step <= status.step ? 'gradient-primary' : 'bg-muted'
-              }`}
+              className={`h-1.5 flex-1 rounded-full transition-all ${step <= status.step ? 'gradient-primary' : 'bg-muted'
+                }`}
             />
           ))}
         </div>
@@ -230,8 +255,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
         {/* Delivery OTP - Show when order is on the way and has OTP */}
         {order.status === 'on_way' && order.delivery_otp && (
           <div className="mb-4">
-            <DeliveryOTPDisplay 
-              otp={order.delivery_otp} 
+            <DeliveryOTPDisplay
+              otp={order.delivery_otp}
               isVerified={order.otp_verified || false}
             />
           </div>
@@ -240,16 +265,16 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
         {/* Chat Actions - No phone numbers exposed */}
         <div className="flex items-center gap-2 pt-2 border-t border-border">
           {isRiderRequest ? (
-            <ChatButton 
-              riderRequestId={order.id} 
-              userType="customer" 
+            <ChatButton
+              riderRequestId={order.id}
+              userType="customer"
               variant="outline"
               size="sm"
             />
           ) : (
-            <ChatButton 
-              orderId={order.id} 
-              userType="customer" 
+            <ChatButton
+              orderId={order.id}
+              userType="customer"
               variant="outline"
               size="sm"
             />

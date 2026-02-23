@@ -7,12 +7,8 @@ export interface PaymentSettings {
   base_fee: number;
   per_km_rate: number;
   min_payment: number;
-  rider_base_earning: number;
-  max_delivery_radius_km: number;
-  min_order_value: number;
   is_active: boolean;
 }
-
 
 export interface RiderPayment {
   id: string;
@@ -40,7 +36,7 @@ export interface RiderPayment {
   };
 }
 
-// Calculate distance using Haversine formula
+// Calculate distance using Haversine formula (fallback for client-side)
 export const calculateDistanceKm = (
   lat1: number,
   lon1: number,
@@ -53,43 +49,51 @@ export const calculateDistanceKm = (
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-    Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) *
-    Math.sin(dLon / 2);
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 10) / 10;
+  // Multiply by 1.3 to approximate road distance
+  return Math.round(R * c * 1.3 * 10) / 10;
+};
+
+// Calculate distance using edge function (road-based, more accurate)
+export const calculateRoadDistance = async (
+  originLat: number,
+  originLng: number,
+  destLat: number,
+  destLng: number
+): Promise<{ distance_km: number; duration_minutes: number; method: string } | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('calculate-distance', {
+      body: {
+        origin_lat: originLat,
+        origin_lng: originLng,
+        destination_lat: destLat,
+        destination_lng: destLng,
+      },
+    });
+
+    if (error) {
+      console.error('[Distance] Edge function error:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('[Distance] Failed to calculate road distance:', err);
+    return null;
+  }
 };
 
 // Calculate payment based on distance and settings
-// Calculate payment based on distance and settings - Returns detailed breakdown
 export const calculatePayment = (
   distanceKm: number,
   settings: PaymentSettings
-): {
-  customerCharge: number;
-  riderEarning: number;
-  commission: number;
-} => {
-  // Customer Charge Calculation
-  const rawCharge = settings.base_fee + (distanceKm * settings.per_km_rate);
-  const customerCharge = Math.max(Math.round(rawCharge), settings.min_payment);
-
-  // Rider Earning Calculation
-  // Rider gets base earning + distance rate
-  const rawRiderEarning = settings.rider_base_earning + (distanceKm * settings.per_km_rate);
-  // Ensure rider earns at least a reasonable amount, but for now simple formula
-  const riderEarning = Math.round(rawRiderEarning);
-
-  // Commission is remainder
-  const commission = Math.max(0, customerCharge - riderEarning);
-
-  return {
-    customerCharge,
-    riderEarning,
-    commission
-  };
+): number => {
+  const calculated = settings.base_fee + (distanceKm * settings.per_km_rate);
+  return Math.max(Math.round(calculated), settings.min_payment);
 };
-
 
 // Fetch payment settings
 export const usePaymentSettings = () => {
@@ -103,7 +107,7 @@ export const usePaymentSettings = () => {
         .single();
 
       if (error) throw error;
-      return data as unknown as PaymentSettings;
+      return data as PaymentSettings;
     },
   });
 };
@@ -194,14 +198,10 @@ export const useUpdatePaymentSettings = () => {
           base_fee: settings.base_fee,
           per_km_rate: settings.per_km_rate,
           min_payment: settings.min_payment,
-          max_delivery_radius_km: settings.max_delivery_radius_km,
-          min_order_value: settings.min_order_value,
-          rider_base_earning: settings.rider_base_earning,
         })
         .eq('id', settings.id)
         .select()
         .single();
-
 
       if (error) throw error;
       return data;
@@ -302,19 +302,12 @@ export const useRiderEarningsSummary = (riderId?: string) => {
 
       const { data, error } = await supabase
         .from('rider_payments')
-        .select('final_amount, status, distance_km, created_at')
+        .select('final_amount, status, distance_km')
         .eq('rider_id', riderId);
 
       if (error) throw error;
 
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
       const totalEarnings = data.reduce((sum, p) => sum + (p.final_amount || 0), 0);
-      const todayEarnings = data
-        .filter(p => new Date(p.created_at).getTime() >= startOfDay)
-        .reduce((sum, p) => sum + (p.final_amount || 0), 0);
-
       const paidEarnings = data.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0);
       const pendingEarnings = data.filter(p => p.status !== 'paid').reduce((sum, p) => sum + (p.final_amount || 0), 0);
       const totalDistance = data.reduce((sum, p) => sum + (p.distance_km || 0), 0);
@@ -322,7 +315,6 @@ export const useRiderEarningsSummary = (riderId?: string) => {
 
       return {
         totalEarnings,
-        todayEarnings,
         paidEarnings,
         pendingEarnings,
         totalDistance,

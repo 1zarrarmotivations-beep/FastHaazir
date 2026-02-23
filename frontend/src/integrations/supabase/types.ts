@@ -2659,6 +2659,7 @@ export type Database = {
           current_location_lat: number | null
           current_location_lng: number | null
           current_speed: number | null
+          heading: number | null
           email: string | null
           id: string
           image: string | null
@@ -2687,6 +2688,7 @@ export type Database = {
           current_location_lat?: number | null
           current_location_lng?: number | null
           current_speed?: number | null
+          heading?: number | null
           email?: string | null
           id?: string
           image?: string | null
@@ -2715,6 +2717,7 @@ export type Database = {
           current_location_lat?: number | null
           current_location_lng?: number | null
           current_speed?: number | null
+          heading?: number | null
           email?: string | null
           id?: string
           image?: string | null
@@ -3367,6 +3370,7 @@ export type Database = {
           current_location_lat: number | null
           current_location_lng: number | null
           current_speed: number | null
+          heading: number | null
           id: string | null
           image: string | null
           is_online: boolean | null
@@ -3379,6 +3383,7 @@ export type Database = {
           current_location_lat?: number | null
           current_location_lng?: number | null
           current_speed?: number | null
+          heading?: number | null
           id?: string | null
           image?: string | null
           is_online?: boolean | null
@@ -3391,6 +3396,7 @@ export type Database = {
           current_location_lat?: number | null
           current_location_lng?: number | null
           current_speed?: number | null
+          heading?: number | null
           id?: string | null
           image?: string | null
           is_online?: boolean | null
@@ -3506,6 +3512,7 @@ export type Database = {
           current_location_lat: number | null
           current_location_lng: number | null
           current_speed: number | null
+          heading: number | null
           id: string | null
           image: string | null
           is_active: boolean | null
@@ -3585,6 +3592,7 @@ export type Database = {
           current_location_lat: number | null
           current_location_lng: number | null
           current_speed: number | null
+          heading: number | null
           id: string | null
           image: string | null
           is_online: boolean | null
@@ -3646,6 +3654,7 @@ export type Database = {
           current_location_lat: number | null
           current_location_lng: number | null
           current_speed: number | null
+          heading: number | null
           id: string | null
           image: string | null
           is_online: boolean | null
@@ -3821,6 +3830,10 @@ export type Database = {
           p_value_rating?: number
           p_would_order_again?: boolean
         }
+        Returns: Json
+      }
+      get_rider_wallet_summary: {
+        Args: Record<PropertyKey, never>
         Returns: Json
       }
       suspend_rider: {

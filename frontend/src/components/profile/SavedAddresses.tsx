@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Plus, Edit2, Trash2, Check, Home, Building, Star, ArrowLeft, Loader2 } from 'lucide-react';
+import { MapPin, Plus, Edit2, Trash2, Check, Home, Building, Star, ArrowLeft, Loader2, Navigation } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,15 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { 
-  useCustomerAddresses, 
-  useCreateAddress, 
-  useUpdateAddress, 
+import {
+  useCustomerAddresses,
+  useCreateAddress,
+  useUpdateAddress,
   useDeleteAddress,
   useSetDefaultAddress,
-  CustomerAddress 
+  CustomerAddress
 } from '@/hooks/useCustomerAddresses';
-import AddressMapPicker from './AddressMapPicker';
+import AddressMapPicker from './OpenStreetMapPicker';
 
 interface SavedAddressesProps {
   onBack: () => void;
@@ -34,7 +34,8 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
   const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
-  
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
   const [formData, setFormData] = useState({
     label: 'Home',
     address_text: '',
@@ -131,9 +132,67 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
     setShowMapPicker(false);
   };
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+
+        // Reverse geocode using Nominatim (free, no API key required)
+        let addressText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.display_name) {
+              addressText = data.display_name;
+            }
+          }
+        } catch (err) {
+          console.warn('[SavedAddresses] Reverse geocode failed, using coordinates', err);
+        }
+
+        try {
+          await createAddress.mutateAsync({
+            label: 'Current Location',
+            address_text: addressText,
+            lat,
+            lng,
+            is_default: addresses.length === 0,
+          });
+          toast.success('Current location saved as address!');
+        } catch (err) {
+          console.error('[SavedAddresses] Failed to save current location', err);
+          toast.error('Failed to save current location');
+        } finally {
+          setIsGettingLocation(false);
+        }
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error('Location permission denied. Please allow location access.');
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          toast.error('Location unavailable. Please try again.');
+        } else {
+          toast.error('Could not get your location. Please try again.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
   if (showMapPicker) {
     return (
-      <AddressMapPicker 
+      <AddressMapPicker
         onSelect={handleMapSelect}
         onBack={() => setShowMapPicker(false)}
         initialLocation={formData.lat && formData.lng ? { lat: formData.lat, lng: formData.lng } : undefined}
@@ -154,11 +213,26 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Add New Address Button */}
-        <Button onClick={handleOpenAdd} className="w-full gap-2">
-          <Plus className="h-4 w-4" />
-          Add New Address
-        </Button>
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button onClick={handleOpenAdd} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add New
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleUseCurrentLocation}
+            disabled={isGettingLocation || createAddress.isPending}
+            className="gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          >
+            {isGettingLocation || createAddress.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Navigation className="h-4 w-4" />
+            )}
+            {isGettingLocation ? 'Locating...' : 'Use Location'}
+          </Button>
+        </div>
 
         {/* Addresses List */}
         {isLoading ? (
@@ -175,7 +249,7 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
           <AnimatePresence>
             {addresses.map((address, index) => {
               const LabelIcon = labelOptions.find(l => l.value === address.label)?.icon || MapPin;
-              
+
               return (
                 <motion.div
                   key={address.id}
@@ -186,14 +260,12 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
                 >
                   <Card className={`p-4 ${address.is_default ? 'border-primary border-2' : ''}`}>
                     <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        address.is_default ? 'gradient-primary' : 'bg-muted'
-                      }`}>
-                        <LabelIcon className={`h-5 w-5 ${
-                          address.is_default ? 'text-primary-foreground' : 'text-foreground'
-                        }`} />
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${address.is_default ? 'gradient-primary' : 'bg-muted'
+                        }`}>
+                        <LabelIcon className={`h-5 w-5 ${address.is_default ? 'text-primary-foreground' : 'text-foreground'
+                          }`} />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold">{address.label}</span>
@@ -209,7 +281,7 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                       {!address.is_default && (
                         <Button
@@ -254,7 +326,7 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
           <DialogHeader>
             <DialogTitle>{editingAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Label</Label>
@@ -308,7 +380,7 @@ const SavedAddresses = ({ onBack }: SavedAddressesProps) => {
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleSave}
               disabled={createAddress.isPending || updateAddress.isPending}
             >

@@ -124,7 +124,7 @@ export const useProcessWithdrawal = () => {
       paymentReference?: string;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
-
+      
       const { data, error } = await supabase
         .from('withdrawal_requests')
         .update({
@@ -216,23 +216,22 @@ export const useRiderAvailableBalance = (riderId?: string) => {
 
       if (paymentsError) throw paymentsError;
 
+      // Get pending withdrawal requests
       const { data: withdrawals, error: withdrawalsError } = await supabase
         .from('withdrawal_requests')
         .select('amount, status')
         .eq('rider_id', riderId)
-        .neq('status', 'rejected'); // Get both pending, approved, and paid
+        .in('status', ['pending', 'approved']);
 
       if (withdrawalsError) throw withdrawalsError;
 
       const totalCompleted = payments?.reduce((sum, p) => sum + (p.final_amount || 0), 0) || 0;
-
-      const pendingWithdrawals = withdrawals?.filter(w => ['pending', 'approved'].includes(w.status)).reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
-      const paidWithdrawals = withdrawals?.filter(w => w.status === 'paid').reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
-
+      const pendingWithdrawals = withdrawals?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
+      
       return {
-        available: Math.max(0, totalCompleted - (pendingWithdrawals + paidWithdrawals)),
+        available: Math.max(0, totalCompleted - pendingWithdrawals),
         pending: pendingWithdrawals,
-        withdrawn: paidWithdrawals,
+        withdrawn: 0, // Can be calculated from paid withdrawals if needed
       };
     },
     enabled: !!riderId,

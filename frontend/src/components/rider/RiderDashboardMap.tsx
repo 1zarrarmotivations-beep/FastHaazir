@@ -1,22 +1,24 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { GoogleMap, MarkerF, DirectionsRenderer, CircleF } from '@react-google-maps/api';
+import { GoogleMap, MarkerF, DirectionsRenderer } from '@react-google-maps/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Bike, Navigation, MapPin } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Badge } from '@/components/ui/badge';
+import NavigationTopCard from './NavigationTopCard';
 
 interface RiderDashboardMapProps {
     riderLocation: { lat: number; lng: number } | null;
-    activeDelivery: any | null; // Pass the full active delivery object
+    activeDelivery: any | null;
     currentRiderId?: string;
+    zoom?: number;
+    mapType?: 'roadmap' | 'satellite' | 'hybrid' | 'terrain';
+    onZoomChange?: (zoom: number) => void;
 }
 
 const mapContainerStyle = {
     width: "100%",
-    height: "300px",
-    borderRadius: "1rem",
+    height: "100%",
 };
 
 const defaultCenter = {
@@ -24,262 +26,279 @@ const defaultCenter = {
     lng: 66.9750, // Quetta
 };
 
-const options = {
+const mapOptions: google.maps.MapOptions = {
     disableDefaultUI: true,
-    zoomControl: true,
-    // Dark mode style
+    zoomControl: false,
     styles: [
         { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
         { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
         { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-        {
-            featureType: "road",
-            elementType: "geometry",
-            stylers: [{ color: "#38414e" }],
-        },
-        {
-            featureType: "road",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#212a37" }],
-        },
-        {
-            featureType: "water",
-            elementType: "geometry",
-            stylers: [{ color: "#17263c" }],
-        },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+        { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
     ]
 };
 
-const RiderDashboardMap = ({ riderLocation, activeDelivery, currentRiderId }: RiderDashboardMapProps) => {
+const DEVIATION_THRESHOLD_METERS = 100;
+
+const RiderDashboardMap = ({
+    riderLocation,
+    activeDelivery,
+    currentRiderId,
+    zoom = 15,
+    mapType = 'roadmap',
+    onZoomChange
+}: RiderDashboardMapProps) => {
     const mapRef = useRef<google.maps.Map | null>(null);
     const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-    const [otherRiders, setOtherRiders] = useState<any[]>([]);
+    const [eta, setEta] = useState<string>('');
+    const [distance, setDistance] = useState<string>('');
+    const [lastRerouteLocation, setLastRerouteLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-    // Fetch nearby riders (excluding self)
-    const { data: nearbyData } = useQuery({
+    // Fetch nearby riders (for idle mode visualization)
+    const { data: nearbyRiders } = useQuery({
         queryKey: ['nearby-riders-dashboard', currentRiderId],
         queryFn: async () => {
-            let query = supabase
+            const { data } = await supabase
                 .from('riders')
-                .select('id, current_location_lat, current_location_lng, is_online')
-                .eq('is_online', true);
-
-            if (currentRiderId) {
-                query = query.neq('id', currentRiderId);
-            }
-
-            const { data } = await query;
+                .select('id, current_location_lat, current_location_lng')
+                .eq('is_online', true)
+                .neq('id', currentRiderId || '');
             return data || [];
         },
         refetchInterval: 10000,
-        // Always fetch to show team presence
+        enabled: !activeDelivery
     });
 
-    useEffect(() => {
-        if (nearbyData) setOtherRiders(nearbyData);
-    }, [nearbyData]);
+    const calculateRoute = useCallback((origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
+        if (!window.google) return;
 
+        const directionsService = new google.maps.DirectionsService();
+        directionsService.route({
+            origin,
+            destination,
+            travelMode: google.maps.TravelMode.DRIVING,
+        }, (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK && result) {
+                setDirections(result);
+                setLastRerouteLocation(origin);
+                const leg = result.routes[0].legs[0];
+                setEta(leg.duration?.text || '');
+                setDistance(leg.distance?.text || '');
+            }
+        });
+    }, []);
 
-    // Routing Logic
+    // Effect: Handle Routing Transitions
     useEffect(() => {
-        if (!activeDelivery || !riderLocation || !window.google) {
+        if (!window.google) return; // Added this line
+        if (!activeDelivery || !riderLocation) {
             setDirections(null);
+            setEta('');
+            setDistance('');
             return;
         }
 
         const { pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, status } = activeDelivery;
-        const origin = riderLocation;
-        let destination = null;
+        const isHeadingToDrop = ['picked_up', 'delivering', 'on_way'].includes(status);
 
-        // Logic:
-        // If status is 'accepted' or 'heading_to_pickup', route is Rider -> Pickup
-        // If status is 'picked_up' or 'delivering', route is Rider -> Dropoff
-        // Maybe show full path Rider -> Pickup -> Dropoff?
+        const targetLat = isHeadingToDrop ? dropoff_lat : pickup_lat;
+        const targetLng = isHeadingToDrop ? dropoff_lng : pickup_lng;
 
-        if (!pickup_lat || !pickup_lng) return;
+        if (!targetLat || !targetLng) return;
 
-        if (activeDelivery.status === 'picked_up' || activeDelivery.status === 'delivering' || activeDelivery.status === 'on_way') {
-            if (dropoff_lat && dropoff_lng) {
-                destination = { lat: dropoff_lat, lng: dropoff_lng };
-            }
+        const target = { lat: Number(targetLat), lng: Number(targetLng) };
+
+        // 1. Initial Route Calculation
+        if (!directions || !lastRerouteLocation) {
+            calculateRoute(riderLocation, target);
         } else {
-            // Heading to pickup or waiting
-            destination = { lat: pickup_lat, lng: pickup_lng };
+            // 2. Deviation Check
+            const distFromLastReroute = google.maps.geometry.spherical.computeDistanceBetween(
+                new google.maps.LatLng(riderLocation.lat, riderLocation.lng),
+                new google.maps.LatLng(lastRerouteLocation.lat, lastRerouteLocation.lng)
+            );
+
+            // If rider moved more than threshold, or destination changed, recalculate
+            if (distFromLastReroute > DEVIATION_THRESHOLD_METERS) {
+                calculateRoute(riderLocation, target);
+            }
         }
+    }, [activeDelivery, riderLocation, calculateRoute, directions, lastRerouteLocation]);
 
-        if (!destination) return;
-
-        const directionsService = new google.maps.DirectionsService();
-        directionsService.route({
-            origin: origin,
-            destination: destination,
-            travelMode: google.maps.TravelMode.DRIVING
-        }, (result, status) => {
-            if (status === google.maps.DirectionsStatus.OK) {
-                setDirections(result);
-            }
-        });
-
-    }, [activeDelivery, riderLocation]);
-
-    const onLoad = useCallback((map: google.maps.Map) => {
-        mapRef.current = map;
-    }, []);
-
-    // Fit bounds
+    // Effect: Navigation Auto-pan - keeps rider centered in nav mode
     useEffect(() => {
-        if (mapRef.current && riderLocation) {
-            const bounds = new google.maps.LatLngBounds();
-            bounds.extend(riderLocation);
+        if (mapRef.current && riderLocation && activeDelivery) {
+            // In active navigation, we want to see both rider and target occasionally, 
+            // but primarily stay focused on the rider's path
+            const { pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, status } = activeDelivery;
+            const isHeadingToDrop = ['picked_up', 'delivering', 'on_way'].includes(status);
+            const targetLat = isHeadingToDrop ? dropoff_lat : pickup_lat;
+            const targetLng = isHeadingToDrop ? dropoff_lng : pickup_lng;
 
-            if (activeDelivery) {
-                if (activeDelivery.pickup_lat) bounds.extend({ lat: activeDelivery.pickup_lat, lng: activeDelivery.pickup_lng });
-                if (activeDelivery.dropoff_lat) bounds.extend({ lat: activeDelivery.dropoff_lat, lng: activeDelivery.dropoff_lng });
-            }
+            if (targetLat && targetLng) {
+                const bounds = new google.maps.LatLngBounds();
+                bounds.extend(riderLocation);
+                bounds.extend({ lat: Number(targetLat), lng: Number(targetLng) });
 
-            // If idle, extend to include nearby riders for context
-            if (!activeDelivery && otherRiders.length > 0) {
-                otherRiders.slice(0, 3).forEach(r => {
-                    if (r.current_location_lat) bounds.extend({ lat: r.current_location_lat, lng: r.current_location_lng });
-                });
-            }
-
-            mapRef.current.fitBounds(bounds, activeDelivery ? 50 : 100);
-
-            // If just rider (idle) and no nearby fit, zoom in
-            if (!activeDelivery && otherRiders.length === 0) {
-                mapRef.current.setZoom(15);
+                // Initial fit or if status changed
+                mapRef.current.fitBounds(bounds, { top: 100, bottom: 250, left: 50, right: 50 });
+            } else {
                 mapRef.current.panTo(riderLocation);
             }
         }
-    }, [riderLocation, activeDelivery, otherRiders]);
+    }, [activeDelivery?.status, riderLocation === null]); // Only refit on status change or losing/gaining signal
 
+    // Continuous centering (gentle)
+    useEffect(() => {
+        if (mapRef.current && riderLocation && activeDelivery) {
+            mapRef.current.panTo(riderLocation);
+        }
+    }, [riderLocation, activeDelivery]);
+
+    // Effect: Idle Mode Bounds fitting
+    useEffect(() => {
+        if (mapRef.current && riderLocation && !activeDelivery) {
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(riderLocation);
+            if (nearbyRiders?.length) {
+                nearbyRiders.slice(0, 5).forEach(r => {
+                    if (r.current_location_lat) bounds.extend({ lat: Number(r.current_location_lat), lng: Number(r.current_location_lng) });
+                });
+            }
+            mapRef.current.fitBounds(bounds, 150);
+        }
+    }, [riderLocation === null, activeDelivery === null]);
+
+    const onLoad = useCallback((map: google.maps.Map) => {
+        mapRef.current = map;
+        // Set initial orientation
+        map.setTilt(45);
+    }, []);
+
+    const onUnmount = useCallback(() => {
+        mapRef.current = null;
+    }, []);
+
+    const status: 'to_pickup' | 'to_drop' = activeDelivery
+        ? (['picked_up', 'delivering', 'on_way'].includes(activeDelivery.status) ? 'to_drop' : 'to_pickup')
+        : 'to_pickup';
+
+    // Verify google object is available from Provider
+    if (!window.google) {
+        return (
+            <div className="h-full w-full bg-[#0f172a] flex items-center justify-center p-8 text-center">
+                <div className="space-y-4">
+                    <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto" />
+                    <p className="text-white/40 text-xs font-black uppercase tracking-widest">Initialising HUD Systems...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <Card className="overflow-hidden border-border/50 bg-surface/50 backdrop-blur-md shadow-lg mb-4">
-            <CardContent className="p-0 relative h-[300px]">
+        <Card className="h-full w-full overflow-hidden border-none shadow-2xl relative bg-[#0f172a]">
+            {/* Ambient Background Glow for Map Container */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1e293b]/50 to-[#0f172a] pointer-events-none" />
+
+            <CardContent className="p-0 relative h-full bg-transparent">
                 <GoogleMap
                     mapContainerStyle={mapContainerStyle}
                     center={riderLocation || defaultCenter}
-                    zoom={14}
+                    zoom={zoom}
                     onLoad={onLoad}
-                    options={options}
+                    onUnmount={onUnmount}
+                    onZoomChanged={() => {
+                        if (mapRef.current && onZoomChange) {
+                            onZoomChange(mapRef.current.getZoom() || zoom);
+                        }
+                    }}
+                    options={{
+                        ...mapOptions,
+                        mapTypeId: mapType,
+                        tilt: 45,
+                        gestureHandling: 'greedy',
+                        clickableIcons: false,
+                        maxZoom: 20,
+                        minZoom: 3
+                    }}
                 >
-                    {/* Self Marker (Premium 3D Bike) */}
+                    {/* Rider Marker (Animated 3D-style Bike) */}
                     {riderLocation && (
                         <MarkerF
                             position={riderLocation}
                             icon={{
-                                url: 'https://cdn-icons-png.flaticon.com/512/9425/9425836.png', // Premium 3D Bike
-                                scaledSize: new google.maps.Size(50, 50),
-                                anchor: new google.maps.Point(25, 25)
+                                url: 'https://cdn-icons-png.flaticon.com/128/9425/9425836.png', // Premium Bike Icon
+                                scaledSize: new google.maps.Size(48, 48),
+                                anchor: new google.maps.Point(24, 24)
                             }}
-                            zIndex={1000}
+                            zIndex={100}
                         />
                     )}
 
-                    {/* Other Riders (Simple Bike - slightly smaller/faded) */}
-                    {otherRiders.map(rider => (
-                        rider.current_location_lat && (
+                    {/* Destination Marker */}
+                    {activeDelivery && (
+                        <MarkerF
+                            position={{
+                                lat: Number(status === 'to_pickup' ? activeDelivery.pickup_lat : activeDelivery.dropoff_lat),
+                                lng: Number(status === 'to_pickup' ? activeDelivery.pickup_lng : activeDelivery.dropoff_lng)
+                            }}
+                            icon={{
+                                url: status === 'to_pickup'
+                                    ? 'https://cdn-icons-png.flaticon.com/128/3177/3177440.png' // Shop
+                                    : 'https://cdn-icons-png.flaticon.com/128/149/149059.png', // House
+                                scaledSize: new google.maps.Size(40, 40),
+                                anchor: new google.maps.Point(20, 20)
+                            }}
+                        />
+                    )}
+
+                    {/* Nearby Riders Markers (Idle Mode) */}
+                    {!activeDelivery && nearbyRiders?.map(r => (
+                        r.current_location_lat && (
                             <MarkerF
-                                key={rider.id}
-                                position={{ lat: rider.current_location_lat, lng: rider.current_location_lng }}
+                                key={r.id}
+                                position={{ lat: Number(r.current_location_lat), lng: Number(r.current_location_lng) }}
+                                opacity={0.5}
                                 icon={{
-                                    url: 'https://cdn-icons-png.flaticon.com/512/3448/3448636.png', // Simple Flat Bike
-                                    scaledSize: new google.maps.Size(32, 32),
-                                    anchor: new google.maps.Point(16, 16)
-                                }}
-                                opacity={0.8}
-                                onClick={() => {
-                                    // Maybe show info window later?
+                                    url: 'https://cdn-icons-png.flaticon.com/128/3448/3448636.png',
+                                    scaledSize: new google.maps.Size(24, 24),
                                 }}
                             />
                         )
                     ))}
 
-                    {/* Directions */}
+                    {/* Polyline Route */}
                     {directions && (
                         <DirectionsRenderer
                             options={{
                                 directions: directions,
-                                suppressMarkers: true, // Use custom markers
+                                suppressMarkers: true,
                                 polylineOptions: {
-                                    strokeColor: "#10b981", // Emerald-500
+                                    strokeColor: status === 'to_pickup' ? "#f97316" : "#10b981", // Orange to Emerald
                                     strokeOpacity: 0.8,
                                     strokeWeight: 6,
                                 }
                             }}
                         />
                     )}
-
-                    {/* Pickup/Dropoff Markers */}
-                    {activeDelivery && (
-                        <>
-                            {activeDelivery.pickup_lat && (
-                                <MarkerF
-                                    position={{ lat: activeDelivery.pickup_lat, lng: activeDelivery.pickup_lng }}
-                                    label={{ text: "🏪", className: "text-2xl" }}
-                                    title="Pickup"
-                                />
-                            )}
-                            {activeDelivery.dropoff_lat && (
-                                <MarkerF
-                                    position={{ lat: activeDelivery.dropoff_lat, lng: activeDelivery.dropoff_lng }}
-                                    label={{ text: "📍", className: "text-2xl" }}
-                                    title="Dropoff"
-                                />
-                            )}
-                        </>
-                    )}
                 </GoogleMap>
 
-                {/* Status Overlay */}
-                <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-                    <div className="bg-black/80 backdrop-blur-md text-white px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 border border-white/10 shadow-lg">
-                        <div className={`w-2 h-2 rounded-full ${activeDelivery ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'} `} />
-                        {activeDelivery ? (
-                            <span>Live Route: <span className="text-emerald-300 font-bold">{activeDelivery.status === 'on_way' || activeDelivery.status === 'picked_up' ? 'Dropoff' : 'Pickup'}</span></span>
-                        ) : (
-                            <span>Searching for Orders</span>
-                        )}
-                    </div>
-
-                    {activeDelivery && (
+                {/* Overlays / HUD */}
+                <AnimatePresence>
+                    {!activeDelivery && (
                         <motion.div
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            className="bg-white/95 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-black/5 flex items-center gap-3 min-w-[200px]"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="absolute top-4 left-4 z-10"
                         >
-                            <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-                                <Navigation className="w-5 h-5 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Next Stop</p>
-                                <p className="text-sm font-bold text-gray-900 truncate">
-                                    {activeDelivery.status === 'on_way' || activeDelivery.status === 'picked_up'
-                                        ? activeDelivery.dropoff_address
-                                        : activeDelivery.pickup_address}
-                                </p>
+                            <div className="bg-black/60 backdrop-blur-xl text-white px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border border-white/10 flex items-center gap-2 shadow-2xl">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                                Monitoring Zones
                             </div>
                         </motion.div>
                     )}
-                </div>
-
-                {/* Contextual Stats (Idle only) */}
-                {!activeDelivery && otherRiders.length > 0 && (
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="absolute bottom-4 right-4 z-10 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold border border-white/20 flex items-center gap-2 shadow-2xl"
-                    >
-                        <div className="flex -space-x-2 mr-1">
-                            {[1, 2, 3].slice(0, Math.min(otherRiders.length, 3)).map(i => (
-                                <div key={i} className="w-6 h-6 rounded-full border-2 border-white/30 bg-primary/20" />
-                            ))}
-                        </div>
-                        <span>{otherRiders.length} Riders Active</span>
-                    </motion.div>
-                )}
+                </AnimatePresence>
             </CardContent>
         </Card>
     );

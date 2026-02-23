@@ -24,7 +24,9 @@ import {
   FileText,
   ArrowUpCircle,
   TrendingUp,
-  CreditCard
+  CreditCard,
+  ShoppingCart,
+  ClipboardList
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -81,6 +83,13 @@ const menuGroups = [
     ]
   },
   {
+    title: "Grocery Master",
+    items: [
+      { id: "grocery-management", label: "Grocery Control", icon: ShoppingCart },
+      { id: "grocery-orders", label: "Grocery Orders", icon: ShoppingBag },
+    ]
+  },
+  {
     title: "Comms & Help",
     items: [
       { id: "support", label: "Customer Support", icon: Headphones, badgeId: "support" },
@@ -89,6 +98,13 @@ const menuGroups = [
       { id: "push-notifications", label: "Push Center", icon: Send },
       { id: "promo-banner", label: "Marketing Banners", icon: Sparkles },
       { id: "explore-control", label: "Discovery Engine", icon: LayoutDashboard },
+    ]
+  },
+  {
+    title: "Admin Control",
+    items: [
+      { id: "audit-logs", label: "Audit Logs", icon: FileText },
+      { id: "system-settings", label: "System Settings", icon: Settings },
     ]
   }
 ];

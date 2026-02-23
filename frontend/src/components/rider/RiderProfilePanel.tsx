@@ -18,7 +18,8 @@ import {
   X,
   Loader2,
   Home,
-  Moon
+  Moon,
+  Wallet
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
@@ -99,6 +100,12 @@ const RiderProfilePanel = ({
         { icon: CreditCard, label: 'CNIC / Documents', value: riderData.cnic ? 'Verified' : 'Not Added', status: riderData.cnic ? 'success' : 'warning' },
         { icon: Car, label: 'Vehicle Info', value: riderProfile.vehicle_type || 'Bike' },
         { icon: Phone, label: 'Phone Number', value: riderProfile.phone },
+      ]
+    },
+    {
+      section: 'Finance',
+      items: [
+        { icon: Wallet, label: 'Wallet & Earnings', action: true, onClick: () => { onClose(); navigate('/rider/wallet'); } },
       ]
     },
     {

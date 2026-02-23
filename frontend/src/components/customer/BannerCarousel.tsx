@@ -10,10 +10,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const BannerCarousel: React.FC = () => {
+interface BannerCarouselProps {
+  type?: 'home' | 'category' | 'grocery';
+}
+
+const BannerCarousel: React.FC<BannerCarouselProps> = ({ type = 'home' }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { data: banners, isLoading } = useActivePromoBanners('home');
+  const { data: banners, isLoading } = useActivePromoBanners(type);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const isUrdu = i18n.language === 'ur';

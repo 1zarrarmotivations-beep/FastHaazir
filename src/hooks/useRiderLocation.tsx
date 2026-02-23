@@ -7,6 +7,9 @@ import { toast } from 'sonner';
 interface LocationUpdate {
   lat: number;
   lng: number;
+  heading?: number | null;
+  speed?: number | null;      // km/h
+  accuracy?: number | null;  // metres
 }
 
 // Hook to track and update rider's live location
@@ -17,7 +20,7 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
   const lastUpdateRef = useRef<number>(0);
   const [isTracking, setIsTracking] = useState(false);
   const [lastLocation, setLastLocation] = useState<LocationUpdate | null>(null);
-  const UPDATE_INTERVAL = 5000; // Update every 5 seconds for more real-time tracking
+  const UPDATE_INTERVAL = 3000; // 3-second interval for smooth navigation
 
   const updateLocationMutation = useMutation({
     mutationFn: async ({ lat, lng }: LocationUpdate) => {
@@ -33,6 +36,7 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
           updated_at: new Date().toISOString(),
         })
         .eq('id', riderId);
+      // Note: heading/speed/accuracy are local-only for now (no DB column required)
 
       if (error) {
         console.error('[useRiderLocation] Update error:', error);
@@ -41,8 +45,7 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
 
       console.log('[useRiderLocation] Location updated successfully');
     },
-    onSuccess: (_, variables) => {
-      setLastLocation(variables);
+    onSuccess: () => {
       // Invalidate rider queries to update map views
       queryClient.invalidateQueries({ queryKey: ['online-riders'] });
       queryClient.invalidateQueries({ queryKey: ['rider-location', riderId] });
@@ -55,17 +58,22 @@ export const useRiderLocation = (riderId: string | undefined, isOnline: boolean)
   const handlePositionUpdate = useCallback(
     (position: GeolocationPosition) => {
       const now = Date.now();
-      
-      // Throttle updates to prevent overwhelming the database
-      if (now - lastUpdateRef.current < UPDATE_INTERVAL) return;
-      
-      lastUpdateRef.current = now;
-      
-      const newLocation = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
+
+      // Always update local state immediately (no throttle for local UI)
+      const { latitude, longitude, heading, speed, accuracy } = position.coords;
+      const newLocation: LocationUpdate = {
+        lat: latitude,
+        lng: longitude,
+        heading: heading ?? null,
+        speed: speed != null ? speed * 3.6 : null, // m/s -> km/h
+        accuracy: accuracy ?? null,
       };
-      
+      setLastLocation(newLocation);
+
+      // Throttle DB writes
+      if (now - lastUpdateRef.current < UPDATE_INTERVAL) return;
+      lastUpdateRef.current = now;
+
       console.log('[useRiderLocation] Position received:', newLocation);
       updateLocationMutation.mutate(newLocation);
     },

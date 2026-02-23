@@ -8,7 +8,7 @@ export type OrderStatus = 'placed' | 'preparing' | 'on_way' | 'delivered' | 'can
 
 export interface RiderRequest {
   id: string;
-  type?: 'rider_request' | 'order';
+  type?: 'rider_request' | 'order' | 'grocery';
   customer_id: string | null;
   customer_phone: string | null;
   rider_id: string | null;
@@ -160,11 +160,44 @@ export const usePendingRequests = () => {
         commission: order.commission,
       }));
 
+      // Fetch grocery orders
+      const { data: groceryOrders, error: groceryError } = await supabase
+        .from('grocery_orders')
+        .select('*, profiles!inner(phone)')
+        .is('rider_id', null)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
+      if (groceryError) {
+        console.error('Error fetching grocery orders:', groceryError);
+      }
 
+      const formattedGroceryOrders: RiderRequest[] = (groceryOrders || []).map((order: any) => ({
+        id: order.id,
+        type: 'grocery',
+        customer_id: order.customer_id,
+        customer_phone: order.profiles?.phone || null,
+        rider_id: order.rider_id,
+        status: order.status as OrderStatus,
+        pickup_address: 'Fast Haazir Grocery Store',
+        dropoff_address: order.delivery_address || 'Customer Location',
+        pickup_lat: null, // Grocery store location could be added to settings
+        pickup_lng: null,
+        dropoff_lat: null,
+        dropoff_lng: null,
+        item_description: 'Grocery Delivery',
+        item_image: null,
+        total: Number(order.total_amount || 0),
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        business_name: 'Grocery Store',
+        items: [],
+        rider_earning: 100, // Static for now
+        commission: 0,
+      }));
 
       // Combine and sort by created_at
-      const allRequests = [...formattedRiderRequests, ...formattedBusinessOrders].sort(
+      const allRequests = [...formattedRiderRequests, ...formattedBusinessOrders, ...formattedGroceryOrders].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -250,11 +283,33 @@ export const useMyActiveDeliveries = () => {
         commission: Number(order.commission || 0),
       }));
 
+      // Fetch active grocery orders
+      const { data: groceryOrders, error: groceryError } = await supabase
+        .from('grocery_orders')
+        .select('*, profiles!inner(phone)')
+        .eq('rider_id', riderProfile.id)
+        .in('status', ['pending', 'preparing', 'on_way'])
+        .order('created_at', { ascending: false });
 
-
+      const formattedGroceryOrders: RiderRequest[] = (groceryOrders || []).map((order: any) => ({
+        id: order.id,
+        type: 'grocery',
+        customer_id: order.customer_id,
+        customer_phone: order.profiles?.phone || null,
+        rider_id: order.rider_id,
+        status: order.status as OrderStatus,
+        pickup_address: 'Fast Haazir Grocery Store',
+        dropoff_address: order.delivery_address || 'Customer Location',
+        total: Number(order.total_amount || 0),
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        business_name: 'Grocery Store',
+        items: [],
+        rider_earning: 100,
+      }));
 
       // Combine and sort
-      const allDeliveries = [...formattedRiderRequests, ...formattedBusinessOrders].sort(
+      const allDeliveries = [...formattedRiderRequests, ...formattedBusinessOrders, ...formattedGroceryOrders].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
@@ -336,9 +391,28 @@ export const useMyCompletedDeliveries = () => {
         items: Array.isArray(order.items) ? order.items : [],
       }));
 
+      // Fetch completed grocery orders
+      const { data: groceryOrders } = await supabase
+        .from('grocery_orders')
+        .select('*')
+        .eq('rider_id', riderProfile.id)
+        .eq('status', 'delivered')
+        .limit(20);
+
+      const formattedGroceryOrders: RiderRequest[] = (groceryOrders || []).map((order: any) => ({
+        id: order.id,
+        type: 'grocery',
+        customer_id: order.customer_id,
+        status: order.status as OrderStatus,
+        pickup_address: 'Grocery Store',
+        dropoff_address: order.delivery_address || '',
+        total: Number(order.total_amount || 0),
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+      }));
 
       // Combine and sort
-      const allDeliveries = [...formattedRiderRequests, ...formattedBusinessOrders].sort(
+      const allDeliveries = [...formattedRiderRequests, ...formattedBusinessOrders, ...formattedGroceryOrders].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ).slice(0, 20);
 
@@ -356,9 +430,21 @@ export const useAcceptRequest = () => {
     mutationFn: async ({ requestId, requestType }: { requestId: string; requestType: 'rider_request' | 'order' }) => {
       if (!riderProfile) throw new Error('Rider profile not found');
 
-      let customerLat: number | null = null;
-      let customerLng: number | null = null;
       let customerId: string | null = null;
+
+      if (requestType === ('grocery' as any)) {
+        const { error } = await supabase
+          .from('grocery_orders')
+          .update({
+            rider_id: riderProfile.id,
+            status: 'preparing'
+          })
+          .eq('id', requestId)
+          .is('rider_id', null);
+
+        if (error) throw error;
+        return { success: true };
+      }
 
       if (requestType === 'order') {
         // Handle business order - First-Accept-Wins logic
@@ -487,145 +573,101 @@ export const useUpdateDeliveryStatus = () => {
       if (!riderProfile) throw new Error('Rider profile not found');
 
       let customerId: string | null = null;
-
-      // Try to determine type if not provided
       const type = requestType || 'rider_request';
 
+      if (type === ('grocery' as any)) {
+        const { error } = await supabase
+          .from('grocery_orders')
+          .update({ status })
+          .eq('id', requestId);
+
+        if (error) throw error;
+
+        // Trigger payment for grocery
+        if (status === 'delivered') {
+          await supabase.rpc('create_rider_payment_grocery', { _order_id: requestId });
+        }
+
+        return { success: true };
+      }
+
+      // Use Secure RPC for status updates (Task 5)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('secure_update_order_status' as any, {
+        p_id: requestId,
+        p_new_status: status,
+        p_rider_id: riderProfile.id,
+        p_type: type
+      });
+
+      if (rpcError) {
+        console.error('Error updating delivery status via RPC:', rpcError);
+        throw new Error(rpcError.message || 'Failed to update delivery status');
+      }
+
+      const result = rpcData as unknown as { success: boolean, error?: string, status?: string };
+
+      if (!result.success) {
+        console.error('Secure update rejected:', result.error);
+        throw new Error(result.error || 'Permission denied or distance too far');
+      }
+
+      // Handle post-update success (Notifications & Payments)
+      // First, get customer ID for notifications
+      // customerId is already declared above at line 489
       if (type === 'order') {
-        // Update business order
         const { data: order } = await supabase
           .from('orders')
           .select('customer_id')
           .eq('id', requestId)
           .single();
-
         customerId = order?.customer_id || null;
-
-        const { data, error } = await (supabase
-          .from('orders')
-          .update({ status } as any)
-          .eq('id', requestId)
-          .eq('rider_id', riderProfile.id)
-          .select()
-          .single() as any);
-
-
-        if (error) {
-          console.error('Error updating order status:', error);
-          throw error;
-        }
-
-        // Create notification for customer
-        if (customerId) {
-          let title = '';
-          let message = '';
-
-          switch (status) {
-            case 'on_way':
-              title = '🚀 Your Order is On The Way!';
-              message = 'Your rider is delivering your order';
-              break;
-            case 'delivered':
-              title = '✅ Order Delivered!';
-              message = 'Your order has been delivered successfully';
-              // Create payment record using secure RPC
-              try {
-                await supabase.rpc('create_rider_payment' as any, {
-                  _order_id: requestId,
-                  _rider_request_id: null,
-                } as any);
-              } catch (paymentError) {
-                console.log('Payment creation:', paymentError);
-              }
-
-              break;
-            case 'cancelled':
-              title = '❌ Order Cancelled';
-              message = 'Your order has been cancelled';
-              break;
-          }
-
-          if (title) {
-            await createNotification(
-              customerId,
-              title,
-              message,
-              'order',
-              requestId,
-              undefined
-            );
-          }
-        }
-
-        return data;
       } else {
-        // Update rider request (existing logic)
         const { data: request } = await supabase
           .from('rider_requests')
           .select('customer_id')
           .eq('id', requestId)
           .single();
-
         customerId = request?.customer_id || null;
-
-        const { data, error } = await (supabase
-          .from('rider_requests')
-          .update({ status } as any)
-          .eq('id', requestId)
-          .eq('rider_id', riderProfile.id)
-          .select()
-          .single() as any);
-
-
-        if (error) {
-          console.error('Error updating delivery status:', error);
-          throw error;
-        }
-
-        // Create notification for customer
-        if (customerId) {
-          let title = '';
-          let message = '';
-
-          switch (status) {
-            case 'on_way':
-              title = '🚀 Rider On The Way!';
-              message = 'Your rider is on the way to deliver your package';
-              break;
-            case 'delivered':
-              title = '✅ Delivery Completed!';
-              message = 'Your package has been delivered successfully';
-              // Create payment record using secure RPC
-              try {
-                await supabase.rpc('create_rider_payment' as any, {
-                  _order_id: null,
-                  _rider_request_id: requestId,
-                } as any);
-              } catch (paymentError) {
-                console.log('Payment creation:', paymentError);
-              }
-
-              break;
-            case 'cancelled':
-              title = '❌ Delivery Cancelled';
-              message = 'Your delivery has been cancelled';
-              break;
-          }
-
-          if (title) {
-            await createNotification(
-              customerId,
-              title,
-              message,
-              'order',
-              undefined,
-              requestId
-            );
-          }
-        }
-
-        return data;
       }
+
+      if (customerId) {
+        let title = '';
+        let message = '';
+
+        if (status === 'on_way') {
+          title = type === 'order' ? '🚀 Your Order is On The Way!' : '🚀 Rider On The Way!';
+          message = type === 'order' ? 'Your rider is delivering your order' : 'Your rider is on the way to deliver your package';
+        } else if (status === 'delivered') {
+          title = type === 'order' ? '✅ Order Delivered!' : '✅ Delivery Completed!';
+          message = type === 'order' ? 'Your order has been delivered successfully' : 'Your package has been delivered successfully';
+
+          // Legacy payment trigger (keep for compatibility if create_rider_payment isn't in RPC yet)
+          try {
+            await supabase.rpc('create_rider_payment', {
+              _order_id: type === 'order' ? requestId : null,
+              _rider_request_id: type === 'rider_request' ? requestId : null,
+            });
+          } catch (e) {
+            console.log('Payment RPC check (likely already handled by trigger or status change):', e);
+          }
+        } else if (status === 'cancelled') {
+          title = type === 'order' ? '❌ Order Cancelled' : '❌ Delivery Cancelled';
+          message = type === 'order' ? 'Your order has been cancelled' : 'Your delivery has been cancelled';
+        }
+
+        if (title) {
+          await createNotification(
+            customerId,
+            title,
+            message,
+            'order',
+            type === 'order' ? requestId : undefined,
+            type === 'rider_request' ? requestId : undefined
+          );
+        }
+      }
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-active-deliveries'] });

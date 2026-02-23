@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, User, Headphones, LayoutGrid, ClipboardList } from 'lucide-react';
+import { Home, User, Headphones, LayoutGrid, ClipboardList, ShoppingCart } from 'lucide-react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { icon: Home, label: 'Home', path: '/', id: 'home' },
   { icon: ClipboardList, label: 'Orders', path: '/orders', id: 'orders' },
-  { icon: LayoutGrid, label: 'Explore', path: '/categories', id: 'center', isCenter: true },
+  { icon: ShoppingCart, label: 'Grocery', path: '/grocery', id: 'center', isCenter: true },
   { icon: Headphones, label: 'Support', path: '/support', id: 'support' },
   { icon: User, label: 'Profile', path: '/profile', id: 'profile' },
 ];

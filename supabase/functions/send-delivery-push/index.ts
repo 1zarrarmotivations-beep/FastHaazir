@@ -56,7 +56,7 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+
     if (authError || !user) {
       throw new Error('Unauthorized');
     }
@@ -152,8 +152,8 @@ serve(async (req) => {
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
       console.log('OneSignal not configured, skipping push notification');
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           pushed: false,
           reason: 'Push not configured',
         }),
@@ -163,7 +163,7 @@ serve(async (req) => {
 
     // Get device tokens for the customer
     const { data: tokens } = await supabase
-      .from('push_device_tokens')
+      .from('device_tokens')
       .select('device_token')
       .eq('user_id', customerId);
 
@@ -172,8 +172,8 @@ serve(async (req) => {
     if (playerIds.length === 0) {
       console.log('No device tokens found for customer');
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           pushed: false,
           reason: 'No device tokens',
         }),
@@ -182,9 +182,9 @@ serve(async (req) => {
     }
 
     // Determine action route
-    const actionRoute = orderId 
+    const actionRoute = orderId
       ? `/orders?highlight=${orderId}`
-      : riderRequestId 
+      : riderRequestId
         ? `/orders?highlight=${riderRequestId}`
         : '/orders';
 
@@ -194,7 +194,7 @@ serve(async (req) => {
       include_player_ids: playerIds,
       headings: { en: title },
       contents: { en: message },
-      data: { 
+      data: {
         route: actionRoute,
         eventType,
         orderId,
@@ -217,22 +217,28 @@ serve(async (req) => {
     const success = !!result.id;
     const recipientCount = result.recipients || 0;
 
-    // Log the push attempt
+    // Log the push attempt (v2 table: notifications_log)
     await supabase
-      .from('push_notifications')
+      .from('notifications_log')
       .insert({
         title,
         message,
+        user_role: 'customer',
         target_user_id: customerId,
-        action_route: actionRoute,
-        sent_by: user.id,
-        success_count: success ? recipientCount : 0,
-        failure_count: success ? 0 : playerIds.length,
+        status: success ? 'sent' : 'failed',
+        response_data: {
+          one_signal_id: result.id,
+          recipients: recipientCount,
+          action_route: actionRoute,
+          event_type: eventType,
+          order_id: orderId,
+          rider_request_id: riderRequestId
+        }
       });
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         pushed: success,
         recipients: recipientCount,
       }),

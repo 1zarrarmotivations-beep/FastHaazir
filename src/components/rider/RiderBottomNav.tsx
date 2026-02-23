@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
-import { 
-  Home, 
-  Package, 
-  Wallet, 
+import {
+  Home,
+  Package,
+  Wallet,
   User,
+  MapPin,
+  Gauge,
 } from 'lucide-react';
 
-export type RiderTab = 'home' | 'orders' | 'earnings' | 'profile';
+export type RiderTab = 'home' | 'orders' | 'map' | 'speed' | 'earnings' | 'profile';
 
 interface RiderBottomNavProps {
   activeTab: RiderTab;
@@ -19,6 +21,8 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
   const tabs: { id: RiderTab; label: string; icon: typeof Home; badge?: number }[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'orders', label: 'Orders', icon: Package, badge: pendingCount + activeCount },
+    { id: 'map', label: 'Navigate', icon: MapPin, badge: activeCount > 0 ? activeCount : undefined },
+    { id: 'speed', label: 'Speed', icon: Gauge },
     { id: 'earnings', label: 'Earnings', icon: Wallet },
     { id: 'profile', label: 'Profile', icon: User },
   ];
@@ -67,18 +71,17 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
               )}
 
               <div className="relative z-10">
-                <Icon 
-                  className={`w-6 h-6 transition-all duration-300 ${
-                    isActive 
-                      ? 'text-orange-400' 
-                      : 'text-white/35 group-hover:text-white/50'
-                  }`}
-                  style={isActive ? { 
+                <Icon
+                  className={`w-6 h-6 transition-all duration-300 ${isActive
+                    ? 'text-orange-400'
+                    : 'text-white/35 group-hover:text-white/50'
+                    }`}
+                  style={isActive ? {
                     filter: 'drop-shadow(0 0 8px rgba(255,106,0,0.6))'
                   } : {}}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                
+
                 {/* Premium Badge */}
                 {tab.badge && tab.badge > 0 && (
                   <motion.div
@@ -94,9 +97,8 @@ const RiderBottomNav = ({ activeTab, onTabChange, pendingCount, activeCount }: R
                 )}
               </div>
 
-              <span className={`text-[10px] mt-1.5 font-semibold transition-colors z-10 ${
-                isActive ? 'text-orange-400' : 'text-white/35'
-              }`}>
+              <span className={`text-[10px] mt-1.5 font-semibold transition-colors z-10 ${isActive ? 'text-orange-400' : 'text-white/35'
+                }`}>
                 {tab.label}
               </span>
             </motion.button>

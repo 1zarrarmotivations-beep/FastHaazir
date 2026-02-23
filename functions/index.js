@@ -10,6 +10,9 @@ const XLSX = require('xlsx');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
+// Import schedule processor
+const scheduleProcessor = require('./scheduleProcessor');
+
 // Config for Firebase Functions
 setGlobalOptions({ maxInstances: 10 });
 
@@ -1433,3 +1436,6 @@ app.post('/api/admin/payments/reject', verifyAdminMiddleware, async (req, res) =
 
 // Expose Express App as a single Cloud Function
 exports.api = onRequest({ timeoutSeconds: 60, region: "us-central1" }, app);
+
+// Export scheduled processor (runs every minute)
+exports.processScheduledOrders = scheduleProcessor;

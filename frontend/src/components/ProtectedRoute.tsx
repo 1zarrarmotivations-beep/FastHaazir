@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useAdmin";
 import { Loader2 } from "lucide-react";
 
-type AllowedRole = "admin" | "rider" | "business" | "customer";
+type AllowedRole = "super_admin" | "admin" | "rider" | "business" | "customer";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -89,7 +89,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   // Super Admin bypass: If allowed roles includes 'admin', super_admin also has access
-  const hasAccess = allowedRoles.includes(effectiveRole as AllowedRole) ||
+  // Super Admin bypass: If allowed roles includes 'admin', super_admin also has access
+  const isAllowedManually = allowedRoles.includes(effectiveRole as AllowedRole);
+  const hasAccess = isAllowedManually ||
     (isSuperAdmin && (allowedRoles.includes('admin') || allowedRoles.length === 0));
 
   console.log("[ProtectedRoute] Access check:", {

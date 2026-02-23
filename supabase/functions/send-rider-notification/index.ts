@@ -95,8 +95,8 @@ Deno.serve(async (req) => {
         const riderIds = onlineRiders.map(r => r.id)
 
         const { data: deviceTokens, error: tokenError } = await supabase
-            .from('push_device_tokens')
-            .select('token, rider_id')
+            .from('device_tokens')
+            .select('device_token, rider_id')
             .in('rider_id', riderIds)
 
         if (tokenError) {
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         if (deviceTokens && deviceTokens.length > 0) {
             for (const deviceToken of deviceTokens) {
                 const result = await sendPushNotification(
-                    deviceToken.token,
+                    deviceToken.device_token,
                     title,
                     body,
                     notificationData
@@ -151,14 +151,18 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Log the notification in database
-        await supabase.from('push_notifications').insert({
+        // Log the notification in database (v2 table: notifications_log)
+        await supabase.from('notifications_log').insert({
             title,
-            body,
-            notification_type: 'new_order',
-            target_role: 'rider',
-            sent_count: results.length,
-            metadata: { order_id, order_type }
+            message: body,
+            user_role: 'rider',
+            status: results.length > 0 ? 'sent' : 'none_online',
+            response_data: {
+                results,
+                order_id,
+                order_type,
+                sent_count: results.length
+            }
         })
 
         console.log(`Sent ${results.length} push notifications`)

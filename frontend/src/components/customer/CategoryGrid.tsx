@@ -33,12 +33,6 @@ const CategoryGrid: React.FC = () => {
         <h2 className="font-bold text-foreground">
           {t('home.categories', 'اقسام')} 🍽️
         </h2>
-        <button
-          onClick={() => navigate('/categories')}
-          className="text-xs text-primary font-medium"
-        >
-          {t('common.viewAll', 'سب دیکھیں')}
-        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-3">

@@ -144,15 +144,31 @@ export const useDeleteAddress = () => {
 
 export const useSetDefaultAddress = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.rpc as any)('set_default_customer_address', {
-        p_address_id: id
-      });
+      if (!user?.id) throw new Error("Not authenticated");
+
+      // First, unset all defaults for this user
+      const { error: unsetError } = await supabase
+        .from("customer_addresses")
+        .update({ is_default: false })
+        .eq("user_id", user.id)
+        .eq("is_default", true);
+
+      if (unsetError) throw unsetError;
+
+      // Then set the selected address as default
+      const { data, error } = await supabase
+        .from("customer_addresses")
+        .update({ is_default: true })
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
-      return true;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer-addresses"] });

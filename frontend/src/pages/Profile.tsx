@@ -15,6 +15,7 @@ import {
   Bike,
   Store,
   ShieldCheck,
+  Calendar,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -212,6 +213,14 @@ const Profile: React.FC = () => {
         action: () => navigate('/history'),
         color: 'text-orange-500',
         bgColor: 'bg-orange-500/10',
+        showFor: 'customer' as const,
+      },
+      {
+        icon: Calendar,
+        label: 'Scheduled Orders',
+        action: () => navigate('/scheduled-orders'),
+        color: 'text-purple-500',
+        bgColor: 'bg-purple-500/10',
         showFor: 'customer' as const,
       },
       {

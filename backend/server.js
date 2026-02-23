@@ -7,6 +7,9 @@ const { createClient } = require('@supabase/supabase-js');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
+// Import scheduling routes
+const schedulingRouter = require('./scheduling');
+
 // Initialize Firebase Admin
 // Expects FIREBASE_SERVICE_ACCOUNT in .env as a JSON string
 let firebaseInitialized = false;
@@ -1026,5 +1029,247 @@ app.post('/api/push/send', verifyAdmin, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// ==========================================
+// CUSTOMER ADDRESSES API
+// ==========================================
+
+// Verify user authentication middleware for address endpoints
+const verifyUser = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ error: 'No auth token' });
+
+        const token = authHeader.split(' ')[1];
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        req.user = user;
+        next();
+    } catch (e) {
+        console.error('Auth error:', e);
+        res.status(500).json({ error: 'Authentication failed' });
+    }
+};
+
+// Get all addresses for the authenticated user
+app.get('/api/addresses', verifyUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const { data, error } = await supabase
+            .from('customer_addresses')
+            .select('*')
+            .eq('user_id', userId)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        res.json({ success: true, addresses: data });
+    } catch (error) {
+        console.error('Get addresses error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get default address for the authenticated user
+app.get('/api/addresses/default', verifyUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const { data, error } = await supabase
+            .from('customer_addresses')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_default', true)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        res.json({ success: true, address: data });
+    } catch (error) {
+        console.error('Get default address error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create a new address
+app.post('/api/addresses', verifyUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { label, address_text, lat, lng, is_default } = req.body;
+
+        if (!label || !address_text) {
+            return res.status(400).json({ error: 'Label and address_text are required' });
+        }
+
+        // If this is set as default, first unset all other defaults
+        if (is_default) {
+            await supabase
+                .from('customer_addresses')
+                .update({ is_default: false })
+                .eq('user_id', userId);
+        }
+
+        const { data, error } = await supabase
+            .from('customer_addresses')
+            .insert({
+                user_id: userId,
+                label,
+                address_text,
+                lat: lat || null,
+                lng: lng || null,
+                is_default: is_default || false
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({ success: true, address: data });
+    } catch (error) {
+        console.error('Create address error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update an address
+app.put('/api/addresses/:id', verifyUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { label, address_text, lat, lng, is_default } = req.body;
+
+        // Verify the address belongs to the user
+        const { data: existing } = await supabase
+            .from('customer_addresses')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Address not found' });
+        }
+
+        if (existing.user_id !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        // If setting as default, first unset all other defaults
+        if (is_default) {
+            await supabase
+                .from('customer_addresses')
+                .update({ is_default: false })
+                .eq('user_id', userId);
+        }
+
+        const updates = {};
+        if (label) updates.label = label;
+        if (address_text) updates.address_text = address_text;
+        if (lat !== undefined) updates.lat = lat;
+        if (lng !== undefined) updates.lng = lng;
+        if (is_default !== undefined) updates.is_default = is_default;
+
+        const { data, error } = await supabase
+            .from('customer_addresses')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({ success: true, address: data });
+    } catch (error) {
+        console.error('Update address error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete an address
+app.delete('/api/addresses/:id', verifyUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        // Verify the address belongs to the user
+        const { data: existing } = await supabase
+            .from('customer_addresses')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Address not found' });
+        }
+
+        if (existing.user_id !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        const { error } = await supabase
+            .from('customer_addresses')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        res.json({ success: true, message: 'Address deleted' });
+    } catch (error) {
+        console.error('Delete address error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Set an address as default
+app.post('/api/addresses/:id/set-default', verifyUser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+
+        // Verify the address belongs to the user
+        const { data: existing } = await supabase
+            .from('customer_addresses')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
+        if (!existing) {
+            return res.status(404).json({ error: 'Address not found' });
+        }
+
+        if (existing.user_id !== userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        // First unset all defaults
+        await supabase
+            .from('customer_addresses')
+            .update({ is_default: false })
+            .eq('user_id', userId);
+
+        // Set the new default
+        const { data, error } = await supabase
+            .from('customer_addresses')
+            .update({ is_default: true })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({ success: true, address: data });
+    } catch (error) {
+        console.error('Set default address error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Mount scheduling routes
+app.use('/api', schedulingRouter);
 
 app.listen(port, () => console.log(`Backend server running on port ${port}`));

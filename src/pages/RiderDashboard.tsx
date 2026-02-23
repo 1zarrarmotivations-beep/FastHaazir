@@ -45,17 +45,19 @@ import RiderBottomNav, { RiderTab } from '@/components/rider/RiderBottomNav';
 import RiderHeatmap from '@/components/rider/RiderHeatmap';
 import RiderWalletPanel from '@/components/rider/RiderWalletPanel';
 import RiderProfilePanel from '@/components/rider/RiderProfilePanel';
+import RiderLiveMap from '@/components/rider/RiderLiveMap';
+import SpeedMeter from '@/components/rider/SpeedMeter';
 
 /* ================= PRODUCTION BUILD MARKER ================= */
-const BUILD_VERSION = 'PROD-v5.0';
-const BUILD_HASH = 'b5f3a7c2e9d1' + Date.now().toString(36);
-const BUILD_TIMESTAMP = '2026-01-26T14:00:00Z';
+const BUILD_VERSION = 'PROD-v7.0-SPEEDMETER';
+const BUILD_HASH = 'speed2026feb22_' + Date.now().toString(36);
+const BUILD_TIMESTAMP = '2026-02-22T04:22:00+05:00';
 const BUILD_VERIFIED = true;
-console.log('🔥 RIDER PROD BUILD v4.0 ACTIVE 🔥');
-console.log('🔥 PRODUCTION BUILD MARKER:', BUILD_VERSION, BUILD_HASH);
-console.log('🔥 TIMESTAMP:', BUILD_TIMESTAMP);
-console.log('🔥 SOURCE: src/pages/RiderDashboard.tsx');
-console.log('🔥 PREMIUM DARK MODE ACTIVE - PRODUCTION');
+console.log('🏍️ SPEEDMETER BUILD v7.0 ACTIVE 🏍️');
+console.log('🏍️ PRODUCTION BUILD MARKER:', BUILD_VERSION, BUILD_HASH);
+console.log('🏍️ TIMESTAMP:', BUILD_TIMESTAMP);
+console.log('🏍️ LIVE GPS SPEED + NAVIGATION ACTIVE');
+console.log('🏍️ SOURCE: src/pages/RiderDashboard.tsx');
 /* ============================================================ */
 
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -94,7 +96,7 @@ const RiderDashboard = () => {
     riderProfile?.id,
     riderProfile?.is_online ?? null
   );
-  useRiderLocation(
+  const { lastLocation, isTracking } = useRiderLocation(
     riderProfile?.id,
     riderProfile?.is_online || false
   );
@@ -173,7 +175,7 @@ const RiderDashboard = () => {
       <div className="min-h-screen rider-bg flex flex-col items-center justify-center gap-4">
         <AlertCircle className="w-16 h-16 text-orange-400" />
         <p className="text-white/80 text-lg">Please login to continue</p>
-        <Button 
+        <Button
           onClick={() => navigate('/auth')}
           className="gradient-rider-primary text-white font-semibold px-8 py-3 rounded-2xl"
         >
@@ -238,9 +240,9 @@ const RiderDashboard = () => {
         className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center"
       >
         {/* Verification Badge */}
-        <motion.div 
+        <motion.div
           className="badge-verified px-3 py-1.5 rounded-full flex items-center gap-2"
-          animate={{ 
+          animate={{
             boxShadow: [
               '0 0 16px rgba(16, 185, 129, 0.2)',
               '0 0 24px rgba(16, 185, 129, 0.4)',
@@ -346,7 +348,7 @@ const RiderDashboard = () => {
                       key={delivery.id}
                       request={delivery}
                       variant="active"
-                      onUpdateStatus={(requestId, status, requestType) => 
+                      onUpdateStatus={(requestId, status, requestType) =>
                         updateStatus.mutate({ requestId, status, requestType })
                       }
                       isLoading={updateStatus.isPending}
@@ -393,7 +395,7 @@ const RiderDashboard = () => {
                     No Orders Right Now
                   </h3>
                   <p className="text-white/50 text-sm">
-                    {riderProfile?.is_online 
+                    {riderProfile?.is_online
                       ? 'Stay online to receive new delivery requests'
                       : 'Go online to start receiving orders'
                     }
@@ -424,6 +426,76 @@ const RiderDashboard = () => {
                   <p className="text-white/50">No completed deliveries yet</p>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {activeTab === 'map' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="-mx-4"
+            >
+              {/* Full navigation map for rider */}
+              <RiderLiveMap
+                riderLat={lastLocation?.lat ?? riderProfile?.current_location_lat}
+                riderLng={lastLocation?.lng ?? riderProfile?.current_location_lng}
+                riderHeading={lastLocation?.heading ?? null}
+                riderSpeed={lastLocation?.speed ?? null}
+                riderAccuracy={lastLocation?.accuracy ?? null}
+                pickupLat={activeDeliveries[0]?.pickup_lat}
+                pickupLng={activeDeliveries[0]?.pickup_lng}
+                dropoffLat={activeDeliveries[0]?.dropoff_lat}
+                dropoffLng={activeDeliveries[0]?.dropoff_lng}
+                pickupAddress={activeDeliveries[0]?.pickup_address}
+                dropoffAddress={activeDeliveries[0]?.dropoff_address}
+                deliveryStatus={activeDeliveries[0]?.status as any}
+                vehicleType={riderProfile?.vehicle_type || 'bike'}
+                currentSpeed={lastLocation?.speed ?? 0}
+                height="calc(100vh - 180px)"
+              />
+              {/* Address info below map */}
+              {activeDeliveries.length > 0 && (
+                <div className="mt-3 px-4 space-y-2">
+                  <div className="glass-card rounded-2xl p-3 flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-emerald-400 shadow shadow-emerald-400/60 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-white/40 text-xs uppercase tracking-wide">Pickup</p>
+                      <p className="text-white/90 text-sm font-medium truncate">{activeDeliveries[0]?.pickup_address}</p>
+                    </div>
+                  </div>
+                  <div className="glass-card rounded-2xl p-3 flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-red-400 shadow shadow-red-400/60 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-white/40 text-xs uppercase tracking-wide">Dropoff</p>
+                      <p className="text-white/90 text-sm font-medium truncate">{activeDeliveries[0]?.dropoff_address}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {activeDeliveries.length === 0 && (
+                <div className="mt-4 px-4">
+                  <div className="glass-card rounded-2xl p-6 text-center">
+                    <Navigation className="w-10 h-10 text-orange-400/60 mx-auto mb-3" />
+                    <p className="text-white/60 text-sm">No active delivery</p>
+                    <p className="text-white/30 text-xs mt-1">Your live position is shown on the map</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'speed' && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="-mx-4"
+            >
+              <SpeedMeter
+                externalSpeed={lastLocation?.speed ?? null}
+                externalHeading={lastLocation?.heading ?? null}
+                externalAccuracy={lastLocation?.accuracy ?? null}
+                isTracking={isTracking}
+              />
             </motion.div>
           )}
 

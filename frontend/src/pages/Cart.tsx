@@ -8,10 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCart } from '@/context/CartContext';
 import { useCreateOrder } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
-import { useCustomerAddresses } from '@/hooks/useCustomerAddresses';
+import { useCustomerAddresses, CustomerAddress } from '@/hooks/useCustomerAddresses';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { toast } from 'sonner';
-import AddressMapPicker from '@/components/profile/AddressMapPicker';
+import AddressMapPicker from '@/components/profile/OpenStreetMapPicker';
+import AddressSelector from '@/components/profile/AddressSelector';
 import PayUpQR from '@/components/payment/PayUpQR';
 import { createOnlinePayment, PaymentResponse } from '@/api/payment';
 import { Banknote, QrCode } from 'lucide-react';
@@ -32,6 +33,8 @@ const Cart: React.FC = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [deliveryLocation, setDeliveryLocation] = useState<DeliveryLocation | null>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online'>('cash');
   const [currentPayment, setCurrentPayment] = useState<PaymentResponse | null>(null);
 
@@ -42,6 +45,7 @@ const Cart: React.FC = () => {
   useEffect(() => {
     const defaultAddr = savedAddresses.find(a => a.is_default);
     if (defaultAddr && !deliveryLocation) {
+      setSelectedAddressId(defaultAddr.id);
       setDeliveryLocation({
         lat: defaultAddr.lat || 30.1798,
         lng: defaultAddr.lng || 66.975,
@@ -49,6 +53,7 @@ const Cart: React.FC = () => {
       });
     } else if (!deliveryLocation && savedAddresses.length > 0) {
       const firstAddr = savedAddresses[0];
+      setSelectedAddressId(firstAddr.id);
       setDeliveryLocation({
         lat: firstAddr.lat || 30.1798,
         lng: firstAddr.lng || 66.975,
@@ -56,6 +61,16 @@ const Cart: React.FC = () => {
       });
     }
   }, [savedAddresses, deliveryLocation]);
+
+  const handleAddressSelect = (address: CustomerAddress) => {
+    setSelectedAddressId(address.id);
+    setDeliveryLocation({
+      lat: address.lat || 30.1798,
+      lng: address.lng || 66.975,
+      address: address.address_text,
+    });
+    toast.success('Delivery address updated!');
+  };
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
@@ -164,6 +179,7 @@ const Cart: React.FC = () => {
 
   const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
     setDeliveryLocation(location);
+    setSelectedAddressId(undefined); // Map-picked location is not a saved address
     setShowMapPicker(false);
     toast.success("Delivery location updated!");
   };
@@ -316,13 +332,25 @@ const Cart: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowMapPicker(true)}
+              onClick={() => setShowAddressSelector(true)}
             >
               {deliveryLocation ? 'Change' : 'Select'}
             </Button>
           </div>
         </Card>
       </div>
+
+      {/* Address Selector Dialog */}
+      <AddressSelector
+        open={showAddressSelector}
+        onOpenChange={setShowAddressSelector}
+        selectedAddressId={selectedAddressId}
+        onSelect={handleAddressSelect}
+        onAddNew={() => {
+          setShowAddressSelector(false);
+          setShowMapPicker(true);
+        }}
+      />
 
       {/* Payment Method Selection */}
       <div className="px-4 mb-4">

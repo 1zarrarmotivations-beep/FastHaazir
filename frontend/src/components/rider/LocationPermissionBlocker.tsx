@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LocationPermissionStatus } from '@/hooks/useRiderLocation';
+import { LocationStatus } from '@/hooks/useRiderLocation';
 import { NativeSettings, AndroidSettings, IOSSettings } from 'capacitor-native-settings';
 
 interface LocationPermissionBlockerProps {
-    permissionStatus: LocationPermissionStatus;
+    permissionStatus: LocationStatus;
     isLocationEnabled: boolean;
     onRequestPermission: () => void;
     onCheckAgain: () => void;
@@ -22,7 +22,7 @@ const LocationPermissionBlocker = ({
 
     useEffect(() => {
         // Only show if there is a problem
-        const hasProblem = permissionStatus !== 'granted' || !isLocationEnabled;
+        const hasProblem = permissionStatus === 'permission_denied' || permissionStatus === 'disabled';
         setIsVisible(hasProblem);
     }, [permissionStatus, isLocationEnabled]);
 
@@ -81,7 +81,7 @@ const LocationPermissionBlocker = ({
 
                         <div className="bg-white/5 rounded-xl p-4 text-left space-y-3 border border-white/10">
                             <div className="flex items-center gap-3 text-white/80">
-                                {permissionStatus === 'granted' ? (
+                                {permissionStatus !== 'permission_denied' ? (
                                     <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
                                         <CheckIcon className="w-4 h-4 text-emerald-500" />
                                     </div>
@@ -109,7 +109,7 @@ const LocationPermissionBlocker = ({
                     </div>
 
                     <div className="space-y-3 pt-4">
-                        {permissionStatus !== 'granted' && (
+                        {permissionStatus === 'permission_denied' && (
                             <Button
                                 onClick={onRequestPermission}
                                 className="w-full h-14 text-lg font-bold bg-white text-black hover:bg-white/90 rounded-2xl"

@@ -17,7 +17,11 @@ import {
   AlertTriangle,
   Eye,
   Wallet,
-  ArrowRight
+  ArrowRight,
+  CheckSquare,
+  Square,
+  UserCheck,
+  UserX
 } from "lucide-react";
 import { safeLower } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,6 +56,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useAdminRiders, useCreateRider, useToggleRiderStatus, useDeleteRider, useVerifyRider, useAdminUpdateRider } from "@/hooks/useAdmin";
 import { useRiderAvailableBalance } from "@/hooks/useWithdrawals";
+import { toast } from "sonner";
 
 interface RidersManagerProps {
   onNavigate?: (tab: string, riderId?: string) => void;
@@ -120,11 +125,69 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [docDialogOpen, setDocDialogOpen] = useState(false);
 
+  // Bulk selection state
+  const [selectedRiders, setSelectedRiders] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
+
   const { data: riders, isLoading } = useAdminRiders();
   const createRider = useCreateRider();
   const updateRider = useAdminUpdateRider();
   const toggleStatus = useToggleRiderStatus();
   const deleteRider = useDeleteRider();
+  const verifyRider = useVerifyRider();
+
+  // Bulk operations
+  const handleSelectRider = (riderId: string) => {
+    setSelectedRiders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(riderId)) {
+        newSet.delete(riderId);
+      } else {
+        newSet.add(riderId);
+      }
+      return newSet;
+    });
+    setShowBulkActions(selectedRiders.size > 0);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedRiders.size === filteredRiders?.length) {
+      setSelectedRiders(new Set());
+      setShowBulkActions(false);
+    } else {
+      setSelectedRiders(new Set(filteredRiders?.map(r => r.id) || []));
+      setShowBulkActions(true);
+    }
+  };
+
+  const handleBulkActivate = () => {
+    selectedRiders.forEach(riderId => {
+      toggleStatus.mutate({ riderId, isActive: true });
+    });
+    toast.success(`${selectedRiders.size} riders activated`);
+    setSelectedRiders(new Set());
+    setShowBulkActions(false);
+  };
+
+  const handleBulkDeactivate = () => {
+    selectedRiders.forEach(riderId => {
+      toggleStatus.mutate({ riderId, isActive: false });
+    });
+    toast.success(`${selectedRiders.size} riders deactivated`);
+    setSelectedRiders(new Set());
+    setShowBulkActions(false);
+  };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Are you sure you want to delete ${selectedRiders.size} riders? This cannot be undone.`)) {
+      selectedRiders.forEach(riderId => {
+        deleteRider.mutate(riderId);
+      });
+      toast.success(`${selectedRiders.size} riders deleted`);
+      setSelectedRiders(new Set());
+      setShowBulkActions(false);
+    }
+  };
 
   const filteredRiders = (riders as any[])?.filter((rider) => {
     const matchesSearch = safeLower(rider.name).includes(safeLower(searchQuery)) ||
@@ -145,10 +208,6 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
         return true;
     }
   });
-
-  const verifyRider = useVerifyRider();
-
-
 
   const handleUpdateRider = () => {
     if (!selectedRider || !selectedRider.name || !selectedRider.phone) return;
@@ -285,6 +344,32 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Bulk Actions Bar */}
+        {selectedRiders.size > 0 && (
+          <div className="flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-lg px-4 py-2">
+            <span className="text-sm font-medium">
+              {selectedRiders.size} rider{selectedRiders.size > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex-1" />
+            <Button size="sm" variant="outline" onClick={handleBulkActivate} className="gap-1">
+              <UserCheck className="w-3 h-3" />
+              Activate
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDeactivate} className="gap-1 text-amber-600 border-amber-300 hover:bg-amber-50">
+              <UserX className="w-3 h-3" />
+              Deactivate
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleBulkDelete} className="gap-1 text-destructive border-destructive/30 hover:bg-destructive/10">
+              <Trash2 className="w-3 h-3" />
+              Delete
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setSelectedRiders(new Set()); setShowBulkActions(false); }}>
+              Clear
+            </Button>
+          </div>
+        )}
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gradient-primary text-primary-foreground gap-2">
@@ -422,6 +507,21 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
       </div>
 
       {/* Riders Grid */}
+      {filteredRiders && filteredRiders.length > 0 && (
+        <div className="flex items-center gap-2 pb-2">
+          <button
+            onClick={handleSelectAll}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {selectedRiders.size === filteredRiders.length ? (
+              <CheckSquare className="w-4 h-4 text-primary" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+            <span>Select All ({filteredRiders.length})</span>
+          </button>
+        </div>
+      )}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -441,9 +541,19 @@ export function RidersManager({ onNavigate }: RidersManagerProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="overflow-hidden hover:shadow-card transition-all duration-300">
+              <Card className="overflow-hidden hover:shadow-card transition-all duration-300 border-2" style={{ borderColor: selectedRiders.has(rider.id) ? 'hsl(var(--primary))' : 'transparent' }}>
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
+                    <button
+                      onClick={() => handleSelectRider(rider.id)}
+                      className="mt-1 flex-shrink-0"
+                    >
+                      {selectedRiders.has(rider.id) ? (
+                        <CheckSquare className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Square className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                      )}
+                    </button>
                     <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                       {rider.image ? (
                         <img

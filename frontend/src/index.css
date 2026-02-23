@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
 
 /* Font loaded via index.html for non-blocking performance */
 

@@ -103,35 +103,35 @@ export const useChatMessages = (orderId?: string, riderRequestId?: string) => {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: orderId
+          filter: orderId 
             ? `order_id=eq.${orderId}`
             : `rider_request_id=eq.${riderRequestId}`
         },
         (payload) => {
           console.log('New chat message received:', payload);
           const newMessage = payload.new as ChatMessage;
-
+          
           // Show notification if the message is from someone else
           if (user && newMessage.sender_id !== user.id) {
             // Play notification sound
             try {
               const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2MkZaQkIuJiISCgH58e3l4d3Z1dXV2d3h5e3x+gIOGiY2RlZqdn6CgoJ+fnp2cm5qZmJeWlZSUk5OTk5OTlJSVlpeYmZqbnJ2en5+goKCfn56dnJuamZiXlpWUk5KSkZGQkJCQkJCRkZKSk5SVlpeYmZqbnJ2en5+goA==');
               audio.volume = 0.5;
-              audio.play().catch(() => { });
-            } catch (e) { }
-
-            const senderLabel = newMessage.sender_type === 'customer' ? 'Customer'
-              : newMessage.sender_type === 'business' ? 'Restaurant'
-                : 'Rider';
-
+              audio.play().catch(() => {});
+            } catch (e) {}
+            
+            const senderLabel = newMessage.sender_type === 'customer' ? 'Customer' 
+              : newMessage.sender_type === 'business' ? 'Restaurant' 
+              : 'Rider';
+            
             toast.info(`💬 New message from ${senderLabel}`, {
-              description: newMessage.message.length > 50
-                ? newMessage.message.substring(0, 50) + '...'
+              description: newMessage.message.length > 50 
+                ? newMessage.message.substring(0, 50) + '...' 
                 : newMessage.message,
               duration: 5000,
             });
           }
-
+          
           queryClient.invalidateQueries({ queryKey: ['chat-messages', orderId, riderRequestId] });
         }
       )
@@ -171,9 +171,12 @@ export const useSendMessage = () => {
       voiceDuration?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
+      if (senderType === 'admin') throw new Error('Admins cannot send chat messages');
       if (messageType === 'text' && !message.trim()) throw new Error('Message cannot be empty');
       if (messageType === 'voice' && !voiceUrl) throw new Error('Voice URL is required');
 
+      console.log('[useChat] Sending message:', { orderId, riderRequestId, senderType, userId: user.id });
+      
       const { data, error } = await supabase
         .from('chat_messages')
         .insert({
@@ -189,12 +192,15 @@ export const useSendMessage = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useChat] Insert error:', error.message, error.details, error.hint);
+        throw new Error(`Message failed: ${error.message}`);
+      }
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ['chat-messages', variables.orderId, variables.riderRequestId]
+      queryClient.invalidateQueries({ 
+        queryKey: ['chat-messages', variables.orderId, variables.riderRequestId] 
       });
     },
   });
@@ -265,29 +271,22 @@ export const useUploadVoiceNote = () => {
       duration: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
-
+      
       const contextId = orderId || riderRequestId;
       if (!contextId) throw new Error('Order or rider request ID is required');
 
-      // Generate unique filename and use correct extension
-      const mimeType = audioBlob.type || 'audio/webm';
-      const extension = mimeType.includes('aac') ? 'aac'
-        : mimeType.includes('m4a') ? 'm4a'
-          : mimeType.includes('wav') ? 'wav'
-            : 'webm';
-
+      // Generate unique filename
       const timestamp = Date.now();
-      const fileName = `${timestamp}_${user.id}.${extension}`;
+      const fileName = `${timestamp}_${user.id}.webm`;
       const filePath = `${contextId}/${fileName}`;
-      const roundedDuration = Math.round(duration);
 
-      console.log('[useUploadVoiceNote] Uploading voice note:', { filePath, duration: roundedDuration, size: audioBlob.size, mimeType });
+      console.log('[useUploadVoiceNote] Uploading voice note:', { filePath, duration, size: audioBlob.size });
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat-voice-notes')
         .upload(filePath, audioBlob, {
-          contentType: mimeType,
+          contentType: 'audio/webm',
           upsert: false,
         });
 
@@ -300,9 +299,8 @@ export const useUploadVoiceNote = () => {
       // A signed URL is generated when fetching messages for playback.
       return {
         path: filePath,
-        duration: roundedDuration,
+        duration,
       };
     },
   });
 };
-

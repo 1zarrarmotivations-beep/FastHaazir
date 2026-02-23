@@ -7,7 +7,7 @@ export interface PromoBanner {
   title: string | null;
   subtitle: string | null;
   image_url: string | null;
-  location: 'home' | 'category';
+  location: 'home' | 'category' | 'grocery';
   category_id: string | null;
   style_config: {
     gradient?: string;
@@ -44,7 +44,7 @@ export interface PromoBanner {
 }
 
 // Fetch active banners for a specific location
-export function useActivePromoBanners(location: 'home' | 'category' = 'home', categoryId?: string) {
+export function useActivePromoBanners(location: 'home' | 'category' | 'grocery' = 'home', categoryId?: string) {
   return useQuery({
     queryKey: ['promo-banners-active', location, categoryId],
     queryFn: async () => {

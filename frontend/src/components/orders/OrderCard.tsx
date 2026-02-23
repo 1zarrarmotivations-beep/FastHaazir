@@ -9,8 +9,6 @@ import ChatButton from '@/components/chat/ChatButton';
 import LiveRiderTrackingMap from '@/components/tracking/LiveRiderTrackingMap';
 import { useDeliveryNotifications } from '@/hooks/useDeliveryNotifications';
 import { DeliveryOTPDisplay } from './DeliveryOTPDisplay';
-import { SupportSheet } from '@/components/support/SupportSheet';
-import { Headphones } from 'lucide-react';
 
 interface OrderCardProps {
   order: Order;
@@ -32,6 +30,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
   const showTracking = hasRider && (order.status === 'on_way' || order.status === 'preparing');
   const [showRiderAssigned, setShowRiderAssigned] = useState(false);
   const [prevRiderId, setPrevRiderId] = useState<string | null>(null);
+  const [showTrackingMap, setShowTrackingMap] = useState(false);
 
   // Detect when rider is newly assigned
   useEffect(() => {
@@ -142,14 +141,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
                   {order.riders?.vehicle_type || 'Bike'} • {order.riders?.total_trips || 0} trips
                 </p>
               </div>
-              {/* Chat button instead of phone - Privacy protected */}
-              <ChatButton
-                orderId={order.id}
-                userType="customer"
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-              />
+              {/* PRIVACY: Phone removed - use in-app chat only */}
             </div>
           </motion.div>
         )}
@@ -176,20 +168,45 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           </div>
         )}
 
-        {/* Live Tracking Map - Show when rider is assigned and order is in transit */}
+        {/* Live Tracking Map - Only when customer explicitly taps "Track" */}
         {showTracking && (
           <div className="mb-4">
-            <LiveRiderTrackingMap
-              riderId={order.rider_id!}
-              deliveryLat={isRiderRequest ? order.dropoff_lat ?? null : order.delivery_lat}
-              deliveryLng={isRiderRequest ? order.dropoff_lng ?? null : order.delivery_lng}
-              deliveryAddress={isRiderRequest ? order.dropoff_address || '' : order.delivery_address || ''}
-              pickupLat={order.pickup_lat}
-              pickupLng={order.pickup_lng}
-              pickupAddress={order.pickup_address || undefined}
-              status={order.status}
-              fallbackEta={order.eta || '25-35 min'}
-            />
+            {/* Track button */}
+            <button
+              onClick={() => setShowTrackingMap(prev => !prev)}
+              className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all mb-2 ${showTrackingMap
+                  ? 'bg-primary/10 text-primary border border-primary/30'
+                  : 'bg-primary text-white shadow-md active:scale-95'
+                }`}
+            >
+              <Navigation className="w-4 h-4" />
+              {showTrackingMap ? 'Hide Map' : '📍 Track Rider Live'}
+            </button>
+
+            {/* Collapsible map */}
+            <AnimatePresence>
+              {showTrackingMap && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden rounded-xl"
+                >
+                  <LiveRiderTrackingMap
+                    riderId={order.rider_id!}
+                    deliveryLat={isRiderRequest ? order.dropoff_lat ?? null : order.delivery_lat}
+                    deliveryLng={isRiderRequest ? order.dropoff_lng ?? null : order.delivery_lng}
+                    deliveryAddress={isRiderRequest ? order.dropoff_address || '' : order.delivery_address || ''}
+                    pickupLat={order.pickup_lat}
+                    pickupLng={order.pickup_lng}
+                    pickupAddress={order.pickup_address || undefined}
+                    status={order.status}
+                    fallbackEta={order.eta || '25-35 min'}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -235,8 +252,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
           </div>
         </div>
 
-        {/* Delivery OTP - Show as soon as rider is assigned and has OTP */}
-        {hasRider && order.status !== 'delivered' && order.status !== 'cancelled' && order.delivery_otp && (
+        {/* Delivery OTP - Show when order is on the way and has OTP */}
+        {order.status === 'on_way' && order.delivery_otp && (
           <div className="mb-4">
             <DeliveryOTPDisplay
               otp={order.delivery_otp}
@@ -262,19 +279,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index }) => {
               size="sm"
             />
           )}
-          <SupportSheet
-            orderId={order.id}
-            trigger={
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-primary gap-1">
-                <Headphones className="w-3 h-3" />
-                Need Help?
-              </Button>
-            }
-          />
-          {/* Privacy notice */}
-          <span className="text-xs text-muted-foreground ml-auto">
-            Chat securely
-          </span>
+          {/* PRIVACY: Restaurant phone removed - use in-app chat only */}
         </div>
       </Card>
     </motion.div>

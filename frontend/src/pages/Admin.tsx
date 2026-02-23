@@ -28,6 +28,10 @@ import RiderSupportTicketsManager from "@/components/admin/RiderSupportTicketsMa
 import { DeletionRequestsManager } from "@/components/admin/DeletionRequestsManager";
 import AdminRiderSupportNotificationBadge from "@/components/admin/AdminRiderSupportNotificationBadge";
 import ExploreControl from "@/components/admin/ExploreControl";
+import GroceryManagement from "@/components/admin/GroceryManagement";
+import { GroceryOrdersManager } from "@/components/admin/GroceryOrdersManager";
+// import { AuditLogs } from "@/components/admin/AuditLogs";
+import { SystemSettings } from "@/components/admin/SystemSettings";
 
 import AdminOrderNotificationBadge from "@/components/admin/AdminOrderNotificationBadge";
 import AdminSupportNotificationBadge from "@/components/admin/AdminSupportNotificationBadge";
@@ -184,6 +188,20 @@ export default function Admin() {
           </div>
         );
 
+      // --- Grocery Master ---
+      case "grocery-management":
+        return (
+          <div className="space-y-6">
+            <GroceryManagement />
+          </div>
+        );
+      case "grocery-orders":
+        return (
+          <div className="space-y-6">
+            <GroceryOrdersManager />
+          </div>
+        );
+
       // --- Support & Comms ---
       case "support":
         return (
@@ -232,6 +250,20 @@ export default function Admin() {
         return (
           <div className="space-y-6">
             <ExploreControl />
+          </div>
+        );
+
+      // --- Admin Enhancements ---
+      case "audit-logs":
+        return (
+          {/* <div className="space-y-6">
+            <AuditLogs />
+          </div> */}
+        );
+      case "system-settings":
+        return (
+          <div className="space-y-6">
+            <SystemSettings />
           </div>
         );
 

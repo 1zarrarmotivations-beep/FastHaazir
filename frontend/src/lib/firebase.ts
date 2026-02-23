@@ -20,7 +20,7 @@ import {
   indexedDBLocalPersistence,
   initializeAuth,
 } from 'firebase/auth';
-import { getMessaging } from 'firebase/messaging';
+import { getMessaging, isSupported as isMessagingSupported } from 'firebase/messaging';
 import { supabase } from '@/integrations/supabase/client';
 
 // Use 'any' for Firebase instances to avoid complex type inference
@@ -166,10 +166,15 @@ export const initializeFirebase = async (): Promise<boolean> => {
     }
 
     try {
-      firebaseMessaging = getMessaging(firebaseApp);
-      console.log('[Firebase] Messaging initialized');
+      const messagingSupported = await isMessagingSupported();
+      if (messagingSupported) {
+        firebaseMessaging = getMessaging(firebaseApp);
+        console.log('[Firebase] Messaging initialized');
+      } else {
+        console.log('[Firebase] Messaging not supported on this platform (native/WebView) — skipped');
+      }
     } catch (e) {
-      console.warn('[Firebase] Messaging initialization failed (supported only in HTTPS/localhost):', e);
+      console.warn('[Firebase] Messaging initialization failed:', e);
     }
 
     firebaseAuth.languageCode = 'en';

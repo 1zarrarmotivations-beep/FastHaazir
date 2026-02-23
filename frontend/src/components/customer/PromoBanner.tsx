@@ -10,19 +10,19 @@ const PromoBanner: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { data: banner, isLoading } = usePromoBanner();
-  
+
   const isUrdu = i18n.language === 'ur';
 
   // Handle click action
   const handleClick = () => {
     if (!banner) return;
-    
+
     switch (banner.click_action) {
       case 'restaurants':
         navigate('/restaurants');
         break;
       case 'categories':
-        navigate('/categories');
+        navigate('/grocery');
         break;
       case 'external':
         if (banner.external_url) {
@@ -67,12 +67,11 @@ const PromoBanner: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         onClick={isClickable ? handleClick : undefined}
-        className={`relative overflow-hidden rounded-2xl p-4 ${
-          isClickable ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''
-        }`}
+        className={`relative overflow-hidden rounded-2xl p-4 ${isClickable ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''
+          }`}
         style={{
-          background: banner.background_type === 'gradient' 
-            ? banner.background_value 
+          background: banner.background_type === 'gradient'
+            ? banner.background_value
             : `url(${banner.background_value}) center/cover`,
           boxShadow: '0 8px 32px -8px rgba(255, 106, 0, 0.3)',
         }}
@@ -81,17 +80,17 @@ const PromoBanner: React.FC = () => {
       >
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <motion.div 
+          <motion.div
             className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/20"
-            animate={{ 
+            animate={{
               scale: [1, 1.2, 1],
               opacity: [0.2, 0.3, 0.2]
             }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <motion.div 
+          <motion.div
             className="absolute -left-4 -bottom-4 w-24 h-24 rounded-full bg-white/10"
-            animate={{ 
+            animate={{
               scale: [1, 1.3, 1],
               opacity: [0.1, 0.2, 0.1]
             }}
@@ -117,7 +116,7 @@ const PromoBanner: React.FC = () => {
         />
 
         {/* Content */}
-        <div 
+        <div
           className="relative flex items-center gap-4"
           style={{ direction: isUrdu ? 'rtl' : 'ltr' }}
         >
@@ -137,17 +136,17 @@ const PromoBanner: React.FC = () => {
               </p>
             )}
           </div>
-          
+
           {isClickable && (
             <motion.div
-              animate={{ 
+              animate={{
                 x: isUrdu ? [-3, 3, -3] : [3, -3, 3],
               }}
               transition={{ duration: 1.5, repeat: Infinity }}
               className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
             >
-              <ChevronRight 
-                className={`w-5 h-5 text-white ${isUrdu ? 'rotate-180' : ''}`} 
+              <ChevronRight
+                className={`w-5 h-5 text-white ${isUrdu ? 'rotate-180' : ''}`}
               />
             </motion.div>
           )}
@@ -159,7 +158,7 @@ const PromoBanner: React.FC = () => {
             animate={{ y: [-5, 5, -5] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             className="absolute top-2 text-2xl pointer-events-none"
-            style={{ 
+            style={{
               [isUrdu ? 'left' : 'right']: '5rem',
             }}
           >

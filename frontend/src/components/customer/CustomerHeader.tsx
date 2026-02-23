@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomerProfile } from '@/hooks/useCustomerProfile';
 import { useUserRole } from '@/hooks/useAdmin';
+import { useDefaultAddress, CustomerAddress } from '@/hooks/useCustomerAddresses';
+import AddressSelector from '@/components/profile/AddressSelector';
 import fastHaazirLogo from '@/assets/fast-haazir-logo-optimized.webp';
 import { Bike } from 'lucide-react';
 
@@ -23,8 +25,13 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
   const { user } = useAuth();
   const { data: profile } = useCustomerProfile();
   const { data: userRole } = useUserRole();
+  const { data: defaultAddress } = useDefaultAddress();
   const role = userRole?.role || 'customer';
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
+
+  // Get display address
+  const displayAddress = defaultAddress?.address_text || 'Quetta, Pakistan';
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -57,14 +64,19 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
                 height={44}
                 whileTap={{ scale: 0.95 }}
               />
-              <div className="flex flex-col">
+              <button
+                onClick={() => setShowAddressSelector(true)}
+                className="flex flex-col hover:opacity-80 transition-opacity"
+              >
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="w-3 h-3" />
                   <span>{t('home.deliverTo')}</span>
                   <ChevronDown className="w-3 h-3" />
                 </div>
-                <p className="font-semibold text-sm text-foreground">Quetta, Pakistan</p>
-              </div>
+                <p className="font-semibold text-sm text-foreground text-left max-w-[150px] truncate">
+                  {displayAddress.split(',')[0]}
+                </p>
+              </button>
             </div>
 
             {/* Right Side - Language, Notifications, Profile */}
@@ -160,6 +172,22 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({ onSearchClick }) => {
       <NotificationsSheet
         open={notificationsOpen}
         onOpenChange={setNotificationsOpen}
+      />
+
+      {/* Address Selector */}
+      <AddressSelector
+        open={showAddressSelector}
+        onOpenChange={setShowAddressSelector}
+        selectedAddressId={defaultAddress?.id}
+        onSelect={(address: CustomerAddress) => {
+          // Address selected - could trigger a callback or store in context
+          setShowAddressSelector(false);
+        }}
+        onAddNew={() => {
+          // Navigate to saved addresses page
+          setShowAddressSelector(false);
+          navigate('/profile?screen=addresses');
+        }}
       />
     </>
   );

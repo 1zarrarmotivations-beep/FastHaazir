@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MapPin, 
-  Clock, 
-  Package, 
+import {
+  MapPin,
+  Clock,
+  Package,
   Navigation,
   ChevronRight,
   ExternalLink,
@@ -21,6 +21,8 @@ import ChatButton from '@/components/chat/ChatButton';
 import { RiderRequest, OrderStatus } from '@/hooks/useRiderDashboard';
 import { calculateDistance } from './DeliveryMap';
 import { OTPVerificationDialog } from './OTPVerificationDialog';
+import RiderLiveMap from './RiderLiveMap';
+import { useRiderProfile } from '@/hooks/useRiderDashboard';
 
 interface RiderOrderRequestCardProps {
   request: RiderRequest;
@@ -61,7 +63,9 @@ const RiderOrderRequestCard = ({
   const [timeLeft, setTimeLeft] = useState(autoRejectTime);
   const [isExpanded, setIsExpanded] = useState(variant === 'active');
   const [showOTPDialog, setShowOTPDialog] = useState(false);
+  const [showMap, setShowMap] = useState(variant === 'active');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { data: riderProfile } = useRiderProfile();
 
   const hasCoordinates = request.pickup_lat && request.pickup_lng && request.dropoff_lat && request.dropoff_lng;
   const distance = hasCoordinates
@@ -104,13 +108,12 @@ const RiderOrderRequestCard = ({
       exit={{ opacity: 0, x: -100 }}
       className="mb-4"
     >
-      <div className={`glass-card-dark rounded-3xl overflow-hidden transition-all duration-300 ${
-        variant === 'new' 
-          ? 'animate-pulse-glow ring-2 ring-orange-500/50' 
+      <div className={`glass-card-dark rounded-3xl overflow-hidden transition-all duration-300 ${variant === 'new'
+          ? 'animate-pulse-glow ring-2 ring-orange-500/50'
           : variant === 'active'
             ? 'ring-1 ring-emerald-500/30'
             : 'ring-1 ring-white/5'
-      }`}>
+        }`}>
         {/* Timer Bar for New Requests */}
         {variant === 'new' && (
           <div className="h-1 bg-white/10 overflow-hidden">
@@ -127,7 +130,7 @@ const RiderOrderRequestCard = ({
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <motion.div 
+              <motion.div
                 className={`w-14 h-14 rounded-2xl ${config.bgColor} flex items-center justify-center`}
                 animate={variant === 'new' ? { scale: [1, 1.05, 1] } : {}}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -155,7 +158,7 @@ const RiderOrderRequestCard = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="text-right">
               <div className="flex items-center gap-1 justify-end">
                 <Banknote className="w-4 h-4 text-emerald-400" />
@@ -171,7 +174,7 @@ const RiderOrderRequestCard = ({
           </div>
 
           {/* Locations */}
-          <div 
+          <div
             className="space-y-3 cursor-pointer"
             onClick={() => setIsExpanded(!isExpanded)}
           >
@@ -206,6 +209,48 @@ const RiderOrderRequestCard = ({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden mt-4"
               >
+                {/* Live Map for active deliveries */}
+                {variant === 'active' && hasCoordinates && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-white/40 uppercase tracking-wider flex items-center gap-1">
+                        <Navigation className="w-3 h-3 text-orange-400" />
+                        Live Navigation
+                      </span>
+                      <button
+                        onClick={() => setShowMap(s => !s)}
+                        className="text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                      >
+                        {showMap ? 'Hide' : 'Show'} Map
+                      </button>
+                    </div>
+                    <AnimatePresence>
+                      {showMap && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden rounded-2xl"
+                        >
+                          <RiderLiveMap
+                            riderLat={riderProfile?.current_location_lat}
+                            riderLng={riderProfile?.current_location_lng}
+                            pickupLat={request.pickup_lat}
+                            pickupLng={request.pickup_lng}
+                            dropoffLat={request.dropoff_lat}
+                            dropoffLng={request.dropoff_lng}
+                            pickupAddress={request.pickup_address}
+                            dropoffAddress={request.dropoff_address}
+                            deliveryStatus={request.status as any}
+                            vehicleType={riderProfile?.vehicle_type || 'bike'}
+                            height="260px"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
                 {request.items && request.items.length > 0 && (
                   <div className="glass-card rounded-2xl p-4 mb-4">
                     <p className="text-xs text-white/40 mb-2 uppercase tracking-wider">Order Items</p>
@@ -276,11 +321,10 @@ const RiderOrderRequestCard = ({
                 />
                 {nextAction && onUpdateStatus && (
                   <motion.button
-                    className={`flex-1 h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all ${
-                      nextAction.requiresOTP 
-                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25' 
+                    className={`flex-1 h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all ${nextAction.requiresOTP
+                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25'
                         : 'gradient-rider-primary shadow-orange-500/25'
-                    }`}
+                      }`}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       if (nextAction.requiresOTP) {

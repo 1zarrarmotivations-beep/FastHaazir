@@ -140,7 +140,7 @@ serve(async (req) => {
 
     // Get device tokens for this rider
     const { data: deviceTokens, error: tokenError } = await supabase
-      .from('push_device_tokens')
+      .from('device_tokens')
       .select('device_token, platform')
       .eq('user_id', rider.user_id);
 
@@ -245,16 +245,19 @@ serve(async (req) => {
       console.error('OneSignal error:', result.errors);
     }
 
-    // Log the push notification in database
-    await supabase.from('push_notifications').insert({
+    // Log the push notification in database (v2 table: notifications_log)
+    await supabase.from('notifications_log').insert({
       title,
       message: body,
-      target_role: 'rider',
+      user_role: 'rider',
       target_user_id: rider.user_id,
-      action_route: order_id ? `/orders/${order_id}` : `/rider-requests/${rider_request_id}`,
-      sent_by: 'system',
-      success_count: successCount,
-      failure_count: failureCount,
+      status: successCount > 0 ? 'sent' : 'failed',
+      response_data: {
+        one_signal_id: result.id,
+        recipients: successCount,
+        failed: failureCount,
+        action_route: order_id ? `/orders/${order_id}` : `/rider-requests/${rider_request_id}`
+      }
     });
 
     // Also create an in-app notification for the rider
