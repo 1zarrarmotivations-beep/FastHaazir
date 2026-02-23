@@ -3,6 +3,17 @@ import { toast } from 'sonner';
 
 export type PricingType = 'per_kg' | 'per_gram' | 'per_piece' | 'fixed_pack';
 
+export interface GroceryVariant {
+    id: string;
+    product_id: string;
+    variant_name: string;
+    weight_in_grams: number;
+    price: number;
+    discount_price?: number;
+    stock_quantity: number;
+    is_available: boolean;
+}
+
 export interface GroceryCartItem {
     id: string;
     name: string;
@@ -13,6 +24,7 @@ export interface GroceryCartItem {
     quantity: number;
     min_quantity: number;
     max_quantity: number;
+    variant?: GroceryVariant;
 }
 
 export interface GroceryProduct {
@@ -28,7 +40,7 @@ export interface GroceryProduct {
 
 interface GroceryCartContextType {
     items: GroceryCartItem[];
-    addItem: (product: GroceryProduct, quantity: number) => void;
+    addItem: (product: GroceryProduct, quantity: number, variant?: GroceryVariant) => void;
     updateQuantity: (id: string, quantity: number) => void;
     removeItem: (id: string) => void;
     clearCart: () => void;
@@ -57,29 +69,33 @@ export const GroceryCartProvider: React.FC<{ children: React.ReactNode }> = ({ c
         localStorage.setItem('fasthaazir_grocery_cart', JSON.stringify(items));
     }, [items]);
 
-    const addItem = (product: GroceryProduct, quantity: number) => {
+    const addItem = (product: GroceryProduct, quantity: number, variant?: GroceryVariant) => {
+        const itemId = variant ? `${product.id}-${variant.id}` : product.id;
+        const price = variant?.discount_price || variant?.price || product.discount_price || product.base_price;
+
         setItems(current => {
-            const existing = current.find(i => i.id === product.id);
+            const existing = current.find(i => i.id === itemId);
             if (existing) {
                 return current.map(i =>
-                    i.id === product.id
+                    i.id === itemId
                         ? { ...i, quantity: Math.min(i.quantity + quantity, i.max_quantity) }
                         : i
                 );
             }
             return [...current, {
-                id: product.id,
+                id: itemId,
                 name: product.name,
                 image_url: product.image_url,
                 pricing_type: product.pricing_type,
-                base_price: product.base_price,
-                discount_price: product.discount_price,
+                base_price: variant?.price || product.base_price,
+                discount_price: variant?.discount_price || product.discount_price,
                 quantity: quantity,
                 min_quantity: product.min_quantity || 0.1,
-                max_quantity: product.max_quantity || 100
+                max_quantity: product.max_quantity || 100,
+                variant
             }];
         });
-        toast.success(`${product.name} added to cart`);
+        toast.success(`${product.name} ${variant ? `(${variant.variant_name})` : ''} added to cart`);
     };
 
     const updateQuantity = (id: string, quantity: number) => {

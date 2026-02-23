@@ -1,203 +1,306 @@
 import { useState } from "react";
-import { Plus, Minus, ShoppingCart } from "lucide-react";
-import { useGroceryCart } from "@/context/GroceryCartContext";
+import { motion } from "framer-motion";
+import { Plus, Minus, ShoppingCart, Star, Flame, Zap } from "lucide-react";
+import { useGroceryCart, GroceryProduct, GroceryVariant } from "@/context/GroceryCartContext";
+import { useGroceryProductVariants, useProductRatingSummary } from "@/hooks/useGroceryAdmin";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ProductCardProps {
     product: any;
+    onProductClick?: (product: any) => void;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, onProductClick }: ProductCardProps) {
     const { t } = useTranslation();
     const { items, addItem, updateQuantity } = useGroceryCart();
+    const { data: variants } = useGroceryProductVariants(product.id);
+    const { data: ratingSummary } = useProductRatingSummary(product.id);
 
-    const existingItem = items.find(i => i.id === product.id);
-    const [qty, setQty] = useState(product.min_quantity || 0.5);
+    const [showVariantDialog, setShowVariantDialog] = useState(false);
+    const [selectedVariant, setSelectedVariant] = useState<GroceryVariant | null>(null);
+    const [quantity, setQuantity] = useState(product.min_quantity || 1);
+    const [isAdding, setIsAdding] = useState(false);
 
-    const step = product.pricing_type === 'per_kg' ? 0.25 : 1;
+    const currentItem = items.find(i => i.id === product.id || i.id === `${product.id}-${selectedVariant?.id}`);
+    const currentQuantity = currentItem?.quantity || 0;
 
-    // Polished units
-    const getUnitLabel = (type: string) => {
-        switch (type) {
-            case 'per_kg': return 'kg';
-            case 'per_gram': return 'g';
-            case 'per_piece': return 'pcs';
-            case 'per_packet': return 'pkt';
-            default: return 'unit';
+    const hasVariants = variants && variants.length > 0;
+    const currentPrice = selectedVariant?.discount_price || selectedVariant?.price || product.discount_price || product.base_price;
+    const originalPrice = selectedVariant?.price || product.base_price;
+    const discount = originalPrice > currentPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
+
+    const isOutOfStock = product.stock_quantity <= 0 || (selectedVariant && selectedVariant.stock_quantity <= 0);
+    const isLowStock = !isOutOfStock && product.stock_quantity <= product.low_stock_threshold;
+
+    const handleAddToCart = () => {
+        if (hasVariants && !selectedVariant) {
+            setShowVariantDialog(true);
+            return;
         }
+
+        setIsAdding(true);
+        addItem(product, quantity, selectedVariant || undefined);
+        setTimeout(() => {
+            setIsAdding(false);
+            setShowVariantDialog(false);
+            setQuantity(product.min_quantity || 1);
+            setSelectedVariant(null);
+        }, 500);
     };
 
-    const unitLabel = getUnitLabel(product.pricing_type);
-    const formatQty = (q: number, type: string) => {
-        if (type === 'per_kg') return q.toFixed(2);
-        if (type === 'per_gram') return Math.round(q);
-        return q;
-    };
-
-    const unitPrice = product.discount_price || product.base_price;
-    const currentQty = existingItem?.quantity || qty;
-    const totalPrice = unitPrice * currentQty;
-
-    const handleAdd = () => {
-        addItem(product, qty);
-    };
-
-    const handleIncrement = () => {
-        if (existingItem) {
-            updateQuantity(product.id, existingItem.quantity + step);
+    const handleQuickAdd = () => {
+        if (hasVariants) {
+            setShowVariantDialog(true);
         } else {
-            setQty(prev => Math.min(prev + step, product.max_quantity || 100));
-        }
-    };
-
-    const handleDecrement = () => {
-        if (existingItem) {
-            if (existingItem.quantity <= product.min_quantity) {
-                // remove logic if needed
-            } else {
-                updateQuantity(product.id, existingItem.quantity - step);
-            }
-        } else {
-            setQty(prev => Math.max(prev - step, product.min_quantity || 0.1));
+            addItem(product, 1);
         }
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -4 }}
-            className="group bg-card rounded-[2rem] overflow-hidden border border-border/40 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 flex flex-col h-full"
-        >
-            {/* Image Section */}
-            <div className="aspect-[4/3] relative overflow-hidden bg-muted/30">
-                <img
-                    src={product.image_url || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"}
-                    alt={product.name}
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out"
-                    onError={(e) => {
-                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800";
-                    }}
-                />
-
-                {/* Badges Overlay */}
-                <div className="absolute top-3 inset-x-3 flex justify-between items-start pointer-events-none">
-                    {product.discount_price ? (
-                        <div className="bg-red-500/90 backdrop-blur-md text-white text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                            {Math.round(((product.base_price - product.discount_price) / product.base_price) * 100)}% OFF
+        <>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative bg-white dark:bg-muted/20 rounded-[1.5rem] overflow-hidden border border-border/30 shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
+                onClick={() => onProductClick?.(product)}
+            >
+                {/* Image Section */}
+                <div className="relative aspect-square overflow-hidden bg-muted/30">
+                    {product.image_url ? (
+                        <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-6xl">
+                            {product.category?.name?.toLowerCase().includes('fruit') ? '🍎' :
+                                product.category?.name?.toLowerCase().includes('vegetable') ? '🥦' :
+                                    product.category?.name?.toLowerCase().includes('meat') ? '🥩' :
+                                        product.category?.name?.toLowerCase().includes('dairy') ? '🥛' :
+                                            product.category?.name?.toLowerCase().includes('bakery') ? '🥐' :
+                                                '📦'}
                         </div>
-                    ) : <div></div>}
+                    )}
 
-                    {product.is_featured && (
-                        <div className="bg-amber-400/90 backdrop-blur-md text-black text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                            Top
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        {product.is_trending && (
+                            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg">
+                                <Flame size={10} className="mr-1" />
+                                TRENDING
+                            </Badge>
+                        )}
+                        {product.is_featured && (
+                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg">
+                                <Star size={10} className="mr-1" />
+                                FEATURED
+                            </Badge>
+                        )}
+                        {discount > 0 && (
+                            <Badge className="bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg">
+                                {discount}% OFF
+                            </Badge>
+                        )}
+                    </div>
+
+                    {/* Low Stock / Out of Stock */}
+                    {isOutOfStock ? (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <Badge variant="destructive" className="font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-full">
+                                {t('grocery.outOfStock')}
+                            </Badge>
                         </div>
+                    ) : isLowStock && (
+                        <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest shadow-lg animate-pulse">
+                            Only {product.stock_quantity} left
+                        </div>
+                    )}
+
+                    {/* Rating Badge */}
+                    {ratingSummary && ratingSummary.total_reviews > 0 && (
+                        <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md text-white text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1">
+                            <Star size={10} className="text-amber-400 fill-amber-400" />
+                            {ratingSummary.average_rating?.toFixed(1)}
+                            <span className="text-white/60">({ratingSummary.total_reviews})</span>
+                        </div>
+                    )}
+
+                    {/* Quick Add Button */}
+                    {!isOutOfStock && (
+                        <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuickAdd();
+                            }}
+                            className="absolute bottom-2 right-2 w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-300"
+                        >
+                            <Plus size={20} className="text-white" />
+                        </motion.button>
                     )}
                 </div>
 
-                {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
-                    <div className="absolute bottom-3 right-3 bg-amber-500/90 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest">
-                        {t('grocery.onlyLeft')} {product.stock_quantity}
-                    </div>
-                )}
+                {/* Content Section */}
+                <div className="p-3 space-y-2">
+                    <h3 className="font-black text-sm line-clamp-2 leading-tight">{product.name}</h3>
 
-                {product.stock_quantity <= 0 && (
-                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[4px] flex items-center justify-center p-4">
-                        <Badge variant="destructive" className="font-black text-[10px] uppercase tracking-widest px-4 py-1 rounded-full border-none shadow-xl">
-                            {t('grocery.outOfStock')}
-                        </Badge>
+                    {/* Pricing */}
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-black text-primary">PKR {currentPrice}</span>
+                        {discount > 0 && (
+                            <span className="text-xs text-muted-foreground line-through">PKR {originalPrice}</span>
+                        )}
                     </div>
-                )}
-            </div>
 
-            {/* Info Section */}
-            <div className="p-4 flex-1 flex flex-col gap-2">
-                <div className="min-h-[40px]">
-                    <h4 className="font-black text-foreground text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                        {product.name}
-                    </h4>
+                    {/* Variant Info */}
+                    {hasVariants && (
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                            Multiple variants available
+                        </p>
+                    )}
+
+                    {/* Quantity Controls (if in cart) */}
+                    {currentQuantity > 0 && (
+                        <div className="flex items-center justify-between bg-primary/10 rounded-full p-1">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentQuantity > (product.min_quantity || 1)) {
+                                        updateQuantity(currentItem!.id, currentQuantity - 1);
+                                    }
+                                }}
+                                className="w-8 h-8 rounded-full bg-white dark:bg-muted flex items-center justify-center shadow-sm"
+                            >
+                                <Minus size={14} className="text-primary" />
+                            </button>
+                            <span className="font-black text-sm">{currentQuantity}</span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentQuantity < (product.max_quantity || 100)) {
+                                        updateQuantity(currentItem!.id, currentQuantity + 1);
+                                    }
+                                }}
+                                className="w-8 h-8 rounded-full bg-white dark:bg-muted flex items-center justify-center shadow-sm"
+                            >
+                                <Plus size={14} className="text-primary" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Add to Cart Button (if not in cart) */}
+                    {currentQuantity === 0 && !isOutOfStock && (
+                        <Button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleQuickAdd();
+                            }}
+                            className="w-full h-9 rounded-full font-black text-xs uppercase tracking-wider bg-primary hover:bg-primary/90"
+                        >
+                            <ShoppingCart size={14} className="mr-2" />
+                            {t('grocery.addToCart')}
+                        </Button>
+                    )}
                 </div>
 
-                <div className="flex items-baseline gap-1.5 min-h-[1.5rem]">
-                    <span className="text-xs font-bold text-muted-foreground">
-                        PKR {unitPrice}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/60 font-medium">
-                        / {unitLabel}
-                    </span>
-                </div>
+                {/* Flash Sale Indicator */}
+                {product.flash_sale && (
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                        <Zap size={10} />
+                        FLASH SALE
+                    </div>
+                )}
+            </motion.div>
 
-                <div className="mt-auto space-y-4">
-                    {/* Price and Quantity Control */}
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex flex-col">
-                            {product.discount_price && (
-                                <span className="text-[10px] text-muted-foreground line-through decoration-red-500/50">
-                                    PKR {product.base_price}
-                                </span>
+            {/* Variant Selection Dialog */}
+            <Dialog open={showVariantDialog} onOpenChange={setShowVariantDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="font-black text-lg">Select Variant</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground font-medium">
+                            Choose your preferred size/weight for {product.name}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            {variants?.map((variant: GroceryVariant) => (
+                                <button
+                                    key={variant.id}
+                                    onClick={() => setSelectedVariant(variant)}
+                                    className={`p-3 rounded-xl border-2 transition-all ${selectedVariant?.id === variant.id
+                                            ? 'border-primary bg-primary/10'
+                                            : 'border-border hover:border-primary/50'
+                                        }`}
+                                >
+                                    <p className="font-black text-sm">{variant.variant_name}</p>
+                                    <div className="flex items-baseline gap-1 mt-1">
+                                        <span className="text-primary font-black">
+                                            PKR {variant.discount_price || variant.price}
+                                        </span>
+                                        {variant.discount_price && variant.discount_price < variant.price && (
+                                            <span className="text-xs text-muted-foreground line-through">
+                                                PKR {variant.price}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {variant.stock_quantity <= 5 && variant.stock_quantity > 0 && (
+                                        <p className="text-[10px] text-amber-600 font-medium mt-1">
+                                            Only {variant.stock_quantity} left
+                                        </p>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Quantity Selector */}
+                        <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                            <span className="font-medium">Quantity</span>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    className="w-8 h-8 rounded-full bg-white dark:bg-muted flex items-center justify-center shadow-sm"
+                                >
+                                    <Minus size={14} />
+                                </button>
+                                <span className="font-black text-lg w-8 text-center">{quantity}</span>
+                                <button
+                                    onClick={() => setQuantity(Math.min(product.max_quantity || 100, quantity + 1))}
+                                    className="w-8 h-8 rounded-full bg-white dark:bg-muted flex items-center justify-center shadow-sm"
+                                >
+                                    <Plus size={14} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={handleAddToCart}
+                            disabled={!selectedVariant || isAdding}
+                            className="w-full h-12 rounded-full font-black text-sm"
+                        >
+                            {isAdding ? (
+                                "Adding..."
+                            ) : (
+                                <>
+                                    <ShoppingCart size={18} className="mr-2" />
+                                    Add to Cart - PKR {currentPrice * quantity}
+                                </>
                             )}
-                            <span className="text-xl font-black text-foreground tracking-tighter">
-                                <span className="text-xs mr-0.5">₨</span>
-                                {totalPrice.toFixed(0)}
-                            </span>
-                        </div>
-
-                        {/* Quantity Controls - More professional layout */}
-                        <div className="flex items-center bg-muted/40 p-1 rounded-2xl border border-border/40 backdrop-blur-sm group/qty">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); handleDecrement(); }}
-                                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background rounded-xl transition-all active:scale-90"
-                            >
-                                <Minus size={14} />
-                            </button>
-                            <div className="flex flex-col items-center px-2 min-w-[50px]">
-                                <span className="text-xs font-black text-foreground">{currentQty}</span>
-                                <span className="text-[8px] font-black uppercase text-muted-foreground/60 tracking-widest">{unitLabel}</span>
-                            </div>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); handleIncrement(); }}
-                                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background rounded-xl transition-all active:scale-90"
-                            >
-                                <Plus size={14} />
-                            </button>
-                        </div>
+                        </Button>
                     </div>
-
-                    <Button
-                        onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-                        disabled={product.stock_quantity <= 0}
-                        className={`w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 shadow-xl relative overflow-hidden ${existingItem
-                            ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 ring-4 ring-emerald-500/10'
-                            : 'bg-primary hover:bg-primary/90 shadow-primary/30'
-                            } ${product.stock_quantity <= 0 ? 'opacity-50 grayscale' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
-                    >
-                        {existingItem && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0 }}
-                                animate={{ opacity: 0.2, scale: 2 }}
-                                className="absolute inset-0 bg-white rounded-full pointer-events-none"
-                            />
-                        )}
-                        {existingItem ? (
-                            <div className="flex items-center gap-2">
-                                <span className="bg-white text-emerald-600 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-black">
-                                    {formatQty(currentQty, product.pricing_type)}
-                                </span>
-                                <span>{t('grocery.addedToCart')}</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <ShoppingCart className="w-3.5 h-3.5" />
-                                <span>{t('grocery.addToCart')}</span>
-                            </div>
-                        )}
-                    </Button>
-                </div>
-            </div>
-        </motion.div>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
-

@@ -60,6 +60,7 @@ const RestaurantDetail = lazyWithRetry(() => import("./pages/RestaurantDetail"))
 const Restaurants = lazyWithRetry(() => import("./pages/Restaurants"));
 const Grocery = lazyWithRetry(() => import("./pages/Grocery"));
 const GroceryCart = lazyWithRetry(() => import("./pages/GroceryCart"));
+const GroceryOrders = lazyWithRetry(() => import("./pages/GroceryOrders"));
 const Bakery = lazyWithRetry(() => import("./pages/Bakery"));
 const Cart = lazyWithRetry(() => import("./pages/Cart"));
 const Orders = lazyWithRetry(() => import("./pages/Orders"));
@@ -167,6 +168,7 @@ const App = () => {
                           <Route path="/restaurants" element={<Restaurants />} />
                           <Route path="/grocery" element={<Grocery />} />
                           <Route path="/grocery/cart" element={<GroceryCart />} />
+                          <Route path="/grocery/orders" element={<GroceryOrders />} />
                           <Route path="/bakery" element={<Bakery />} />
                           <Route path="/restaurant/:id" element={<RestaurantDetail />} />
                           <Route path="/cart" element={<Cart />} />
