@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 
 interface IncomingOrderSheetProps {
     request: RiderRequest | null;
-    onAccept: (id: string, type: 'rider_request' | 'order') => void;
+    onAccept: (id: string, type: 'rider_request' | 'order' | 'grocery') => void;
+
     onReject: (id: string) => void;
     isLoading?: boolean;
 }

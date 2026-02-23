@@ -42,93 +42,6 @@ interface UserLocation {
 // Default location (Quetta)
 const DEFAULT_LOCATION = { lat: 30.1798, lng: 66.975 };
 
-// Medicine category sentinel ID (used for hardcoded fallback items)
-const MEDICINE_CATEGORY_ID = '__medicine__';
-
-// Hardcoded medicine items (fallback if DB not seeded)
-const MEDICINE_ITEMS = [
-  {
-    id: 'med-001',
-    name: 'Panadol Extra',
-    description: 'Pain relief tablet',
-    base_price: 150,
-    discount_price: null,
-    pricing_type: 'per_piece' as const,
-    min_quantity: 1,
-    max_quantity: 50,
-    stock_quantity: 100,
-    is_visible: true,
-    is_featured: false,
-    is_trending: false,
-    category_id: MEDICINE_CATEGORY_ID,
-    image_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 'med-002',
-    name: 'Brufen 400mg',
-    description: 'Anti-inflammatory tablet',
-    base_price: 120,
-    discount_price: null,
-    pricing_type: 'per_piece' as const,
-    min_quantity: 1,
-    max_quantity: 50,
-    stock_quantity: 100,
-    is_visible: true,
-    is_featured: false,
-    is_trending: false,
-    category_id: MEDICINE_CATEGORY_ID,
-    image_url: 'https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 'med-003',
-    name: 'Disprin',
-    description: 'Aspirin tablet',
-    base_price: 80,
-    discount_price: null,
-    pricing_type: 'per_piece' as const,
-    min_quantity: 1,
-    max_quantity: 50,
-    stock_quantity: 100,
-    is_visible: true,
-    is_featured: false,
-    is_trending: false,
-    category_id: MEDICINE_CATEGORY_ID,
-    image_url: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 'med-004',
-    name: 'Cough Syrup',
-    description: 'Cold & flu relief',
-    base_price: 250,
-    discount_price: null,
-    pricing_type: 'per_piece' as const,
-    min_quantity: 1,
-    max_quantity: 20,
-    stock_quantity: 50,
-    is_visible: true,
-    is_featured: false,
-    is_trending: false,
-    category_id: MEDICINE_CATEGORY_ID,
-    image_url: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&q=80&w=400',
-  },
-  {
-    id: 'med-005',
-    name: 'ORS Powder',
-    description: 'Oral rehydration salts',
-    base_price: 50,
-    discount_price: null,
-    pricing_type: 'per_piece' as const,
-    min_quantity: 1,
-    max_quantity: 100,
-    stock_quantity: 200,
-    is_visible: true,
-    is_featured: false,
-    is_trending: false,
-    category_id: MEDICINE_CATEGORY_ID,
-    image_url: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&q=80&w=400',
-  },
-];
-
 // Delivery zone center (Quetta)
 const DELIVERY_ZONE_CENTER = { lat: 30.1798, lng: 66.975 };
 const DELIVERY_RADIUS_KM = 15; // 15km radius
@@ -268,18 +181,14 @@ export default function Grocery() {
     toast.success(t('grocery.deliveryLocationUpdated'));
   };
 
-  // Combine DB products with medicine fallback items
-  const isMedicineSelected = selectedCategory === MEDICINE_CATEGORY_ID;
+  const selectedCategoryData = categories?.find(c => c.id === selectedCategory);
+  const isMedicineSelected = selectedCategoryData?.name?.toLowerCase() === 'medicine';
 
-  const filteredProducts = isMedicineSelected
-    ? MEDICINE_ITEMS.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    : products?.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCat = selectedCategory ? p.category_id === selectedCategory : true;
-      return matchesSearch && matchesCat && p.is_visible;
-    });
+  const filteredProducts = products?.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCat = selectedCategory ? p.category_id === selectedCategory : true;
+    return matchesSearch && matchesCat && p.is_visible;
+  });
 
   const featuredProducts = products?.filter(p => p.is_featured && p.is_visible);
   const trendingProducts = products?.filter(p => p.is_trending && p.is_visible);
@@ -302,25 +211,26 @@ export default function Grocery() {
               <ArrowLeft size={18} />
             </Button>
             <div>
-              <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter text-primary">
-                <MapPin size={10} /> {t('grocery.deliveringTo')}
+              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/80 mb-0.5">
+                <MapPin size={10} className="text-primary" /> {t('grocery.deliveringTo')}
               </div>
               <button
                 onClick={() => setShowAddressSelector(true)}
-                className="text-sm font-bold flex items-center gap-1 hover:text-primary transition-colors text-left"
+                className="text-sm font-black flex items-center gap-1.5 hover:text-primary transition-all active:scale-95 group"
               >
-                {userLocation?.address || t('grocery.selectLocation')}
-                <ChevronRight size={14} className="text-muted-foreground" />
+                <span className="truncate max-w-[180px]">{userLocation?.address || t('grocery.selectLocation')}</span>
+                <ChevronRight size={14} className="text-primary group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative rounded-xl bg-muted/30">
-              <Bell size={20} />
-              <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-surface" />
+            <Button variant="ghost" size="icon" className="relative rounded-2xl bg-muted/40 hover:bg-muted/60 transition-all border border-border/20">
+              <Bell size={20} className="text-foreground/70" />
+              <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-surface shadow-[0_0_8px_rgba(255,106,0,0.5)]" />
             </Button>
           </div>
         </div>
+
 
         {/* Premium Search */}
         <div className="relative">
@@ -343,31 +253,44 @@ export default function Grocery() {
           )}
         </div>
 
-        {/* Delivery Fee Display */}
+        {/* Delivery Info Strip */}
         {settings && (
-          <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-            <Truck size={14} className="text-primary" />
-            <span>
-              {isOutsideDeliveryZone ? (
-                <span className="text-amber-600 font-medium">{t('grocery.deliveryMayNotBeAvailable')}</span>
-              ) : (
-                <>
-                  <span className="font-semibold text-foreground">{t('grocery.delivery')}: </span>
-                  {deliveryFee === 0 ? (
-                    <span className="text-green-600 font-semibold">{t('grocery.free')}</span>
-                  ) : (
-                    <span>PKR {deliveryFee}</span>
-                  )}
-                </>
-              )}
-            </span>
-            {settings.min_order_value && (
-              <span className="ml-auto">
-                {t('grocery.minOrder')}: PKR {settings.min_order_value}
+          <div className="flex items-center gap-4 mt-4 px-2 py-2 bg-muted/30 rounded-2xl border border-border/20 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Truck size={12} className="text-primary" />
+              </div>
+              <span className="text-[10px] whitespace-nowrap">
+                {isOutsideDeliveryZone ? (
+                  <span className="text-amber-600 font-black uppercase tracking-tighter">{t('grocery.unavailable')}</span>
+                ) : (
+                  <span className="font-black text-foreground">
+                    {deliveryFee === 0 ? t('grocery.freeDelivery') : `PKR ${deliveryFee} fee`}
+                  </span>
+                )}
               </span>
-            )}
+            </div>
+
+            <div className="w-px h-3 bg-border/50 flex-shrink-0" />
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-success/10 flex items-center justify-center">
+                <ShoppingBag size={12} className="text-success" />
+              </div>
+              <span className="text-[10px] font-black whitespace-nowrap">
+                MIN: PKR {settings.min_order_value || 0}
+              </span>
+            </div>
+
+            <div className="w-px h-3 bg-border/50 flex-shrink-0 ml-auto" />
+
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-success">Active</span>
+            </div>
           </div>
         )}
+
       </header>
 
       {/* Outside Delivery Zone Warning */}
@@ -395,89 +318,105 @@ export default function Grocery() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="space-y-6 mt-4">
-        {/* Categories Grid - Prominent and Clean */}
+      <div className="space-y-8 mt-2 pb-12">
+        {/* Quick Actions / Categories Horizontal Scroll */}
         <section className="px-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-              <div className="w-1.5 h-6 bg-primary rounded-full" />
-              {t('grocery.categories')}
+              <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(255,106,0,0.5)]" />
+              {t('grocery.shopByStore')}
             </h2>
           </div>
-          <div className="grid grid-cols-4 gap-y-6 gap-x-2">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2 px-1">
             <button
               onClick={() => setSelectedCategory(null)}
-              className="flex flex-col items-center gap-1.5 group"
+              className="flex flex-col items-center gap-2.5 flex-shrink-0 group outline-none"
             >
-              <div className={`w-16 h-16 rounded-3xl flex items-center justify-center p-3 transition-all duration-300 ${!selectedCategory ? 'bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/20' : 'bg-muted/50 group-hover:bg-muted opacity-80'}`}>
-                <Sparkles className={`w-8 h-8 ${!selectedCategory ? 'text-white' : 'text-muted-foreground'}`} />
+              <div className={`w-16 h-16 rounded-3xl flex items-center justify-center p-3 transition-all duration-300 relative ${!selectedCategory ? 'bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/20 scale-105' : 'bg-muted/40 hover:bg-muted opacity-90'}`}>
+                <Sparkles className={`w-8 h-8 ${!selectedCategory ? 'text-white' : 'text-primary/70'}`} />
+                {!selectedCategory && <motion.div layoutId="cat-glow" className="absolute inset-0 rounded-3xl bg-primary animate-pulse blur-xl opacity-30 -z-10" />}
               </div>
-              <span className={`text-[11px] font-black tracking-tight truncate w-full text-center ${!selectedCategory ? 'text-primary' : 'text-muted-foreground'}`}>{t('grocery.allItems')}</span>
+              <span className={`text-[10px] font-black tracking-widest uppercase ${!selectedCategory ? 'text-primary' : 'text-muted-foreground/80'}`}>{t('grocery.all')}</span>
             </button>
 
             {categories?.filter(c => c.is_active).map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className="flex flex-col items-center gap-1.5 group"
+                className="flex flex-col items-center gap-2.5 flex-shrink-0 group outline-none"
               >
                 <div
-                  className={`w-16 h-16 rounded-3xl flex items-center justify-center p-3 transition-all duration-300 ${selectedCategory === cat.id
-                    ? 'bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/20'
-                    : 'bg-muted/50 group-hover:bg-muted opacity-80'
+                  className={`w-16 h-16 rounded-3xl flex items-center justify-center p-3 transition-all duration-500 relative ${selectedCategory === cat.id
+                    ? 'bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/20 scale-105'
+                    : 'bg-muted/40 hover:bg-muted opacity-90 hover:scale-105'
                     }`}
                 >
-                  <img
-                    src={cat.icon_url || ''}
-                    alt={cat.name}
-                    className={`w-10 h-10 object-contain transition-all ${selectedCategory === cat.id ? 'brightness-0 invert' : ''}`}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://cdn-icons-png.flaticon.com/512/3081/3081840.png";
-                    }}
-                  />
+                  {cat.icon_url || cat.image_url ? (
+                    <img
+                      src={cat.icon_url || cat.image_url}
+                      alt={cat.name}
+                      className={`w-10 h-10 object-contain transition-all duration-300 ${selectedCategory === cat.id ? 'brightness-0 invert' : ''}`}
+                    />
+                  ) : (
+                    <span className="text-3xl leading-none">
+                      {cat.name.toLowerCase() === 'medicine' ? '💊' :
+                        cat.name.toLowerCase().includes('fruit') ? '🍎' :
+                          cat.name.toLowerCase().includes('vegetable') ? '🥦' :
+                            cat.name.toLowerCase().includes('meat') ? '🥩' :
+                              cat.name.toLowerCase().includes('dairy') ? '🥛' : '📦'}
+                    </span>
+                  )}
+                  {selectedCategory === cat.id && <motion.div layoutId="cat-glow" className="absolute inset-0 rounded-3xl bg-primary animate-pulse blur-xl opacity-30 -z-10" />}
                 </div>
-                <span className={`text-[10px] font-black tracking-tight leading-tight w-full text-center px-0.5 line-clamp-2 ${selectedCategory === cat.id ? 'text-primary' : 'text-muted-foreground'}`}>
+                <span className={`text-[10px] font-black tracking-widest uppercase line-clamp-1 max-w-[64px] ${selectedCategory === cat.id ? 'text-primary' : 'text-muted-foreground/80'}`}>
                   {cat.name}
                 </span>
               </button>
             ))}
-
-            {/* Medicine Category - Hardcoded */}
-            <button
-              onClick={() => setSelectedCategory(MEDICINE_CATEGORY_ID)}
-              className="flex flex-col items-center gap-1.5 group"
-            >
-              <div
-                className={`w-16 h-16 rounded-3xl flex items-center justify-center p-3 transition-all duration-300 ${selectedCategory === MEDICINE_CATEGORY_ID
-                  ? 'bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/20'
-                  : 'bg-muted/50 group-hover:bg-muted opacity-80'
-                  }`}
-              >
-                <span className="text-3xl leading-none">💊</span>
-              </div>
-              <span className={`text-[10px] font-black tracking-tight leading-tight w-full text-center px-0.5 line-clamp-2 ${selectedCategory === MEDICINE_CATEGORY_ID ? 'text-primary' : 'text-muted-foreground'}`}>
-                {t('grocery.medicine')}
-              </span>
-            </button>
           </div>
         </section>
 
-        {/* Promo Banner - integrated */}
-        <section className="px-3">
-          <div className="rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/10 border border-border/50">
+        {/* Promo Banner - Large and Premium */}
+        <section className="px-4">
+          <div className="rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/10 border border-border/50 bg-muted/20">
             <BannerCarousel type="grocery" />
           </div>
         </section>
 
-        {/* Featured Section */}
+        {/* Exclusive Deals Strip */}
+        {trendingProducts && trendingProducts.length > 0 && !selectedCategory && !searchQuery && (
+          <section className="px-0 relative overflow-hidden py-4">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
+            <div className="px-4 flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+                <Tag size={20} className="text-primary" />
+                {t('grocery.hotDeals')}
+              </h2>
+              <div className="flex gap-1.5">
+                <Badge variant="outline" className="rounded-full border-primary/20 text-primary bg-primary/5 uppercase text-[9px] font-black tracking-widest px-3 py-1">Limited Time</Badge>
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar px-4 pb-4">
+              {trendingProducts.map(p => (
+                <div key={p.id} className="min-w-[200px] max-w-[200px]">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Featured Section - 2x2 Grid */}
         {featuredProducts && featuredProducts.length > 0 && !selectedCategory && !searchQuery && (
           <section className="px-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
-                <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
-                {t('grocery.premiumDeals')}
-              </h2>
-              <Badge variant="outline" className="rounded-full font-bold border-amber-500/20 text-amber-600 bg-amber-500/5 px-3 py-1">{t('grocery.bestValue')}</Badge>
+            <div className="flex items-center justify-between mb-5">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black tracking-tight flex items-center gap-2 leading-none">
+                  {t('grocery.essentialPicks')}
+                </h2>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{t('grocery.curatedForYou')}</p>
+              </div>
+              <Button variant="link" size="sm" className="text-primary font-black uppercase text-[10px] tracking-widest h-auto p-0">{t('grocery.viewAll')}</Button>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {featuredProducts.slice(0, 4).map(p => (
@@ -487,31 +426,52 @@ export default function Grocery() {
           </section>
         )}
 
-        {/* All Products */}
+        {/* Category Focus: Fresh Veggies & Fruits (Example) */}
+        {!selectedCategory && !searchQuery && categories?.find(c => c.name.toLowerCase().includes('fruit') || c.name.toLowerCase().includes('veg')) && (
+          <section className="px-4">
+            <div className="bg-success/5 border border-success/10 rounded-[2.5rem] p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-success/20 flex items-center justify-center">
+                    <Store size={20} className="text-success" />
+                  </div>
+                  <h3 className="font-black text-lg tracking-tight">{t('grocery.freshFarmDirect')}</h3>
+                </div>
+              </div>
+              <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                {products?.filter(p => p.category?.name.toLowerCase().includes('fruit') || p.category?.name.toLowerCase().includes('veg')).slice(0, 5).map(p => (
+                  <div key={p.id} className="min-w-[160px]">
+                    <ProductCard product={p} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Grid of Results / All Products */}
         <section className="px-4 pb-12">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black flex items-center gap-2">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-black flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-success rounded-full" />
               {isMedicineSelected ? (
-                <span className="text-xl leading-none">💊</span>
+                <span className="flex items-center gap-2">💊 {t('grocery.medicine')}</span>
+              ) : selectedCategory ? (
+                categories?.find(c => c.id === selectedCategory)?.name
               ) : (
-                <TrendingUp size={18} className="text-success" />
+                t('grocery.allProducts')
               )}
-              {isMedicineSelected
-                ? t('grocery.medicine')
-                : selectedCategory
-                  ? categories?.find(c => c.id === selectedCategory)?.name
-                  : t('grocery.freshForYou')}
             </h2>
             {searchQuery && (
-              <Badge variant="secondary" className="rounded-full">
-                {filteredProducts?.length || 0} {t('grocery.results')}
+              <Badge variant="secondary" className="rounded-full font-black text-[10px]">
+                {filteredProducts?.length || 0} {t('grocery.found')}
               </Badge>
             )}
           </div>
 
           {catsLoading || prodsLoading ? (
             <div className="grid grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-48 rounded-3xl" />)}
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-48 rounded-[2rem]" />)}
             </div>
           ) : filteredProducts && filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-4">
@@ -520,16 +480,18 @@ export default function Grocery() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-muted/30 rounded-3xl border border-dashed border-border flex flex-col items-center">
-              <ShoppingBag size={48} className="text-muted-foreground/30 mb-2" />
-              <p className="text-muted-foreground font-medium">{t('grocery.noProductsFound')}</p>
+            <div className="text-center py-16 bg-muted/20 border-2 border-dashed border-border/50 rounded-[3rem] flex flex-col items-center">
+              <div className="w-20 h-20 bg-muted/40 rounded-full flex items-center justify-center mb-4">
+                <ShoppingBag size={40} className="text-muted-foreground/30" />
+              </div>
+              <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">{t('grocery.noItemsMatch')}</p>
               {searchQuery && (
                 <Button
                   variant="link"
                   onClick={() => setSearchQuery("")}
-                  className="mt-2 text-primary"
+                  className="mt-2 text-primary font-bold"
                 >
-                  {t('grocery.clearSearch')}
+                  {t('grocery.tryAdjusting')}
                 </Button>
               )}
             </div>

@@ -464,40 +464,62 @@ export default function GroceryCart() {
                             <motion.div
                                 key={item.id}
                                 layout
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                className="flex items-center gap-4 bg-muted/30 p-3 rounded-2xl group"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-4 bg-white dark:bg-muted/20 p-4 rounded-[2rem] shadow-sm border border-border/40 group relative overflow-hidden"
                             >
-                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-white shadow-sm border border-border">
-                                    <img src={item.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200'} alt={item.name} className="w-full h-full object-cover" />
+                                <div className="w-20 h-20 rounded-2xl overflow-hidden bg-muted/30 border border-border/50 flex-shrink-0">
+                                    <img src={item.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200'} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-sm truncate">{item.name}</h4>
-                                    <p className="text-xs text-textSecondary font-medium">
-                                        PKR {item.discount_price || item.base_price} / {item.pricing_type === 'per_kg' ? 'KG' : item.pricing_type === 'per_gram' ? 'g' : 'Unit'}
-                                    </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <div className="flex items-center bg-surface border border-border rounded-lg p-0.5">
-                                        <button onClick={() => updateQuantity(item.id, item.quantity - (item.pricing_type === 'per_kg' ? 0.25 : item.pricing_type === 'per_gram' ? 50 : 1))} className="w-6 h-6 flex items-center justify-center hover:bg-muted rounded-md transition-colors"><Minus size={12} /></button>
-                                        <span className="w-12 text-center text-xs font-bold">{formatQuantity(item)}</span>
-                                        <button onClick={() => updateQuantity(item.id, item.quantity + (item.pricing_type === 'per_kg' ? 0.25 : item.pricing_type === 'per_gram' ? 50 : 1))} className="w-6 h-6 flex items-center justify-center hover:bg-muted rounded-md transition-colors"><Plus size={12} /></button>
+                                    <h4 className="font-black text-sm text-foreground line-clamp-1 mb-1">{item.name}</h4>
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0 border-primary/20 text-primary bg-primary/5">
+                                            PKR {item.discount_price || item.base_price} / {item.pricing_type === 'per_kg' ? 'KG' : item.pricing_type === 'per_gram' ? 'g' : 'Pcs'}
+                                        </Badge>
                                     </div>
-                                    <span className="font-black text-sm text-primary">PKR {Number((item.discount_price || item.base_price) * item.quantity).toFixed(0)}</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center bg-muted/50 rounded-xl p-0.5 border border-border/40">
+                                            <button
+                                                onClick={() => updateQuantity(item.id, item.quantity - (item.pricing_type === 'per_kg' ? 0.25 : 1))}
+                                                className="w-7 h-7 flex items-center justify-center hover:bg-background rounded-lg transition-all active:scale-90"
+                                            >
+                                                <Minus size={12} />
+                                            </button>
+                                            <span className="w-14 text-center text-xs font-black">{formatQuantity(item)}</span>
+                                            <button
+                                                onClick={() => updateQuantity(item.id, item.quantity + (item.pricing_type === 'per_kg' ? 0.25 : 1))}
+                                                className="w-7 h-7 flex items-center justify-center hover:bg-background rounded-lg transition-all active:scale-90"
+                                            >
+                                                <Plus size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button onClick={() => removeItem(item.id)} className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex flex-col items-end gap-2 pr-2">
+                                    <span className="font-black text-base text-primary tracking-tighter">
+                                        ₨ {Number((item.discount_price || item.base_price) * item.quantity).toFixed(0)}
+                                    </span>
+                                    <button
+                                        onClick={() => removeItem(item.id)}
+                                        className="p-2 text-muted-foreground/40 hover:text-red-500 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </motion.div>
                         ))}
                         {items.length === 0 && (
-                            <div className="text-center py-12">
-                                <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <ShoppingBag size={32} className="text-muted-foreground/30" />
+                            <div className="text-center py-20 px-6">
+                                <div className="w-24 h-24 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <ShoppingBag size={48} className="text-muted-foreground/20" />
                                 </div>
-                                <p className="font-bold text-textSecondary">Your basket is empty</p>
-                                <Button variant="link" onClick={() => navigate("/grocery")} className="mt-2 text-primary">Go Shopping</Button>
+                                <h3 className="font-black text-xl mb-2">{t('grocery.emptyBasketTitle')}</h3>
+                                <p className="text-muted-foreground text-sm font-medium mb-8">{t('grocery.emptyBasketDesc')}</p>
+                                <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl" onClick={() => navigate("/grocery")}>
+                                    {t('grocery.startShopping')}
+                                </Button>
                             </div>
                         )}
                     </AnimatePresence>
@@ -505,211 +527,204 @@ export default function GroceryCart() {
 
                 {items.length > 0 && (
                     <>
-                        {/* Delivery Details */}
+                        {/* Delivery & Schedule Details */}
                         <div className="space-y-4">
-                            <h3 className="font-black text-xs uppercase tracking-widest text-textSecondary">Checkout Details</h3>
-                            <Card className="rounded-3xl border-none bg-muted/30">
-                                <CardContent className="p-4 space-y-4">
-                                    {/* Address Selector */}
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-primary/10 rounded-xl text-primary mt-0.5">
-                                            <MapPin size={18} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[10px] font-black uppercase text-textSecondary mb-1">Delivery Address</p>
-                                            <button
-                                                onClick={() => setShowAddressModal(true)}
-                                                className="text-sm font-bold leading-tight text-left w-full hover:text-primary transition-colors"
-                                            >
-                                                {addressesLoading ? 'Loading addresses...' : displayAddress}
-                                            </button>
-                                            <button
-                                                onClick={() => setShowAddressModal(true)}
-                                                className="text-xs font-bold text-primary mt-1 flex items-center gap-1"
-                                            >
-                                                Change Address <ChevronRight size={12} />
-                                            </button>
+                            <div className="flex items-center justify-between px-2">
+                                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{t('grocery.deliveryPreferences')}</h3>
+                            </div>
+
+                            <Card className="rounded-[2.5rem] border-none bg-white dark:bg-muted/10 shadow-sm overflow-hidden">
+                                <CardContent className="p-0">
+                                    {/* Address Section */}
+                                    <div className="p-6 border-b border-border/50 group active:bg-muted/40 transition-colors" onClick={() => setShowAddressModal(true)}>
+                                        <div className="flex gap-4">
+                                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                                                <MapPin size={24} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">{t('grocery.deliverTo')}</p>
+                                                    <ChevronRight size={14} className="text-muted-foreground" />
+                                                </div>
+                                                <p className="text-sm font-black text-foreground truncate">{displayAddress.split(',')[0]}...</p>
+                                                <p className="text-xs text-muted-foreground truncate">{displayAddress}</p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Delivery Time Slot */}
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-blue-500/10 rounded-xl text-blue-500 mt-0.5">
-                                            <Clock size={18} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[10px] font-black uppercase text-textSecondary mb-2">Delivery Time</p>
+                                    {/* Timing Section */}
+                                    <div className="p-6 space-y-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={16} className="text-blue-500" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">{t('grocery.deliveryTime')}</p>
+                                            </div>
 
-                                            {/* Schedule for Later Toggle */}
-                                            <div className="flex items-center justify-between mb-3 p-3 bg-purple-500/5 border border-purple-500/20 rounded-xl">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-purple-500" />
-                                                    <span className="text-sm font-bold">Schedule for Later</span>
-                                                </div>
+                                            <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-xl px-2">
+                                                <span className="text-[10px] font-black uppercase text-muted-foreground mr-1">{t('grocery.schedule')}</span>
                                                 <Switch
                                                     checked={isScheduleEnabled}
                                                     onCheckedChange={(checked) => {
                                                         setIsScheduleEnabled(checked);
-                                                        if (checked) {
-                                                            setShowSchedulingModal(true);
-                                                        } else {
-                                                            setScheduledOrderData(null);
-                                                        }
+                                                        if (checked) setShowSchedulingModal(true);
+                                                        else setScheduledOrderData(null);
                                                     }}
+                                                    className="scale-75"
                                                 />
                                             </div>
-
-                                            {/* Show scheduled time if set */}
-                                            {scheduledOrderData && (
-                                                <div className="mb-3 p-3 bg-primary/10 border border-primary/20 rounded-xl">
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <p className="text-xs font-black uppercase text-primary">Scheduled Delivery</p>
-                                                            <p className="text-sm font-bold">{scheduledOrderData.scheduledDateTime}</p>
-                                                        </div>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setShowSchedulingModal(true)}
-                                                            className="text-primary"
-                                                        >
-                                                            Change
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Regular time slots - only show when not scheduling */}
-                                            {!isScheduleEnabled && (
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {TIME_SLOTS.map((slot) => (
-                                                        <button
-                                                            key={slot.id}
-                                                            onClick={() => setSelectedTimeSlot(slot.id)}
-                                                            className={`text-xs font-bold py-2 px-3 rounded-lg border transition-all ${selectedTimeSlot === slot.id
-                                                                ? 'bg-primary text-white border-primary'
-                                                                : 'bg-surface border-border hover:border-primary/50'
-                                                                }`}
-                                                        >
-                                                            {slot.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
                                         </div>
-                                    </div>
 
-                                    {/* Payment Method */}
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-success/10 rounded-xl text-success mt-0.5">
-                                            <CreditCard size={18} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[10px] font-black uppercase text-textSecondary mb-2">Payment Method</p>
-                                            <RadioGroup
-                                                value={paymentMethod}
-                                                onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
-                                                className="space-y-2"
-                                            >
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="cod" id="cod" />
-                                                    <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer">
-                                                        <span className="text-sm font-bold">Cash on Delivery</span>
-                                                    </Label>
+                                        {isScheduleEnabled && scheduledOrderData ? (
+                                            <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase text-primary/70 mb-0.5">{t('grocery.scheduledFor')}</p>
+                                                    <p className="text-sm font-black">{scheduledOrderData.scheduledDateTime}</p>
                                                 </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="wallet" id="wallet" />
-                                                    <Label htmlFor="wallet" className="flex items-center gap-2 cursor-pointer">
-                                                        <Wallet size={14} />
-                                                        <span className="text-sm font-bold">Wallet Balance</span>
-                                                        <span className="text-xs text-textSecondary">(PKR {walletBalance.toFixed(0)})</span>
-                                                    </Label>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="card" id="card" />
-                                                    <Label htmlFor="card" className="flex items-center gap-2 cursor-pointer">
-                                                        <CreditCard size={14} />
-                                                        <span className="text-sm font-bold">Card Payment</span>
-                                                        <span className="text-xs text-amber-600">(Coming Soon)</span>
-                                                    </Label>
-                                                </div>
-                                            </RadioGroup>
-                                        </div>
+                                                <Button variant="ghost" size="sm" onClick={() => setShowSchedulingModal(true)} className="text-primary text-[10px] font-black uppercase">{t('grocery.change')}</Button>
+                                            </div>
+                                        ) : !isScheduleEnabled && (
+                                            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                                                {TIME_SLOTS.map((slot) => (
+                                                    <button
+                                                        key={slot.id}
+                                                        onClick={() => setSelectedTimeSlot(slot.id)}
+                                                        className={`flex-shrink-0 px-4 py-2.5 rounded-xl border-2 transition-all font-black text-[10px] uppercase tracking-wider ${selectedTimeSlot === slot.id
+                                                                ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105'
+                                                                : 'bg-muted/30 border-transparent text-muted-foreground'
+                                                            }`}
+                                                    >
+                                                        {slot.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {/* Promo Code */}
-                        <div className="space-y-3">
-                            <h3 className="font-black text-xs uppercase tracking-widest text-textSecondary">Promo Code</h3>
-                            {appliedPromo ? (
-                                <div className="flex items-center justify-between bg-success/10 border border-success/20 rounded-xl p-3">
-                                    <div className="flex items-center gap-2">
-                                        <Tag size={16} className="text-success" />
-                                        <span className="font-bold text-sm">{appliedPromo.code}</span>
-                                        <span className="text-xs text-success">
-                                            -{appliedPromo.type === 'percentage' ? `${appliedPromo.discount}%` : `PKR ${appliedPromo.discount}`}
-                                        </span>
+                        {/* Order Summary & Bill */}
+                        <div className="space-y-4">
+                            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">{t('grocery.orderSummary')}</h3>
+
+                            <Card className="rounded-[2.5rem] border-none bg-white dark:bg-muted/10 shadow-sm overflow-hidden">
+                                <CardContent className="p-6 space-y-6">
+                                    {/* Promo Input */}
+                                    {!appliedPromo ? (
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={promoCode}
+                                                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                                                placeholder={t('grocery.promoCodePlaceholder')}
+                                                className="w-full h-12 pl-12 pr-24 bg-muted/30 border-none rounded-2xl text-xs font-black uppercase tracking-widest focus:ring-2 ring-primary/20 transition-all"
+                                            />
+                                            <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                                            <button
+                                                onClick={handleApplyPromo}
+                                                disabled={isApplyingPromo || !promoCode}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-4 bg-foreground text-background rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all"
+                                            >
+                                                {isApplyingPromo ? '...' : t('grocery.apply')}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-success/5 border border-success/20 p-4 rounded-2xl flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center text-success">
+                                                    <Tag size={16} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-success/70">{t('grocery.promoApplied')}</p>
+                                                    <p className="text-xs font-black">{appliedPromo.code}</p>
+                                                </div>
+                                            </div>
+                                            <button onClick={handleRemovePromo} className="text-red-500 hover:text-red-600 transition-colors">
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Bill Breakdown */}
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex justify-between items-center text-sm font-medium">
+                                            <span className="text-muted-foreground">{t('grocery.itemTotal')}</span>
+                                            <span className="font-black">₨ {subtotal.toFixed(0)}</span>
+                                        </div>
+
+                                        {discount > 0 && (
+                                            <div className="flex justify-between items-center text-sm font-medium text-success">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Tag size={14} />
+                                                    {t('grocery.promoDiscount')}
+                                                </span>
+                                                <span className="font-black">-₨ {discount.toFixed(0)}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-between items-center text-sm font-medium">
+                                            <span className="text-muted-foreground flex items-center gap-1.5">
+                                                <Truck size={14} />
+                                                {t('grocery.deliveryFee')}
+                                            </span>
+                                            {deliveryFee === 0 ? (
+                                                <span className="text-success font-black tracking-widest text-[10px] bg-success/10 px-2 py-0.5 rounded-full uppercase">{t('grocery.free')}</span>
+                                            ) : (
+                                                <span className="font-black">₨ {deliveryFee.toFixed(0)}</span>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-4 border-t border-border flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">{t('grocery.toPay')}</p>
+                                                <p className="text-3xl font-black text-foreground tracking-tighter leading-none">
+                                                    <span className="text-sm mr-1">₨</span>
+                                                    {finalTotal.toFixed(0)}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <Badge className="bg-success/10 text-success border-none text-[8px] font-black uppercase tracking-[0.1em] px-2 py-1">
+                                                    {t('grocery.inclusiveOfAllTaxes')}
+                                                </Badge>
+                                            </div>
+                                        </div>
                                     </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Payment Method Selection - Premium Style */}
+                            <div className="space-y-4">
+                                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-muted-foreground px-2">{t('grocery.paymentMethod')}</h3>
+                                <div className="grid grid-cols-2 gap-3">
                                     <button
-                                        onClick={handleRemovePromo}
-                                        className="text-xs font-bold text-red-500 hover:underline"
+                                        onClick={() => setPaymentMethod('cod')}
+                                        className={`p-4 rounded-[2rem] border-2 transition-all text-left flex flex-col gap-2 ${paymentMethod === 'cod'
+                                                ? 'bg-primary/5 border-primary shadow-lg shadow-primary/5'
+                                                : 'bg-white dark:bg-muted/10 border-transparent'
+                                            }`}
                                     >
-                                        Remove
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${paymentMethod === 'cod' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                                            <CreditCard size={16} />
+                                        </div>
+                                        <p className="text-xs font-black uppercase tracking-tight">{t('grocery.cod')}</p>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setPaymentMethod('wallet')}
+                                        className={`p-4 rounded-[2rem] border-2 transition-all text-left flex flex-col gap-2 ${paymentMethod === 'wallet'
+                                                ? 'bg-primary/5 border-primary shadow-lg shadow-primary/5'
+                                                : 'bg-white dark:bg-muted/10 border-transparent'
+                                            }`}
+                                    >
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${paymentMethod === 'wallet' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                                            <Wallet size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black uppercase tracking-tight">{t('grocery.wallet')}</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground line-clamp-1">₨ {walletBalance.toFixed(0)}</p>
+                                        </div>
                                     </button>
                                 </div>
-                            ) : (
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={promoCode}
-                                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                                        placeholder="Enter promo code"
-                                        className="flex-1 h-11 px-4 rounded-xl border border-border bg-surface text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                    />
-                                    <Button
-                                        onClick={handleApplyPromo}
-                                        disabled={isApplyingPromo}
-                                        className="h-11 px-6 rounded-xl font-bold"
-                                    >
-                                        {isApplyingPromo ? 'Applying...' : 'Apply'}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Bill Details */}
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm font-medium">
-                                <span className="text-textSecondary">Basket Subtotal</span>
-                                <span>PKR {subtotal.toFixed(0)}</span>
-                            </div>
-                            {discount > 0 && (
-                                <div className="flex justify-between text-sm font-medium text-success">
-                                    <span className="text-textSecondary">Discount</span>
-                                    <span>-PKR {discount.toFixed(0)}</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between text-sm font-medium">
-                                <span className="text-textSecondary flex items-center gap-1">
-                                    <Truck size={14} />
-                                    Delivery Fee
-                                </span>
-                                {deliveryFee === 0 ? (
-                                    <span className="text-success font-bold">FREE</span>
-                                ) : (
-                                    <span>PKR {deliveryFee.toFixed(0)}</span>
-                                )}
-                            </div>
-                            {subtotal < FREE_DELIVERY_THRESHOLD && (
-                                <div className="text-xs text-textSecondary bg-muted/30 p-2 rounded-lg">
-                                    Add PKR {(FREE_DELIVERY_THRESHOLD - subtotal).toFixed(0)} more for FREE delivery
-                                </div>
-                            )}
-                            <div className="flex justify-between items-end pt-3 border-t border-border">
-                                <span className="font-black text-lg">Total Payable</span>
-                                <span className="font-black text-2xl text-primary leading-none">PKR {finalTotal.toFixed(0)}</span>
                             </div>
                         </div>
                     </>

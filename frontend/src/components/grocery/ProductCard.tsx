@@ -18,9 +18,24 @@ export default function ProductCard({ product }: ProductCardProps) {
     const [qty, setQty] = useState(product.min_quantity || 0.5);
 
     const step = product.pricing_type === 'per_kg' ? 0.25 : 1;
-    const unitLabel = product.pricing_type === 'per_kg' ? 'KG' :
-        product.pricing_type === 'per_gram' ? 'g' :
-            product.pricing_type === 'per_piece' ? 'PEC' : 'PKT';
+
+    // Polished units
+    const getUnitLabel = (type: string) => {
+        switch (type) {
+            case 'per_kg': return 'kg';
+            case 'per_gram': return 'g';
+            case 'per_piece': return 'pcs';
+            case 'per_packet': return 'pkt';
+            default: return 'unit';
+        }
+    };
+
+    const unitLabel = getUnitLabel(product.pricing_type);
+    const formatQty = (q: number, type: string) => {
+        if (type === 'per_kg') return q.toFixed(2);
+        if (type === 'per_gram') return Math.round(q);
+        return q;
+    };
 
     const unitPrice = product.discount_price || product.base_price;
     const currentQty = existingItem?.quantity || qty;
@@ -41,7 +56,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const handleDecrement = () => {
         if (existingItem) {
             if (existingItem.quantity <= product.min_quantity) {
-                // remove is handled elsewhere or by specific logic
+                // remove logic if needed
             } else {
                 updateQuantity(product.id, existingItem.quantity - step);
             }
@@ -52,11 +67,13 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-surface rounded-3xl overflow-hidden border border-border/50 shadow-sm hover:shadow-md transition-all flex flex-col"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -4 }}
+            className="group bg-card rounded-[2rem] overflow-hidden border border-border/40 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 flex flex-col h-full"
         >
-            <div className="aspect-square relative overflow-hidden bg-muted group">
+            {/* Image Section */}
+            <div className="aspect-[4/3] relative overflow-hidden bg-muted/30">
                 <img
                     src={product.image_url || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"}
                     alt={product.name}
@@ -65,50 +82,84 @@ export default function ProductCard({ product }: ProductCardProps) {
                         (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800";
                     }}
                 />
-                {product.discount_price && (
-                    <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                        {t('grocery.savePKR')} {product.base_price - product.discount_price}
-                    </div>
-                )}
+
+                {/* Badges Overlay */}
+                <div className="absolute top-3 inset-x-3 flex justify-between items-start pointer-events-none">
+                    {product.discount_price ? (
+                        <div className="bg-red-500/90 backdrop-blur-md text-white text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                            {Math.round(((product.base_price - product.discount_price) / product.base_price) * 100)}% OFF
+                        </div>
+                    ) : <div></div>}
+
+                    {product.is_featured && (
+                        <div className="bg-amber-400/90 backdrop-blur-md text-black text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                            Top
+                        </div>
+                    )}
+                </div>
+
                 {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
-                    <div className="absolute bottom-2 left-2 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
+                    <div className="absolute bottom-3 right-3 bg-amber-500/90 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-lg uppercase tracking-widest">
                         {t('grocery.onlyLeft')} {product.stock_quantity}
                     </div>
                 )}
+
                 {product.stock_quantity <= 0 && (
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                        <Badge variant="destructive" className="font-bold">{t('grocery.outOfStock')}</Badge>
+                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[4px] flex items-center justify-center p-4">
+                        <Badge variant="destructive" className="font-black text-[10px] uppercase tracking-widest px-4 py-1 rounded-full border-none shadow-xl">
+                            {t('grocery.outOfStock')}
+                        </Badge>
                     </div>
                 )}
             </div>
 
-            <div className="p-4 flex-1 flex flex-col">
-                <h4 className="font-bold text-textPrimary text-sm leading-tight mb-1 line-clamp-1">{product.name}</h4>
-                <p className="text-[10px] text-textSecondary mb-2 font-medium">{t('grocery.pricePer')}: PKR {unitPrice}/{unitLabel}</p>
+            {/* Info Section */}
+            <div className="p-4 flex-1 flex flex-col gap-2">
+                <div className="min-h-[40px]">
+                    <h4 className="font-black text-foreground text-sm leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        {product.name}
+                    </h4>
+                </div>
 
-                <div className="mt-auto pt-2">
-                    <div className="flex items-center justify-between mb-3">
+                <div className="flex items-baseline gap-1.5 min-h-[1.5rem]">
+                    <span className="text-xs font-bold text-muted-foreground">
+                        PKR {unitPrice}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/60 font-medium">
+                        / {unitLabel}
+                    </span>
+                </div>
+
+                <div className="mt-auto space-y-4">
+                    {/* Price and Quantity Control */}
+                    <div className="flex items-center justify-between gap-2">
                         <div className="flex flex-col">
-                            <span className="text-xs text-textSecondary line-through h-4">
-                                {product.discount_price ? `PKR ${product.base_price}` : ''}
+                            {product.discount_price && (
+                                <span className="text-[10px] text-muted-foreground line-through decoration-red-500/50">
+                                    PKR {product.base_price}
+                                </span>
+                            )}
+                            <span className="text-xl font-black text-foreground tracking-tighter">
+                                <span className="text-xs mr-0.5">₨</span>
+                                {totalPrice.toFixed(0)}
                             </span>
-                            <span className="text-lg font-black text-primary">PKR {totalPrice.toFixed(0)}</span>
-                            <span className="text-[10px] text-textSecondary">{t('grocery.total')}: {currentQty} {unitLabel}</span>
                         </div>
 
-                        <div className="flex items-center bg-muted/50 rounded-xl p-1 border border-border">
+                        {/* Quantity Controls - More professional layout */}
+                        <div className="flex items-center bg-muted/40 p-1 rounded-2xl border border-border/40 backdrop-blur-sm group/qty">
                             <button
-                                onClick={handleDecrement}
-                                className="w-7 h-7 flex items-center justify-center text-textPrimary hover:bg-background rounded-lg transition-colors"
+                                onClick={(e) => { e.stopPropagation(); handleDecrement(); }}
+                                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background rounded-xl transition-all active:scale-90"
                             >
                                 <Minus size={14} />
                             </button>
-                            <span className="w-10 text-center text-xs font-bold text-textPrimary">
-                                {currentQty} {unitLabel}
-                            </span>
+                            <div className="flex flex-col items-center px-2 min-w-[50px]">
+                                <span className="text-xs font-black text-foreground">{currentQty}</span>
+                                <span className="text-[8px] font-black uppercase text-muted-foreground/60 tracking-widest">{unitLabel}</span>
+                            </div>
                             <button
-                                onClick={handleIncrement}
-                                className="w-7 h-7 flex items-center justify-center text-textPrimary hover:bg-background rounded-lg transition-colors"
+                                onClick={(e) => { e.stopPropagation(); handleIncrement(); }}
+                                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background rounded-xl transition-all active:scale-90"
                             >
                                 <Plus size={14} />
                             </button>
@@ -116,16 +167,37 @@ export default function ProductCard({ product }: ProductCardProps) {
                     </div>
 
                     <Button
-                        onClick={handleAdd}
+                        onClick={(e) => { e.stopPropagation(); handleAdd(); }}
                         disabled={product.stock_quantity <= 0}
-                        className={`w-full h-10 rounded-xl font-bold transition-all ${existingItem ? 'bg-success hover:bg-success/90' : 'bg-primary hover:bg-primary/90'
-                            }`}
+                        className={`w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all duration-300 shadow-xl relative overflow-hidden ${existingItem
+                            ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 ring-4 ring-emerald-500/10'
+                            : 'bg-primary hover:bg-primary/90 shadow-primary/30'
+                            } ${product.stock_quantity <= 0 ? 'opacity-50 grayscale' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
                     >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        {existingItem ? `${t('grocery.inCart')} (${currentQty} ${unitLabel})` : t('grocery.addToCart')}
+                        {existingItem && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ opacity: 0.2, scale: 2 }}
+                                className="absolute inset-0 bg-white rounded-full pointer-events-none"
+                            />
+                        )}
+                        {existingItem ? (
+                            <div className="flex items-center gap-2">
+                                <span className="bg-white text-emerald-600 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-black">
+                                    {formatQty(currentQty, product.pricing_type)}
+                                </span>
+                                <span>{t('grocery.addedToCart')}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="w-3.5 h-3.5" />
+                                <span>{t('grocery.addToCart')}</span>
+                            </div>
+                        )}
                     </Button>
                 </div>
             </div>
         </motion.div>
     );
 }
+

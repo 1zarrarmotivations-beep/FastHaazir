@@ -47,7 +47,9 @@ interface RiderLiveMapProps {
     currentSpeed?: number;  // legacy prop (km/h)
     isFullscreen?: boolean;
     height?: string;
+    onRouteInfoUpdate?: (info: { eta: string; distance: string }) => void;
 }
+
 
 interface RouteStep {
     instruction: string;
@@ -308,7 +310,9 @@ const RiderLiveMap = ({
     currentSpeed = 0,
     height = '340px',
     isFullscreen = false,
+    onRouteInfoUpdate,
 }: RiderLiveMapProps) => {
+
 
     /* ── DOM refs ───────────────────────────────────── */
     const containerRef = useRef<HTMLDivElement>(null);
@@ -353,8 +357,22 @@ const RiderLiveMap = ({
     });
 
     useEffect(() => {
-        localStorage.setItem('rider_voice_enabled', voiceEnabled.toString());
+        if (voiceEnabled) {
+            localStorage.setItem('rider_voice_enabled', 'true');
+        } else {
+            localStorage.setItem('rider_voice_enabled', 'false');
+        }
     }, [voiceEnabled]);
+
+    // Ensure map size is correct on mount/visible
+    useEffect(() => {
+        if (mapReady && mapRef.current) {
+            const timer = setTimeout(() => {
+                mapRef.current?.invalidateSize();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [mapReady]);
 
     const speak = useCallback((text: string) => {
         if (!voiceEnabled || !('speechSynthesis' in window)) return;
@@ -427,9 +445,18 @@ const RiderLiveMap = ({
         };
         window.addEventListener('deviceorientation', onOrientation);
 
+        // Resize handler
+        const handleResize = () => {
+            if (mapRef.current) mapRef.current.invalidateSize();
+        };
+        window.addEventListener('resize', handleResize);
+
+
         return () => {
+            window.removeEventListener('resize', handleResize);
             window.removeEventListener('deviceorientation', onOrientation);
             cancelAnimationFrame(animFrameRef.current);
+
             if (polylineRedrawRef.current) clearTimeout(polylineRedrawRef.current);
             map.remove();
             mapRef.current = null;
@@ -452,7 +479,23 @@ const RiderLiveMap = ({
             maxZoom: 20,
             attribution: TILE_LAYERS[tileMode].attribution,
         }).addTo(mapRef.current);
+
+        // Ensure tiles are correctly aligned after layer swap
+        mapRef.current.invalidateSize();
     }, [tileMode]);
+
+    /* ── 3. Handle size changes (fullscreen, height) ────────── */
+    useEffect(() => {
+        if (!mapRef.current) return;
+
+        // Delay slightly to allow CSS transitions/layouts to settle
+        const timer = setTimeout(() => {
+            mapRef.current?.invalidateSize();
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [height, isFullscreen]);
+
 
     /* ── 3. Smooth animation loop ───────────────────────────── */
     const startAnimLoop = useCallback(() => {
@@ -648,8 +691,14 @@ const RiderLiveMap = ({
 
             // ETA
             const mins = Math.round(r.totalDuration / 60);
-            setEta(mins < 1 ? '< 1 min' : `${mins} min`);
-            setDistKm(r.totalDistance / 1000);
+            const newEta = mins < 1 ? '< 1 min' : `${mins} min`;
+            const dLeft = r.totalDistance / 1000;
+            const newDist = dLeft < 1 ? `${(dLeft * 1000).toFixed(0)} m` : `${dLeft.toFixed(1)} km`;
+
+            setEta(newEta);
+            setDistKm(dLeft);
+            onRouteInfoUpdate?.({ eta: newEta, distance: newDist });
+
         });
 
         return () => routeAbort.current?.abort();
@@ -708,8 +757,13 @@ const RiderLiveMap = ({
             ? calculateDistance(riderLat!, riderLng!, targetPoint[0], targetPoint[1])
             : 0;
         const mins = Math.round((distLeft / speed) * 60);
-        setEta(mins < 1 ? '< 1 min' : `${mins} min`);
+        const newEta = mins < 1 ? '< 1 min' : `${mins} min`;
+        const newDist = distLeft < 1 ? `${(distLeft * 1000).toFixed(0)} m` : `${distLeft.toFixed(1)} km`;
+
+        setEta(newEta);
         setDistKm(distLeft);
+        onRouteInfoUpdate?.({ eta: newEta, distance: newDist });
+
 
     }, [riderLat, riderLng, route, currentStepIdx, voiceEnabled, liveSpeed, hasRider, targetPoint]);
 

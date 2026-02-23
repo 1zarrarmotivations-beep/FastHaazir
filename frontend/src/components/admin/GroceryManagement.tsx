@@ -17,7 +17,16 @@ import {
     DollarSign,
     Box,
     TrendingUp,
-    Star
+    Star,
+    Store,
+    ShoppingBag,
+    ShoppingCart,
+    Trash,
+    Truck,
+    Clock,
+    Tag,
+    ChevronRight,
+    ChevronDown,
 } from "lucide-react";
 import {
     useGroceryCategories,
@@ -37,47 +46,85 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function GroceryManagement() {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState("categories");
+    const { data: products } = useGroceryProducts("all");
+    const lowStockCount = products?.filter(p => p.stock_quantity > 0 && p.stock_quantity <= 10).length || 0;
+    const outOfStockCount = products?.filter(p => p.stock_quantity <= 0).length || 0;
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-textPrimary">Grocery Management</h2>
-                    <p className="text-textSecondary">Control categories, products, stock, and pricing logic.</p>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Premium Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-12 h-12 rounded-2xl bg-primary shadow-lg shadow-primary/20 flex items-center justify-center text-white">
+                            <Store size={24} />
+                        </div>
+                        <h2 className="text-4xl font-black tracking-tight text-foreground">{t('admin.groceryControl')}</h2>
+                    </div>
+                    <p className="text-muted-foreground font-medium text-lg">{t('admin.manageYourStore')}</p>
+                </div>
+
+                {/* Quick Stats Strip */}
+                <div className="flex gap-4">
+                    <div className="bg-white dark:bg-muted/10 p-4 px-6 rounded-[2rem] border border-border/50 shadow-sm flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('admin.lowStock')}</span>
+                        <span className={`text-2xl font-black ${lowStockCount > 0 ? 'text-amber-500' : 'text-foreground'}`}>{lowStockCount}</span>
+                    </div>
+                    <div className="bg-white dark:bg-muted/10 p-4 px-6 rounded-[2rem] border border-border/50 shadow-sm flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('admin.outOfStock')}</span>
+                        <span className={`text-2xl font-black ${outOfStockCount > 0 ? 'text-red-500' : 'text-foreground'}`}>{outOfStockCount}</span>
+                    </div>
                 </div>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 lg:w-[600px] mb-6">
-                    <TabsTrigger value="categories" className="gap-2">
-                        <LayoutGrid size={16} /> Categories
-                    </TabsTrigger>
-                    <TabsTrigger value="products" className="gap-2">
-                        <Package size={16} /> Products
-                    </TabsTrigger>
-                    <TabsTrigger value="inventory" className="gap-2">
-                        <Box size={16} /> Inventory
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="gap-2">
-                        <Settings size={16} /> Settings
-                    </TabsTrigger>
-                </TabsList>
+                <div className="bg-muted/30 p-1.5 rounded-[2.5rem] border border-border/40 inline-flex mb-8">
+                    <TabsList className="bg-transparent border-none shadow-none h-auto gap-1">
+                        {[
+                            { id: 'categories', icon: LayoutGrid, label: t('admin.categories') },
+                            { id: 'products', icon: Package, label: t('admin.products') },
+                            { id: 'inventory', icon: Box, label: t('admin.inventory') },
+                            { id: 'settings', icon: Settings, label: t('admin.settings') }
+                        ].map((item) => (
+                            <TabsTrigger
+                                key={item.id}
+                                value={item.id}
+                                className="rounded-[2rem] px-8 py-3 data-[state=active]:bg-white dark:data-[state=active]:bg-muted data-[state=active]:shadow-xl data-[state=active]:text-primary transition-all duration-300 font-black uppercase tracking-widest text-[10px] gap-2.5"
+                            >
+                                <item.icon size={16} />
+                                {item.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </div>
 
-                <TabsContent value="categories">
-                    <CategoriesTab />
-                </TabsContent>
-                <TabsContent value="products">
-                    <ProductsTab />
-                </TabsContent>
-                <TabsContent value="inventory">
-                    <InventoryTab />
-                </TabsContent>
-                <TabsContent value="settings">
-                    <SettingsTab />
-                </TabsContent>
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <TabsContent value="categories" className="mt-0 outline-none">
+                            <CategoriesTab />
+                        </TabsContent>
+                        <TabsContent value="products" className="mt-0 outline-none">
+                            <ProductsTab />
+                        </TabsContent>
+                        <TabsContent value="inventory" className="mt-0 outline-none">
+                            <InventoryTab />
+                        </TabsContent>
+                        <TabsContent value="settings" className="mt-0 outline-none">
+                            <SettingsTab />
+                        </TabsContent>
+                    </motion.div>
+                </AnimatePresence>
             </Tabs>
         </div>
     );
@@ -85,7 +132,9 @@ export default function GroceryManagement() {
 
 // --- CATEGORIES TAB ---
 function CategoriesTab() {
+    const { t } = useTranslation();
     const { data: categories, isLoading } = useGroceryCategories();
+
     const upsertCategory = useUpsertGroceryCategory();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -176,6 +225,7 @@ function CategoriesTab() {
 
 // --- PRODUCTS TAB ---
 function ProductsTab() {
+    const { t } = useTranslation();
     const { data: categories } = useGroceryCategories();
     const [selectedCategory, setSelectedCategory] = useState("all");
     const { data: products } = useGroceryProducts(selectedCategory);
@@ -341,6 +391,7 @@ function ProductsTab() {
 
 // --- INVENTORY TAB ---
 function InventoryTab() {
+    const { t } = useTranslation();
     const { data: products } = useGroceryProducts();
     const upsertProduct = useUpsertGroceryProduct();
 
@@ -401,6 +452,7 @@ function InventoryTab() {
 
 // --- SETTINGS TAB ---
 function SettingsTab() {
+    const { t } = useTranslation();
     const { data: settings } = useGrocerySettings();
     const updateSettings = useUpdateGrocerySettings();
 

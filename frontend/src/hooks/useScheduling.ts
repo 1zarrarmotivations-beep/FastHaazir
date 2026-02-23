@@ -66,7 +66,7 @@ export const fetchAvailableSlots = async (date: string): Promise<AvailableSlot[]
         : (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
     const response = await fetch(
-        `${backendUrl}/api/scheduling/time-slots/available?date=${date}`,
+        `${backendUrl}/api/time-slots/available?date=${date}`,
         {
             headers: {
                 'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export const scheduleOrder = async (params: ScheduleOrderParams): Promise<Schedu
         : (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
     const response = await fetch(
-        `${backendUrl}/api/scheduling/schedule-order`,
+        `${backendUrl}/api/schedule-order`,
         {
             method: 'POST',
             headers: {
@@ -142,7 +142,7 @@ export const cancelScheduledOrder = async (scheduleId: string): Promise<Schedule
         : (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
     const response = await fetch(
-        `${backendUrl}/api/scheduling/scheduled-orders/${scheduleId}/cancel`,
+        `${backendUrl}/api/scheduled-orders/${scheduleId}/cancel`,
         {
             method: 'PUT',
             headers: {
@@ -175,7 +175,7 @@ export const rescheduleOrder = async (
         : (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
     const response = await fetch(
-        `${backendUrl}/api/scheduling/scheduled-orders/${scheduleId}/reschedule`,
+        `${backendUrl}/api/scheduled-orders/${scheduleId}/reschedule`,
         {
             method: 'PUT',
             headers: {

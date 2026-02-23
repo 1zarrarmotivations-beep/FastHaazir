@@ -427,7 +427,8 @@ export const useAcceptRequest = () => {
   const { data: riderProfile } = useRiderProfile();
 
   return useMutation({
-    mutationFn: async ({ requestId, requestType }: { requestId: string; requestType: 'rider_request' | 'order' }) => {
+    mutationFn: async ({ requestId, requestType }: { requestId: string; requestType: 'rider_request' | 'order' | 'grocery' }) => {
+
       if (!riderProfile) throw new Error('Rider profile not found');
 
       let customerId: string | null = null;
@@ -567,15 +568,14 @@ export const useAcceptRequest = () => {
 export const useUpdateDeliveryStatus = () => {
   const queryClient = useQueryClient();
   const { data: riderProfile } = useRiderProfile();
-
   return useMutation({
-    mutationFn: async ({ requestId, status, requestType }: { requestId: string; status: OrderStatus; requestType?: 'rider_request' | 'order' }) => {
+    mutationFn: async ({ requestId, status, requestType }: { requestId: string; status: OrderStatus; requestType?: 'rider_request' | 'order' | 'grocery' }) => {
       if (!riderProfile) throw new Error('Rider profile not found');
 
       let customerId: string | null = null;
       const type = requestType || 'rider_request';
 
-      if (type === ('grocery' as any)) {
+      if (type === 'grocery') {
         const { error } = await supabase
           .from('grocery_orders')
           .update({ status })
@@ -612,8 +612,6 @@ export const useUpdateDeliveryStatus = () => {
       }
 
       // Handle post-update success (Notifications & Payments)
-      // First, get customer ID for notifications
-      // customerId is already declared above at line 489
       if (type === 'order') {
         const { data: order } = await supabase
           .from('orders')

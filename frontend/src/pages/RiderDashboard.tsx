@@ -70,6 +70,8 @@ const RiderDashboard = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   // IncomingOrderSheet — shows the premium 60s countdown card for new requests
   const [incomingRequest, setIncomingRequest] = useState<any>(null);
+  const [routeInfo, setRouteInfo] = useState({ eta: '-- min', distance: '-- km' });
+
 
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
   const previousRequestsCount = useRef(0);
@@ -483,8 +485,9 @@ const RiderDashboard = () => {
                         ? (activeDeliveries[0]?.pickup_address || 'Pickup')
                         : (activeDeliveries[0]?.dropoff_address || 'Dropoff')
                     }
-                    eta="~15 min"
-                    distance="3.2 km"
+                    eta={routeInfo.eta}
+                    distance={routeInfo.distance}
+
                     status={
                       (activeDeliveries[0]?.status as string) === 'accepted' || (activeDeliveries[0]?.status as string) === 'heading_to_pickup'
                         ? 'to_pickup'
@@ -511,7 +514,11 @@ const RiderDashboard = () => {
                 vehicleType={riderProfile?.vehicle_type || 'bike'}
                 currentSpeed={lastLocation?.speed ?? 0}
                 height="calc(100vh - 180px)"
+                onRouteInfoUpdate={(info) => {
+                  setRouteInfo(info);
+                }}
               />
+
               {activeDeliveries.length === 0 && (
                 <div className="mt-4 px-4">
                   <div className="glass-card rounded-2xl p-6 text-center">

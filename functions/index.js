@@ -12,6 +12,8 @@ require('dotenv').config();
 
 // Import schedule processor
 const scheduleProcessor = require('./scheduleProcessor');
+const schedulingRouter = require('./scheduling');
+
 
 // Config for Firebase Functions
 setGlobalOptions({ maxInstances: 10 });
@@ -28,6 +30,8 @@ const app = express();
 
 // Middleware
 app.use(cors({ origin: true }));
+app.use('/api', schedulingRouter);
+
 // Verification of raw body for webhook signatures
 app.use(bodyParser.json({
     limit: '50mb',
@@ -1180,16 +1184,36 @@ const verifyAdmin = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid or expired token' });
         }
 
-        // Check if user is admin via RPC
-        const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
-            _user_id: user.id,
-            _role: 'admin'
-        });
+        // Check if user is admin via RPC with fallback
+        let isAdmin = false;
+        try {
+            const { data, error: roleError } = await supabase.rpc('has_role', {
+                _user_id: user.id,
+                _role: 'admin'
+            });
 
-        if (roleError || !isAdmin) {
+            if (roleError) {
+                console.error('Admin check RPC error:', roleError);
+                // Fallback to manual check
+                const { data: roleData } = await supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', user.id)
+                    .eq('role', 'admin')
+                    .single();
+                isAdmin = !!roleData;
+            } else {
+                isAdmin = !!data;
+            }
+        } catch (e) {
+            console.error('Admin role check error:', e);
+        }
+
+        if (!isAdmin) {
             console.warn(`Unauthorized admin attempt by user: ${user.id}`);
             return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
         }
+
 
         req.admin = user;
         next();
@@ -1335,21 +1359,34 @@ const verifyAdminMiddleware = async (req, res, next) => {
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (error || !user) return res.status(401).json({ error: 'Invalid token' });
 
-        // Check if user has admin role
-        // This assumes you have a has_role RPC function or similar logic
-        const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+        // Check if user has admin role with multiple levels of check
+        let isAdmin = false;
+        try {
+            const { data, error: roleError } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-        if (roleError || !isAdmin) {
-            // Fallback: Check if email is in a hardcoded admin list for safety
+            if (roleError) {
+                // Fallback 1: Database check
+                const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').single();
+                isAdmin = !!roleData;
+            } else {
+                isAdmin = !!data;
+            }
+        } catch (e) {
+            console.error('Admin check failed:', e);
+        }
+
+        if (!isAdmin) {
+            // Fallback 2: Check if email is in a hardcoded admin list for safety
             const adminEmails = [
                 'admin@fasthaazir.com',
                 'superadmin@fasthaazir.com',
-                'qasim.dev.001@gmail.com' // From context or safe default
+                'qasim.dev.001@gmail.com'
             ];
             if (!adminEmails.includes(user.email)) {
                 return res.status(403).json({ error: 'Forbidden' });
             }
         }
+
 
         req.user = user;
         next();
