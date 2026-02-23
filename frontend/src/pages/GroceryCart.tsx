@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGroceryCart } from "@/context/GroceryCartContext";
 import { useCustomerAddresses, useDefaultAddress, useCreateAddress } from "@/hooks/useCustomerAddresses";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +61,7 @@ const TIME_SLOTS: TimeSlot[] = [
 ];
 
 export default function GroceryCart() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const {
         items,
@@ -433,7 +435,7 @@ export default function GroceryCart() {
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full bg-muted/50">
                     <ArrowLeft size={18} />
                 </Button>
-                <h1 className="font-black text-xl">My Basket</h1>
+                <h1 className="font-black text-xl">{t('grocery.myBasket')}</h1>
             </header>
 
             <div className="p-4 space-y-6">

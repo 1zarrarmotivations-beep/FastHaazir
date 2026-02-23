@@ -21,6 +21,7 @@ import { useGroceryCategories, useGroceryProducts, useGrocerySettings } from "@/
 import { useGroceryCart } from "@/context/GroceryCartContext";
 import { useCustomerAddresses, useDefaultAddress, CustomerAddress } from "@/hooks/useCustomerAddresses";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "react-i18next";
 import ProductCard from "@/components/grocery/ProductCard";
 import BannerCarousel from "@/components/customer/BannerCarousel";
 import BottomNav from "@/components/BottomNav";
@@ -146,6 +147,7 @@ const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: numbe
 };
 
 export default function Grocery() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -238,7 +240,7 @@ export default function Grocery() {
       },
       (error) => {
         console.error("Geolocation error:", error);
-        toast.error("Could not get your location. Please check permissions.");
+        toast.error(t('grocery.couldNotGetLocation'));
         setIsGettingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -263,7 +265,7 @@ export default function Grocery() {
     setUserLocation(location);
     setSelectedAddressId(undefined);
     setShowMapPicker(false);
-    toast.success("Delivery location updated!");
+    toast.success(t('grocery.deliveryLocationUpdated'));
   };
 
   // Combine DB products with medicine fallback items
@@ -301,13 +303,13 @@ export default function Grocery() {
             </Button>
             <div>
               <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter text-primary">
-                <MapPin size={10} /> Delivering to
+                <MapPin size={10} /> {t('grocery.deliveringTo')}
               </div>
               <button
                 onClick={() => setShowAddressSelector(true)}
                 className="text-sm font-bold flex items-center gap-1 hover:text-primary transition-colors text-left"
               >
-                {userLocation?.address || "Select Location"}
+                {userLocation?.address || t('grocery.selectLocation')}
                 <ChevronRight size={14} className="text-muted-foreground" />
               </button>
             </div>
@@ -326,7 +328,7 @@ export default function Grocery() {
             <Search size={18} />
           </div>
           <Input
-            placeholder="Search fresh groceries..."
+            placeholder={t('grocery.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-12 h-12 bg-muted/50 border-none rounded-2xl text-base shadow-inner pr-10"
@@ -347,12 +349,12 @@ export default function Grocery() {
             <Truck size={14} className="text-primary" />
             <span>
               {isOutsideDeliveryZone ? (
-                <span className="text-amber-600 font-medium">Delivery may not be available</span>
+                <span className="text-amber-600 font-medium">{t('grocery.deliveryMayNotBeAvailable')}</span>
               ) : (
                 <>
-                  <span className="font-semibold text-foreground">Delivery: </span>
+                  <span className="font-semibold text-foreground">{t('grocery.delivery')}: </span>
                   {deliveryFee === 0 ? (
-                    <span className="text-green-600 font-semibold">FREE</span>
+                    <span className="text-green-600 font-semibold">{t('grocery.free')}</span>
                   ) : (
                     <span>PKR {deliveryFee}</span>
                   )}
@@ -361,7 +363,7 @@ export default function Grocery() {
             </span>
             {settings.min_order_value && (
               <span className="ml-auto">
-                Min order: PKR {settings.min_order_value}
+                {t('grocery.minOrder')}: PKR {settings.min_order_value}
               </span>
             )}
           </div>
@@ -381,10 +383,10 @@ export default function Grocery() {
               <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                  Outside Delivery Zone
+                  {t('grocery.outsideDeliveryZone')}
                 </p>
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                  Delivery might not be available to your area. You may experience delays or higher delivery fees.
+                  {t('grocery.deliveryMayNotBeAvailable')}
                 </p>
               </div>
             </div>
@@ -399,7 +401,7 @@ export default function Grocery() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
               <div className="w-1.5 h-6 bg-primary rounded-full" />
-              Categorize & Shop
+              {t('grocery.categories')}
             </h2>
           </div>
           <div className="grid grid-cols-4 gap-y-6 gap-x-2">
@@ -410,7 +412,7 @@ export default function Grocery() {
               <div className={`w-16 h-16 rounded-3xl flex items-center justify-center p-3 transition-all duration-300 ${!selectedCategory ? 'bg-primary shadow-xl shadow-primary/30 ring-4 ring-primary/20' : 'bg-muted/50 group-hover:bg-muted opacity-80'}`}>
                 <Sparkles className={`w-8 h-8 ${!selectedCategory ? 'text-white' : 'text-muted-foreground'}`} />
               </div>
-              <span className={`text-[11px] font-black tracking-tight truncate w-full text-center ${!selectedCategory ? 'text-primary' : 'text-muted-foreground'}`}>All Items</span>
+              <span className={`text-[11px] font-black tracking-tight truncate w-full text-center ${!selectedCategory ? 'text-primary' : 'text-muted-foreground'}`}>{t('grocery.allItems')}</span>
             </button>
 
             {categories?.filter(c => c.is_active).map((cat) => (
@@ -454,7 +456,7 @@ export default function Grocery() {
                 <span className="text-3xl leading-none">💊</span>
               </div>
               <span className={`text-[10px] font-black tracking-tight leading-tight w-full text-center px-0.5 line-clamp-2 ${selectedCategory === MEDICINE_CATEGORY_ID ? 'text-primary' : 'text-muted-foreground'}`}>
-                Medicine
+                {t('grocery.medicine')}
               </span>
             </button>
           </div>
@@ -473,9 +475,9 @@ export default function Grocery() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-amber-500 rounded-full" />
-                Premium Deals
+                {t('grocery.premiumDeals')}
               </h2>
-              <Badge variant="outline" className="rounded-full font-bold border-amber-500/20 text-amber-600 bg-amber-500/5 px-3 py-1">Best Value</Badge>
+              <Badge variant="outline" className="rounded-full font-bold border-amber-500/20 text-amber-600 bg-amber-500/5 px-3 py-1">{t('grocery.bestValue')}</Badge>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {featuredProducts.slice(0, 4).map(p => (
@@ -495,14 +497,14 @@ export default function Grocery() {
                 <TrendingUp size={18} className="text-success" />
               )}
               {isMedicineSelected
-                ? 'Medicine'
+                ? t('grocery.medicine')
                 : selectedCategory
                   ? categories?.find(c => c.id === selectedCategory)?.name
-                  : 'Fresh For You'}
+                  : t('grocery.freshForYou')}
             </h2>
             {searchQuery && (
               <Badge variant="secondary" className="rounded-full">
-                {filteredProducts?.length || 0} results
+                {filteredProducts?.length || 0} {t('grocery.results')}
               </Badge>
             )}
           </div>
@@ -520,14 +522,14 @@ export default function Grocery() {
           ) : (
             <div className="text-center py-12 bg-muted/30 rounded-3xl border border-dashed border-border flex flex-col items-center">
               <ShoppingBag size={48} className="text-muted-foreground/30 mb-2" />
-              <p className="text-muted-foreground font-medium">No products found in this category</p>
+              <p className="text-muted-foreground font-medium">{t('grocery.noProductsFound')}</p>
               {searchQuery && (
                 <Button
                   variant="link"
                   onClick={() => setSearchQuery("")}
                   className="mt-2 text-primary"
                 >
-                  Clear search
+                  {t('grocery.clearSearch')}
                 </Button>
               )}
             </div>
@@ -556,7 +558,7 @@ export default function Grocery() {
                   </span>
                 </div>
                 <div className="text-left">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80">View Basket</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-80">{t('grocery.viewBasket')}</p>
                   <p className="text-lg font-black leading-none">PKR {subtotal.toFixed(0)}</p>
                 </div>
               </div>
@@ -565,13 +567,13 @@ export default function Grocery() {
                 {subtotal < minOrderValue ? (
                   <div className="flex flex-col items-end">
                     <span className="text-[10px] font-bold bg-black/10 px-2 py-1 rounded-lg">
-                      PKR {remainingForMinOrder} away
+                      PKR {remainingForMinOrder} {t('grocery.away')}
                     </span>
-                    <span className="text-[8px] text-white/60">Min: PKR {minOrderValue}</span>
+                    <span className="text-[8px] text-white/60">{t('grocery.minOrder')}: PKR {minOrderValue}</span>
                   </div>
                 ) : (
                   <span className="text-[10px] font-bold bg-white/20 px-2 py-1 rounded-lg">
-                    ✓ Ready
+                    ✓ {t('grocery.ready')}
                   </span>
                 )}
                 <ChevronRight size={20} />
@@ -613,7 +615,7 @@ export default function Grocery() {
             >
               <div className="p-4 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-black">Select Delivery Location</h3>
+                  <h3 className="text-lg font-black">{t('grocery.selectDeliveryLocation')}</h3>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -640,8 +642,8 @@ export default function Grocery() {
                     )}
                   </div>
                   <div className="text-left">
-                    <p className="font-semibold text-sm">Use Current Location</p>
-                    <p className="text-xs text-muted-foreground">Get your GPS location</p>
+                    <p className="font-semibold text-sm">{t('grocery.useCurrentLocation')}</p>
+                    <p className="text-xs text-muted-foreground">{t('grocery.getYourGPSLocation')}</p>
                   </div>
                 </button>
               </div>
@@ -650,7 +652,7 @@ export default function Grocery() {
               {savedAddresses.length > 0 && (
                 <div className="p-4">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                    Saved Addresses
+                    {t('grocery.savedAddresses')}
                   </h4>
                   <div className="space-y-2">
                     {savedAddresses.map((addr) => (
@@ -672,7 +674,7 @@ export default function Grocery() {
                           <p className="font-semibold text-sm">{addr.label}</p>
                           <p className="text-xs text-muted-foreground truncate">{addr.address_text}</p>
                           {addr.is_default && (
-                            <Badge variant="secondary" className="mt-1 text-[10px] h-5">Default</Badge>
+                            <Badge variant="secondary" className="mt-1 text-[10px] h-5">{t('grocery.default')}</Badge>
                           )}
                         </div>
                       </button>
@@ -685,7 +687,7 @@ export default function Grocery() {
               {savedAddresses.length === 0 && user && (
                 <div className="p-4 text-center">
                   <MapPin className="w-12 h-12 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-muted-foreground text-sm">No saved addresses</p>
+                  <p className="text-muted-foreground text-sm">{t('grocery.noSavedAddresses')}</p>
                   <Button
                     variant="outline"
                     className="mt-3"
@@ -694,7 +696,7 @@ export default function Grocery() {
                       navigate('/profile/addresses');
                     }}
                   >
-                    Add New Address
+                    {t('grocery.addNewAddress')}
                   </Button>
                 </div>
               )}
@@ -702,14 +704,14 @@ export default function Grocery() {
               {/* Login Prompt */}
               {!user && (
                 <div className="p-4 text-center">
-                  <p className="text-muted-foreground text-sm mb-3">Login to save your addresses</p>
+                  <p className="text-muted-foreground text-sm mb-3">{t('grocery.loginToSaveAddresses')}</p>
                   <Button
                     onClick={() => {
                       setShowAddressPicker(false);
                       navigate('/auth');
                     }}
                   >
-                    Login
+                    {t('grocery.login')}
                   </Button>
                 </div>
               )}

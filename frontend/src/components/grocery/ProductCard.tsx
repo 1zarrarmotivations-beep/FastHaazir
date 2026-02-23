@@ -4,12 +4,14 @@ import { useGroceryCart } from "@/context/GroceryCartContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface ProductCardProps {
     product: any;
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+    const { t } = useTranslation();
     const { items, addItem, updateQuantity } = useGroceryCart();
 
     const existingItem = items.find(i => i.id === product.id);
@@ -65,24 +67,24 @@ export default function ProductCard({ product }: ProductCardProps) {
                 />
                 {product.discount_price && (
                     <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                        Save PKR {product.base_price - product.discount_price}
+                        {t('grocery.savePKR')} {product.base_price - product.discount_price}
                     </div>
                 )}
                 {product.stock_quantity <= 5 && product.stock_quantity > 0 && (
                     <div className="absolute bottom-2 left-2 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md">
-                        Only {product.stock_quantity} Left
+                        {t('grocery.onlyLeft')} {product.stock_quantity}
                     </div>
                 )}
                 {product.stock_quantity <= 0 && (
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center">
-                        <Badge variant="destructive" className="font-bold">Out of Stock</Badge>
+                        <Badge variant="destructive" className="font-bold">{t('grocery.outOfStock')}</Badge>
                     </div>
                 )}
             </div>
 
             <div className="p-4 flex-1 flex flex-col">
                 <h4 className="font-bold text-textPrimary text-sm leading-tight mb-1 line-clamp-1">{product.name}</h4>
-                <p className="text-[10px] text-textSecondary mb-2 font-medium">Price: PKR {unitPrice}/{unitLabel}</p>
+                <p className="text-[10px] text-textSecondary mb-2 font-medium">{t('grocery.pricePer')}: PKR {unitPrice}/{unitLabel}</p>
 
                 <div className="mt-auto pt-2">
                     <div className="flex items-center justify-between mb-3">
@@ -91,7 +93,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                                 {product.discount_price ? `PKR ${product.base_price}` : ''}
                             </span>
                             <span className="text-lg font-black text-primary">PKR {totalPrice.toFixed(0)}</span>
-                            <span className="text-[10px] text-textSecondary">Total: {currentQty} {unitLabel}</span>
+                            <span className="text-[10px] text-textSecondary">{t('grocery.total')}: {currentQty} {unitLabel}</span>
                         </div>
 
                         <div className="flex items-center bg-muted/50 rounded-xl p-1 border border-border">
@@ -120,7 +122,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                             }`}
                     >
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        {existingItem ? `In Cart (${currentQty} ${unitLabel})` : 'Add to Cart'}
+                        {existingItem ? `${t('grocery.inCart')} (${currentQty} ${unitLabel})` : t('grocery.addToCart')}
                     </Button>
                 </div>
             </div>
